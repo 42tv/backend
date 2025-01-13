@@ -1,0 +1,57 @@
+// 관계를 맺는 필드 위에 pk,rk를 
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_idx        Int         @id @default(autoincrement())
+  user_id         String      @unique
+  user_pw         String
+  nickname        String
+  profileImg      String      @default("")
+
+  user_detail_idx Int         @unique  // 필수 필드로 설정하고 유니크 제약 추가
+  userDetail      UserDetail?
+  UserTerms       UserTerms[]
+}
+
+model UserDetail {
+  user_detail_idx Int      @id @default(autoincrement())
+  user_idx        Int      @unique
+  name            String
+  phone           String
+  email           String   @unique
+  address         String
+  createdAt       DateTime @default(now())
+  User            User     @relation(fields: [user_idx], references: [user_idx], onDelete: Cascade)  // 반드시 1:1 관계를 유지하도록 설정
+}
+
+// 이용약관
+model Terms {
+  terms_idx     Int         @id @default(autoincrement())
+  version       Float
+  content       String
+  effectiveDate DateTime
+  createdAt     DateTime    @default(now())
+  UserTerms     UserTerms[]
+}
+
+model UserTerms {
+  user_terms_idx Int      @id @default(autoincrement())
+  agreedAt       DateTime
+  createdAt      DateTime @default(now())
+
+  // Relations
+  user_idx       Int
+  terms_idx      Int
+  user  User  @relation(fields: [user_idx], references: [user_idx], onDelete: Cascade)
+  terms Terms @relation(fields: [terms_idx], references: [terms_idx], onDelete: Cascade)
+
+  // Constraints
+  @@unique([user_idx, terms_idx]) // 한 사용자당 한 약관 버전에 대해 한 번만 동의 가능
+}
