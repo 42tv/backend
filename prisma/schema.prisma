@@ -20,13 +20,16 @@ model User {
   UserTerms       UserTerms[]
 }
 
+// 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
 model UserDetail {
   user_detail_idx Int      @id @default(autoincrement())
   user_idx        Int      @unique
-  name            String
-  phone           String
-  email           String   @unique
-  address         String
+  name            String   
+  sex             String   
+  resident_number String   // 암호화 필요
+  phone           String   // 암호화 필요
+  email           String   @unique // 암호화 필요
+  address         String   // 암호화 필요
   createdAt       DateTime @default(now())
   User            User     @relation(fields: [user_idx], references: [user_idx], onDelete: Cascade)  // 반드시 1:1 관계를 유지하도록 설정
 }
@@ -41,6 +44,7 @@ model Terms {
   UserTerms     UserTerms[]
 }
 
+// 이용약관 동의 여부
 model UserTerms {
   user_terms_idx Int      @id @default(autoincrement())
   agreedAt       DateTime
