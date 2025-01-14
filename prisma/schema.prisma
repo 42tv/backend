@@ -8,6 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 회원 테이블
 model User {
   user_idx        Int         @id @default(autoincrement())
   user_id         String      @unique
@@ -75,6 +76,7 @@ model IVSChannel {
   Channel Channel @relation(fields: [channel_idx], references: [channel_idx], onDelete: Cascade)
 }
 
+// 채널 테이블
 model Channel {
   channel_idx       Int      @id @default(autoincrement())
   title             String
@@ -91,4 +93,25 @@ model Channel {
   User User @relation(fields: [user_idx], references: [user_idx], onDelete: Cascade)
   ivs_channel_idx   Int     @unique
   ivs_channel IVSChannel?
+  stream_idx        Int     @unique
+  stream Stream?
+}
+
+// Stream 정보
+// 이 정보들은 아마 서비스할때에는 redis에 복사본을 들고있다가 
+// 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
+model Stream {
+  stream_idx      Int      @id @default(autoincrement())
+  play_cnt        Int      @default(0)
+  like_cnt        Int      @default(0)
+  thumbnail       String
+  is_adult        Boolean  @default(false)
+  is_live         Boolean  @default(false)
+  is_pw           Boolean  @default(false)
+  start_time      DateTime
+  live_type       String
+
+  // Relations
+  channel_idx     Int     @unique
+  Channel Channel @relation(fields: [channel_idx], references: [channel_idx], onDelete: Cascade)
 }
