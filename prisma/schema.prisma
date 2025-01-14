@@ -17,6 +17,8 @@ model User {
 
   user_detail_idx Int         @unique  // 필수 필드로 설정하고 유니크 제약 추가
   userDetail      UserDetail?
+  channel_idx     Int         @unique  // 필수 필드로 설정하고 유니크 제약 추가
+  channel         Channel?
   UserTerms       UserTerms[]
 }
 
@@ -58,4 +60,35 @@ model UserTerms {
 
   // Constraints
   @@unique([user_idx, terms_idx]) // 한 사용자당 한 약관 버전에 대해 한 번만 동의 가능
+}
+
+// AWS IVS 채널 정보
+model IVSChannel {
+  ivs_channel_idx Int      @id @default(autoincrement())
+  arn             String   @unique
+  ingest_endpoint String
+  name            String
+  createdAt       DateTime @default(now())
+
+  // relations
+  channel_idx     Int      @unique
+  Channel Channel @relation(fields: [channel_idx], references: [channel_idx], onDelete: Cascade)
+}
+
+model Channel {
+  channel_idx       Int      @id @default(autoincrement())
+  title             String
+  bookmark          Int      @default(0)
+  like              Int      @default(0)
+  watch             Int      @default(0)
+  month_time        Int      @default(0)
+  total_time        Int      @default(0)
+  first_start_time  DateTime
+  createdAt         DateTime @default(now())
+
+  // Relations
+  user_idx          Int     @unique
+  User User @relation(fields: [user_idx], references: [user_idx], onDelete: Cascade)
+  ivs_channel_idx   Int     @unique
+  ivs_channel IVSChannel?
 }
