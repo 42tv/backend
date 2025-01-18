@@ -26,6 +26,8 @@
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
     "@prisma/client": "^6.2.1",
+    "graylog2": "^0.2.1",
+    "nestjs-graylog": "^2.0.3",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
   },
