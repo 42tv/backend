@@ -1,13 +1,20 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraylogModule, GraylogService } from 'nestjs-graylog';
 
 @Module({
   imports: [
-    GraylogModule.register({
-      servers: [{ host: '127.0.0.1', port: 12201 }],
-      hostname: '42tvp_backend', // optional, default: os.hostname()
-      facility: 'Node.js', // optional, default: Node.js
-      bufferSize: 1400, // optional, default: 1400
+    GraylogModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        servers: [
+          {
+            host: configService.get('GRAYLOG_HOST'),
+            port: 12201,
+          },
+        ],
+      }),
     }),
   ],
   providers: [GraylogService],
