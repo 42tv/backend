@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ChannelModule } from './channel/channel.module';
 import { UserDetailModule } from './user-detail/user-detail.module';
+import { LogModule } from './log/log.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UserDetailModule } from './user-detail/user-detail.module';
     PrismaModule,
     ChannelModule,
     UserDetailModule,
+    LogModule,
   ],
   controllers: [AppController],
   providers: [AppService, IvsService],
