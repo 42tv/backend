@@ -6,9 +6,20 @@ import { IvsService } from './ivs/ivs.service';
 import { IvsModule } from './ivs/ivs.module';
 import { GraylogProviderModule } from './graylog-provider/graylog-provider.module';
 import { UserModule } from './user/user.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { ChannelModule } from './channel/channel.module';
+import { UserDetailModule } from './user-detail/user-detail.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(), IvsModule, GraylogProviderModule, UserModule],
+  imports: [
+    ConfigModule.forRoot(),
+    IvsModule,
+    GraylogProviderModule,
+    UserModule,
+    PrismaModule,
+    ChannelModule,
+    UserDetailModule,
+  ],
   controllers: [AppController],
   providers: [AppService, IvsService],
 })
