@@ -9,7 +9,7 @@ export class UserService {
   async createUser(id: string, pw: string, nickname: string) {
     const salt = await bcrypt.genSalt();
     const hash = await bcrypt.hash(pw, salt);
-    await this.prisma.user.create({
+    return await this.prisma.user.create({
       data: {
         user_id: id,
         user_pw: hash,
