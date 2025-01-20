@@ -12,7 +12,7 @@ datasource db {
 model User {
   user_idx        Int         @id @default(autoincrement())
   user_id         String      @unique
-  user_pw         String
+  password        String
   nickname        String      @unique
   profileImg      String      @default("")
 
