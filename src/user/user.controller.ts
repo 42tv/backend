@@ -16,6 +16,6 @@ export class UserController {
     @Body('password') pw: string,
     @Body('nickname') nickname: string,
   ) {
-    await this.userService.createUser(id, pw, nickname);
+    return await this.userService.createUser(id, pw, nickname);
   }
 }
