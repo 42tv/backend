@@ -10,11 +10,13 @@ datasource db {
 
 // 회원 테이블
 model User {
-  user_idx        Int         @id @default(autoincrement())
-  user_id         String      @unique
-  password        String
-  nickname        String      @unique
-  profileImg      String      @default("")
+  user_idx          Int         @id @default(autoincrement())
+  user_id           String      @unique
+  password          String?
+  nickname          String      @unique
+  profileImg        String      @default("")
+  oauth_provider    String?
+  oauth_provider_id String?
 
   user_detail_idx Int?        //위 요소들은 본인인증을 진행했을때만 생성되야해서 옵셔널 처리
   userDetail      UserDetail?

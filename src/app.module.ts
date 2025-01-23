@@ -11,6 +11,7 @@ import { ChannelModule } from './channel/channel.module';
 import { UserDetailModule } from './user-detail/user-detail.module';
 import { LogModule } from './log/log.module';
 import { AuthModule } from './auth/auth.module';
+import { OauthModule } from './oauth/oauth.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AuthModule } from './auth/auth.module';
     UserDetailModule,
     LogModule,
     AuthModule,
+    OauthModule,
   ],
   controllers: [AppController],
   providers: [AppService, IvsService],
