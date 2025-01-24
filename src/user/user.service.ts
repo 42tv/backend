@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UserService {
@@ -53,17 +54,22 @@ export class UserService {
    * @param nickname
    * @returns
    */
-  async createUser(id: string, pw: string, nickname: string) {
-    if (pw === '') {
+  async createUser(createUserDto: CreateUserDto) {
+    console.log(
+      createUserDto.id,
+      createUserDto.password,
+      createUserDto.nickname,
+    );
+    if (createUserDto.password === '') {
       throw new BadRequestException('비밀번호를 입력해주세요');
     }
     const salt = await bcrypt.genSalt();
-    const hash = await bcrypt.hash(pw, salt);
+    const hash = await bcrypt.hash(createUserDto.password, salt);
     return await this.prisma.user.create({
       data: {
-        user_id: id,
+        user_id: createUserDto.id,
         password: hash,
-        nickname: nickname,
+        nickname: createUserDto.nickname,
       },
     });
   }
