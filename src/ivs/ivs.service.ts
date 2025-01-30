@@ -5,12 +5,14 @@ import {
   GetStreamKeyCommand,
   CreateStreamKeyCommand,
 } from '@aws-sdk/client-ivs';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class IvsService {
   private readonly client: IvsClient;
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     this.client = new IvsClient({
       region: process.env.AWS_REGION,
       credentials: {
@@ -20,7 +22,7 @@ export class IvsService {
     });
   }
 
-  async createChannel(channelName: string) {
+  async requestChannel(channelName: string) {
     try {
       const command = new CreateChannelCommand({
         name: channelName,
@@ -33,6 +35,15 @@ export class IvsService {
       console.error('Error creating channel:', error);
       throw error;
     }
+  }
+
+  async createChannel(channel_idx: number, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.stream.create({
+      data: {
+        channel_idx: channel_idx,
+      },
+    });
   }
 
   async createStreamKey(channelArn: string) {

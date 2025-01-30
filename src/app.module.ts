@@ -12,6 +12,7 @@ import { UserDetailModule } from './user-detail/user-detail.module';
 import { LogModule } from './log/log.module';
 import { AuthModule } from './auth/auth.module';
 import { OauthModule } from './oauth/oauth.module';
+import { StreamModule } from './stream/stream.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { OauthModule } from './oauth/oauth.module';
     LogModule,
     AuthModule,
     OauthModule,
+    StreamModule,
   ],
   controllers: [AppController],
   providers: [AppService, IvsService],

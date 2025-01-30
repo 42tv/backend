@@ -1,4 +1,4 @@
-# Nextjs 백엔드
+# 42TV Backend Server
 
 ## 기술스택
 

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
 import { AuthService } from 'src/auth/auth.service';
+import { LogService } from 'src/log/log.service';
 import { UserService } from 'src/user/user.service';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class OauthService {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
+    private readonly logService: LogService,
   ) {}
 
   getGoogleLoginURL() {
@@ -27,9 +29,7 @@ export class OauthService {
   }
 
   async getGoogleLoginJwt(code: string): Promise<string> {
-    console.log(code);
     const { tokens } = await this.googleOauth2Client.getToken(code);
-    console.log(tokens);
     this.googleOauth2Client.setCredentials(tokens);
 
     // Get user info - email

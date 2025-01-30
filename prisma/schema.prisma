@@ -10,7 +10,7 @@ datasource db {
 
 // 회원 테이블
 model User {
-  user_idx          Int         @id @default(autoincrement())
+  idx          Int         @id @default(autoincrement())
   user_id           String      @unique
   password          String?
   nickname          String      @unique
@@ -27,7 +27,7 @@ model User {
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
 model UserDetail {
-  user_detail_idx Int      @id @default(autoincrement())
+  idx Int      @id @default(autoincrement())
   user_idx        Int      @unique
   name            String   
   sex             String   
@@ -36,12 +36,12 @@ model UserDetail {
   email           String   @unique // 암호화 필요
   address         String   // 암호화 필요
   createdAt       DateTime @default(now())
-  User            User     @relation(fields: [user_idx], references: [user_idx], onDelete: Cascade)  // 반드시 1:1 관계를 유지하도록 설정
+  User            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)  // 반드시 1:1 관계를 유지하도록 설정
 }
 
 // 이용약관
 model Terms {
-  terms_idx     Int         @id @default(autoincrement())
+  idx     Int         @id @default(autoincrement())
   version       Float
   content       String
   effectiveDate DateTime
@@ -51,15 +51,15 @@ model Terms {
 
 // 이용약관 동의 여부
 model UserTerms {
-  user_terms_idx Int      @id @default(autoincrement())
+  idx Int      @id @default(autoincrement())
   agreedAt       DateTime
   createdAt      DateTime @default(now())
 
   // Relations
   user_idx       Int
   terms_idx      Int
-  user  User  @relation(fields: [user_idx], references: [user_idx], onDelete: Cascade)
-  terms Terms @relation(fields: [terms_idx], references: [terms_idx], onDelete: Cascade)
+  user  User  @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  terms Terms @relation(fields: [terms_idx], references: [idx], onDelete: Cascade)
 
   // Constraints
   @@unique([user_idx, terms_idx]) // 한 사용자당 한 약관 버전에 대해 한 번만 동의 가능
@@ -67,35 +67,37 @@ model UserTerms {
 
 // AWS IVS 채널 정보
 model IVSChannel {
-  ivs_channel_idx Int      @id @default(autoincrement())
-  arn             String   @unique
-  ingest_endpoint String
+  idx Int      @id @default(autoincrement())
+  arn             String    @unique
+  ingest_endpoint String    @unique
+  playback_url     String   @unique
+  stream_key       String   @unique
   name            String
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
 
   // relations
-  channel_idx     Int      @unique
-  Channel Channel @relation(fields: [channel_idx], references: [channel_idx], onDelete: Cascade)
+  channel_idx     Int       @unique
+  Channel Channel @relation(fields: [channel_idx], references: [idx], onDelete: Cascade)
 }
 
 // 채널 테이블
 model Channel {
-  channel_idx       Int      @id @default(autoincrement())
-  title             String
+  idx       Int      @id @default(autoincrement())
+  title             String   @default("")
   bookmark          Int      @default(0)
   like              Int      @default(0)
   watch             Int      @default(0)
   month_time        Int      @default(0)
   total_time        Int      @default(0)
-  first_start_time  DateTime
+  first_start_time  DateTime?
   createdAt         DateTime @default(now())
 
   // Relations
   user_idx          Int     @unique
-  User User @relation(fields: [user_idx], references: [user_idx], onDelete: Cascade)
-  ivs_channel_idx   Int     @unique
+  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  ivs_channel_idx   Int?     @unique
   ivs_channel IVSChannel?
-  stream_idx        Int     @unique
+  stream_idx        Int?     @unique
   stream Stream?
 }
 
@@ -103,17 +105,17 @@ model Channel {
 // 이 정보들은 아마 서비스할때에는 redis에 복사본을 들고있다가 
 // 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
 model Stream {
-  stream_idx      Int      @id @default(autoincrement())
+  idx      Int      @id @default(autoincrement())
   play_cnt        Int      @default(0)
   like_cnt        Int      @default(0)
-  thumbnail       String
+  thumbnail       String   @default("")
   is_adult        Boolean  @default(false)
   is_live         Boolean  @default(false)
   is_pw           Boolean  @default(false)
-  start_time      DateTime
-  live_type       String
+  start_time      DateTime?
+  live_type       String?
 
   // Relations
   channel_idx     Int     @unique
-  Channel Channel @relation(fields: [channel_idx], references: [channel_idx], onDelete: Cascade)
+  Channel Channel @relation(fields: [channel_idx], references: [idx], onDelete: Cascade)
 }
