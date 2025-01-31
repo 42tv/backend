@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { IvsService } from 'src/ivs/ivs.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { StreamService } from 'src/stream/stream.service';
+import { IvsService } from '../ivs/ivs.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { StreamService } from '../stream/stream.service';
 
 @Injectable()
 export class ChannelService {
@@ -12,6 +12,13 @@ export class ChannelService {
     private readonly streamService: StreamService,
   ) {}
 
+  /**
+   * 채널 생성 함수
+   * @param user_idx
+   * @param user_id
+   * @param tx 트랜잭션 옵션
+   * @returns
+   */
   async createChannel(
     user_idx: number,
     user_id: string,
@@ -22,6 +29,19 @@ export class ChannelService {
       data: {
         user_idx: user_idx,
         title: `${user_id} 님의 채널`,
+      },
+    });
+  }
+
+  /**
+   * User_idx로 채널을 찾는 함수
+   * @param user_idx
+   * @returns
+   */
+  async findChannelByUserIdx(user_idx: number) {
+    return await this.prisma.channel.findFirst({
+      where: {
+        user_idx: user_idx,
       },
     });
   }

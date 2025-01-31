@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
-import { AuthService } from 'src/auth/auth.service';
-import { LogService } from 'src/log/log.service';
-import { UserService } from 'src/user/user.service';
+import { AuthService } from '../auth/auth.service';
+import { LogService } from '../log/log.service';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class OauthService {
@@ -56,14 +56,14 @@ export class OauthService {
         data.id,
       );
       const jwt = await this.authService.jwtSign({
-        sub: user.user_idx,
+        sub: user.idx,
         user_id: user.user_id,
         nickname: user.nickname,
       });
       return jwt;
     }
     const jwt = await this.authService.jwtSign({
-      sub: findedUser.user_idx,
+      sub: findedUser.idx,
       user_id: findedUser.user_id,
       nickname: findedUser.nickname,
     });
