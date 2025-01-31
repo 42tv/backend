@@ -56,14 +56,14 @@ export class OauthService {
         data.id,
       );
       const jwt = await this.authService.jwtSign({
-        sub: user.user_idx,
+        sub: user.idx,
         user_id: user.user_id,
         nickname: user.nickname,
       });
       return jwt;
     }
     const jwt = await this.authService.jwtSign({
-      sub: findedUser.user_idx,
+      sub: findedUser.idx,
       user_id: findedUser.user_id,
       nickname: findedUser.nickname,
     });

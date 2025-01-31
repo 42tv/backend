@@ -6,7 +6,7 @@ import { StreamModule } from 'src/stream/stream.module';
 
 @Module({
   imports: [PrismaModule, IvsModule, StreamModule],
-  exports: [ChannelService],
   providers: [ChannelService],
+  exports: [ChannelService],
 })
 export class ChannelModule {}

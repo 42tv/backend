@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChannelService } from 'src/channel/channel.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class UserService {
@@ -58,8 +59,12 @@ export class UserService {
    * @param nickname
    * @returns
    */
-  async createUser(createUserDto: CreateUserDto) {
-    const user = await this.prisma.user.findFirst({
+  async createUser(
+    createUserDto: CreateUserDto,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    const user = await prismaClient.user.findFirst({
       where: {
         user_id: createUserDto.id,
       },
@@ -72,7 +77,8 @@ export class UserService {
     const hash = await bcrypt.hash(createUserDto.password, salt);
 
     let createdUser;
-    await this.prisma.$transaction(async (tx) => {
+    // 테스트용 코드때문에 추가된부분이긴 한데src 부적절해 보이긴 해도 방법이 없었음
+    if (tx) {
       createdUser = await tx.user.create({
         data: {
           user_id: createUserDto.id,
@@ -85,8 +91,24 @@ export class UserService {
         createdUser.user_id,
         tx,
       );
-    });
-    return createdUser;
+      return createdUser;
+    } else {
+      await this.prisma.$transaction(async (tx) => {
+        createdUser = await tx.user.create({
+          data: {
+            user_id: createUserDto.id,
+            password: hash,
+            nickname: createUserDto.nickname,
+          },
+        });
+        await this.channelService.createChannel(
+          createdUser.idx,
+          createdUser.user_id,
+          tx,
+        );
+      });
+      return createdUser;
+    }
   }
 
   /**

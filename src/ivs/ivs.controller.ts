@@ -8,7 +8,8 @@ export class IvsController {
 
   @Get('create-channel/:channelName')
   async createChannel(@Param('channelName') channelName: string) {
-    return this.ivsService.createChannel(channelName);
+    // return this.ivsService.createChannel(channelName);
+    return channelName;
   }
 
   @Post('create-stream-key')
