@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
-import { AuthService } from '../auth/auth.service';
-import { LogService } from '../log/log.service';
-import { UserService } from '../user/user.service';
+import { AuthService } from 'src/auth/auth.service';
+import { LogService } from 'src/log/log.service';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class OauthService {

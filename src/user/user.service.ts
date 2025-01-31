@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ChannelService } from '../channel/channel.service';
+import { ChannelService } from 'src/channel/channel.service';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -77,7 +77,7 @@ export class UserService {
     const hash = await bcrypt.hash(createUserDto.password, salt);
 
     let createdUser;
-    // 테스트용 코드때문에 추가된부분이긴 한데.. 부적절해 보이긴 해도 방법이 없었음
+    // 테스트용 코드때문에 추가된부분이긴 한데src 부적절해 보이긴 해도 방법이 없었음
     if (tx) {
       createdUser = await tx.user.create({
         data: {

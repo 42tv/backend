@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { ChannelModule } from '../channel/channel.module';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { ChannelModule } from 'src/channel/channel.module';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserDto } from './dto/create-user.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -54,7 +54,7 @@ describe('UserService', () => {
           where: { user_idx: user.idx },
         });
         if (channel) {
-          console.log(channel);
+          // console.log(channel);
           throw new NotFoundException('transaction rollback');
         } else {
           throw new BadRequestException('No channel found');
