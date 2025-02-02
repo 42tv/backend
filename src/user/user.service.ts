@@ -53,6 +53,19 @@ export class UserService {
   }
 
   /**
+   * user_idx로 찾기
+   * @param user_idx
+   * @returns
+   */
+  async findByUserIdx(user_idx: number) {
+    return await this.prisma.user.findFirst({
+      where: {
+        idx: user_idx,
+      },
+    });
+  }
+
+  /**
    * 기본 회원가입 함수
    * @param id
    * @param pw

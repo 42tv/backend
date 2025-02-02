@@ -37,6 +37,7 @@ export class AuthService {
   }
 
   async verifyPhone(payload: any) {
-    return await this.channelService.verifyPhone(payload.user_idx);
+    const user = await this.userService.findByUserIdx(payload.user_idx);
+    return await this.channelService.verifyPhone(user.idx);
   }
 }
