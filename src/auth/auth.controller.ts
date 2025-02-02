@@ -16,4 +16,13 @@ export class AuthController {
   async login(@Request() req) {
     return this.authService.login(req.user);
   }
+
+  /**
+   * 휴대폰 본인 인증 경로(가칭)
+   */
+  @Post('phone-verification')
+  async phoneVerification(@Request() req) {
+    req.user = { user_idx: 1, user_id: 'test', nickname: 'test' };
+    return await this.authService.verifyPhone(req.user);
+  }
 }

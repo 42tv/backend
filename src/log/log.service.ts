@@ -1,21 +1,28 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { GraylogService } from 'nestjs-graylog';
 
 @Injectable()
 export class LogService {
-  constructor(private graylogService: GraylogService) {}
+  env = this.configService.get('ENV');
+  constructor(
+    private graylogService: GraylogService,
+    private configService: ConfigService,
+  ) {}
 
-  async logError() {
-    await this.graylogService.error('ERROR_MESSAGE', {});
+  async logError(subject: string, data: any = {}) {
+    await this.graylogService.error(subject, ...data);
   }
 
-  async logInfo() {
-    await this.graylogService.info('INFO_MESSAGE', {});
+  async logInfo(subject: string, data: any = {}) {
+    await this.graylogService.info(subject, ...data);
     return;
   }
 
-  async logDebug() {
-    await this.graylogService.debug('DEBUG_MESSAGE', {});
+  async logDebug(subject: string, data: any = {}) {
+    if (this.env == 'dev') {
+      await this.graylogService.debug(subject, ...data);
+    }
     return;
   }
 
