@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule,
     GraylogModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
