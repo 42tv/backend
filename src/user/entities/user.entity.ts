@@ -1,0 +1,72 @@
+import { ApiProperty } from '@nestjs/swagger';
+export class User {
+  @ApiProperty({ example: 1, description: 'User 유니크 index' })
+  idx: number;
+
+  @ApiProperty({ example: 'user123', description: '사용자 ID' })
+  user_id: string;
+
+  @ApiProperty({
+    example: 'password123!',
+    description: '비밀번호 8자리 이상 알파벳,숫자,특수문자 1개씩 이상',
+    required: false,
+  })
+  password?: string;
+
+  @ApiProperty({
+    example: 'nickname123',
+    description: '닉네임',
+  })
+  nickname: string;
+
+  @ApiProperty({
+    example: 'https://example.com/profile.jpg',
+    description: '프로필 이미지 URL',
+    default: '',
+  })
+  profileImg: string = '';
+
+  @ApiProperty({
+    example: null,
+    description: 'OAuth 제공자 (e.g., google, facebook)',
+    required: false,
+  })
+  oauth_provider?: string;
+
+  @ApiProperty({
+    example: null,
+    description: 'OAuth 제공자 unique ID',
+    required: false,
+  })
+  oauth_provider_id?: string;
+
+  @ApiProperty({
+    example: null,
+    description: 'User detail index',
+    required: false,
+  })
+  user_detail_idx?: number;
+
+  // @ApiProperty({
+  //   description: 'Detailed user information',
+  //   required: false,
+  //   type: () => UserDetail,
+  // })
+  // userDetail?: UserDetail;
+
+  @ApiProperty({ example: null, description: 'Channel index', required: false })
+  channel_idx?: number;
+
+  // @ApiProperty({
+  //   description: 'Channel information',
+  //   required: false,
+  //   type: () => Channel,
+  // })
+  // channel?: Channel;
+
+  // @ApiProperty({
+  //   description: 'User terms and conditions',
+  //   type: () => [UserTerms],
+  // })
+  // UserTerms: UserTerms[];
+}

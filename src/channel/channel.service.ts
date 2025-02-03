@@ -45,4 +45,27 @@ export class ChannelService {
       },
     });
   }
+
+  /**
+   * User가 본인인증에 성공하면 Stream과 Ivs를 생성해서 연결해줌
+   * @param channel_idx
+   */
+  async verifyPhone(user_idx: number) {
+    const channel = await this.findChannelByUserIdx(user_idx);
+    await this.prisma.$transaction(async (tx) => {
+      const stream = await this.streamService.createStream(channel.idx, tx);
+      const ivs = await this.ivsService.createChannel(channel.idx, tx);
+      await this.prisma.channel.update({
+        where: { idx: channel.idx },
+        data: {
+          stream: {
+            connect: { idx: stream.idx },
+          },
+          ivs_channel: {
+            connect: { idx: ivs.idx },
+          },
+        },
+      });
+    });
+  }
 }

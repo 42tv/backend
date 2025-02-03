@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
 import { JwtStrategy } from './guard/jwt.strategy';
+import { ChannelModule } from 'src/channel/channel.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { JwtStrategy } from './guard/jwt.strategy';
       secret: jwtConstants.secret,
       signOptions: { expiresIn: '999d' },
     }),
+    ChannelModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, LocalStrategy, JwtStrategy],

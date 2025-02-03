@@ -1,6 +1,7 @@
 import { Controller, Request, Post, UseGuards } from '@nestjs/common';
 import { LocalAuthGuard } from './guard/local-auth.guard';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guard/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -15,5 +16,14 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   async login(@Request() req) {
     return this.authService.login(req.user);
+  }
+
+  /**
+   * 휴대폰 본인 인증 경로(가칭)
+   */
+  @Post('phone-verification')
+  @UseGuards(JwtAuthGuard)
+  async phoneVerification(@Request() req) {
+    return await this.authService.verifyPhone(req.user);
   }
 }
