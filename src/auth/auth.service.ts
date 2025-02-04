@@ -21,13 +21,13 @@ export class AuthService {
     return null; // 인증 실패
   }
 
-  async jwtSign(payload: any) {
+  jwtSign(payload: any) {
     return this.jwtService.sign(payload);
   }
 
   async login(user: any) {
     const payload = {
-      sub: user.user_idx,
+      idx: user.idx,
       user_id: user.user_id,
       nickname: user.nickname,
     };
@@ -37,7 +37,7 @@ export class AuthService {
   }
 
   async verifyPhone(payload: any) {
-    const user = await this.userService.findByUserIdx(payload.user_idx);
+    const user = await this.userService.findByUserIdx(payload.idx);
     return await this.channelService.verifyPhone(user.idx);
   }
 }

@@ -4,6 +4,7 @@ import {
   CreateChannelCommand,
   GetStreamKeyCommand,
   CreateStreamKeyCommand,
+  DeleteChannelCommand,
 } from '@aws-sdk/client-ivs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -37,13 +38,41 @@ export class IvsService {
     }
   }
 
-  async createChannel(channel_idx: number, tx?: Prisma.TransactionClient) {
+  async createChannel(
+    channel_idx: number,
+    channle_title: string,
+    tx?: Prisma.TransactionClient,
+  ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.stream.create({
+    // 채널명은 idx로 설정
+    const responseChannel = await this.requestChannel(channel_idx.toString());
+    return await prismaClient.iVSChannel.create({
       data: {
-        channel_idx: channel_idx,
+        name: channle_title,
+        arn: responseChannel.channel.arn,
+        ingest_endpoint: responseChannel.channel.ingestEndpoint,
+        playback_url: responseChannel.channel.playbackUrl,
+        stream_key: responseChannel.streamKey.value,
+        Channel: {
+          connect: {
+            idx: channel_idx,
+          },
+        },
       },
     });
+  }
+
+  async deleteChannel(channelArn: string) {
+    try {
+      const command = new DeleteChannelCommand({
+        arn: channelArn,
+      });
+      const response = await this.client.send(command);
+      return response;
+    } catch (error) {
+      console.error('Error deleting channel:', error);
+      throw error;
+    }
   }
 
   async createStreamKey(channelArn: string) {

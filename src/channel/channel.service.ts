@@ -52,20 +52,15 @@ export class ChannelService {
    */
   async verifyPhone(user_idx: number) {
     const channel = await this.findChannelByUserIdx(user_idx);
-    await this.prisma.$transaction(async (tx) => {
-      const stream = await this.streamService.createStream(channel.idx, tx);
-      const ivs = await this.ivsService.createChannel(channel.idx, tx);
-      await this.prisma.channel.update({
-        where: { idx: channel.idx },
-        data: {
-          stream: {
-            connect: { idx: stream.idx },
-          },
-          ivs_channel: {
-            connect: { idx: ivs.idx },
-          },
-        },
+    let ivs;
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await this.streamService.createStream(channel.idx, tx);
+        await this.ivsService.createChannel(channel.idx, channel.title, tx);
       });
-    });
+    } catch (err) {
+      await this.ivsService.deleteChannel(ivs.arn);
+      throw err;
+    }
   }
 }

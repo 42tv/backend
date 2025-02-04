@@ -10,7 +10,17 @@ export class StreamService {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.stream.create({
       data: {
-        channel_idx: channel_idx,
+        Channel: {
+          connect: {
+            idx: channel_idx,
+          },
+        },
+        play_cnt: 0,
+        like_cnt: 0,
+        thumbnail: '', // 기본값 설정
+        is_adult: false,
+        is_live: false,
+        is_pw: false,
       },
     });
   }
