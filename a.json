@@ -1,0 +1,39 @@
+{
+  "$metadata": {
+    "httpStatusCode": 200,
+    "requestId": "ef64445f-920d-481e-a2a4-714eef9a6af0",
+    "cfId": "fB0FtMY1EXdB422ZztttKcVvh74FJlyugbGReLACIh-yWmt_4fQw8g==",
+    "attempts": 1,
+    "totalRetryDelay": 0
+  },
+  "channel": {
+    "arn": "arn:aws:ivs:ap-northeast-2:881820017539:channel/ELEYLcTu4Bqb",
+    "authorized": false,
+    "containerFormat": "TS",
+    "ingestEndpoint": "632c5f96112a.global-contribute.live-video.net",
+    "insecureIngest": false,
+    "latencyMode": "LOW",
+    "multitrackInputConfiguration": {
+      "enabled": false,
+      "maximumResolution": "FULL_HD",
+      "policy": "ALLOW"
+    },
+    "name": "aa",
+    "playbackRestrictionPolicyArn": "",
+    "playbackUrl": "https://632c5f96112a.ap-northeast-2.playback.live-video.net/api/video/v1/ap-northeast-2.881820017539.channel.ELEYLcTu4Bqb.m3u8",
+    "preset": "",
+    "recordingConfigurationArn": "",
+    "srt": {
+      "endpoint": "632c5f96112a.srt.live-video.net",
+      "passphrase": "ce36Kt0mXTxAPJUruUoPou6ZTXMhIjKwDbDnhYQXJG91Q9nM0kaJc6DFHEjIj6Mm4vOD4d6DPkBuPKD"
+    },
+    "tags": {},
+    "type": "STANDARD"
+  },
+  "streamKey": {
+    "arn": "arn:aws:ivs:ap-northeast-2:881820017539:stream-key/PfbAJWgYAAbG",
+    "channelArn": "arn:aws:ivs:ap-northeast-2:881820017539:channel/ELEYLcTu4Bqb",
+    "tags": {},
+    "value": "sk_ap-northeast-2_PfbAJWgYAAbG_2BT0Coft91nIaCD4Jg6Oe7RFXqkSzN"
+  }
+}
