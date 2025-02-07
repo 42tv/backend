@@ -4,11 +4,12 @@ import { UserService } from './user.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { LogModule } from 'src/log/log.module';
 import { ChannelModule } from 'src/channel/channel.module';
+import { UserRepository } from './user.repository';
 
 @Module({
   imports: [PrismaModule, LogModule, ChannelModule],
   controllers: [UserController],
-  providers: [UserService],
+  providers: [UserService, UserRepository],
   exports: [UserService],
 })
 export class UserModule {}

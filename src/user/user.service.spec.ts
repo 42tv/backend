@@ -5,6 +5,7 @@ import { ChannelModule } from 'src/channel/channel.module';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserDto } from './dto/create-user.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { UserRepository } from './user.repository';
 
 describe('UserService', () => {
   let service: UserService;
@@ -13,7 +14,7 @@ describe('UserService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [ChannelModule],
-      providers: [UserService, PrismaService],
+      providers: [UserService, PrismaService, UserRepository],
     }).compile();
 
     service = module.get<UserService>(UserService);

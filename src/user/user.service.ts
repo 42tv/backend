@@ -1,14 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChannelService } from 'src/channel/channel.service';
 import { Prisma } from '@prisma/client';
+import { UserRepository } from './user.repository';
 
 @Injectable()
 export class UserService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly userRepository: UserRepository,
     private readonly channelService: ChannelService,
   ) {}
 
@@ -19,11 +19,10 @@ export class UserService {
    * @returns
    */
   async findOneByLocalAuth(user_id: string, password: string) {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        user_id: user_id,
-      },
-    });
+    const user = await this.userRepository.findByUserId(user_id);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 아이디입니다.');
+    }
     const compare = await bcrypt.compare(password, user.password);
     if (!compare) {
       return null;
@@ -43,13 +42,11 @@ export class UserService {
     oauth_provider: string,
     oauth_id: string,
   ) {
-    return await this.prisma.user.findFirst({
-      where: {
-        user_id: user_id,
-        oauth_provider: oauth_provider,
-        oauth_provider_id: oauth_id,
-      },
-    });
+    return await this.userRepository.findByUserIdWithOauth(
+      user_id,
+      oauth_provider,
+      oauth_id,
+    );
   }
 
   /**
@@ -57,12 +54,8 @@ export class UserService {
    * @param user_idx
    * @returns
    */
-  async findByUserIdx(user_idx: number) {
-    return await this.prisma.user.findFirst({
-      where: {
-        idx: user_idx,
-      },
-    });
+  async findByUserIdx(user_idx: number, tx?: Prisma.TransactionClient) {
+    return await this.userRepository.findByUserIdx(user_idx, tx);
   }
 
   /**
@@ -76,12 +69,7 @@ export class UserService {
     createUserDto: CreateUserDto,
     tx?: Prisma.TransactionClient,
   ) {
-    const prismaClient = tx ?? this.prisma;
-    const user = await prismaClient.user.findFirst({
-      where: {
-        user_id: createUserDto.id,
-      },
-    });
+    const user = await this.userRepository.findByUserId(createUserDto.id, tx);
     if (user) {
       throw new BadRequestException('이미 존재하는 아이디입니다.');
     }
@@ -89,39 +77,18 @@ export class UserService {
     const salt = await bcrypt.genSalt();
     const hash = await bcrypt.hash(createUserDto.password, salt);
 
-    let createdUser;
-    // 테스트용 코드때문에 추가된부분이긴 한데src 부적절해 보이긴 해도 방법이 없었음
-    if (tx) {
-      createdUser = await tx.user.create({
-        data: {
-          user_id: createUserDto.id,
-          password: hash,
-          nickname: createUserDto.nickname,
-        },
-      });
-      await this.channelService.createChannel(
-        createdUser.idx,
-        createdUser.user_id,
-        tx,
-      );
-      return createdUser;
-    } else {
-      await this.prisma.$transaction(async (tx) => {
-        createdUser = await tx.user.create({
-          data: {
-            user_id: createUserDto.id,
-            password: hash,
-            nickname: createUserDto.nickname,
-          },
-        });
-        await this.channelService.createChannel(
-          createdUser.idx,
-          createdUser.user_id,
-          tx,
-        );
-      });
-      return createdUser;
-    }
+    const createdUser = await this.userRepository.createUser(
+      createUserDto.id,
+      hash,
+      createUserDto.nickname,
+      tx,
+    );
+    await this.channelService.createChannel(
+      createdUser.idx,
+      createdUser.user_id,
+      tx,
+    );
+    return createdUser;
   }
 
   /**
@@ -136,13 +103,11 @@ export class UserService {
     provider: string,
     provider_id: string,
   ) {
-    return await this.prisma.user.create({
-      data: {
-        user_id: user_id,
-        nickname: nickname,
-        oauth_provider: provider,
-        oauth_provider_id: provider_id,
-      },
-    });
+    return await this.userRepository.createUserWithOAuth(
+      user_id,
+      nickname,
+      provider,
+      provider_id,
+    );
   }
 }
