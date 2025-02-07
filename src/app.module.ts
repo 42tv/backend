@@ -13,6 +13,7 @@ import { LogModule } from './log/log.module';
 import { AuthModule } from './auth/auth.module';
 import { OauthModule } from './oauth/oauth.module';
 import { StreamModule } from './stream/stream.module';
+import { ChattingRedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StreamModule } from './stream/stream.module';
     AuthModule,
     OauthModule,
     StreamModule,
+    ChattingRedisModule,
   ],
   controllers: [AppController],
   providers: [AppService, IvsService],

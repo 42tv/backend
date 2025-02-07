@@ -83,9 +83,9 @@ model Channel {
   user_idx          Int     @unique
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
   ivs_channel_idx   Int?     @unique
-  ivs_channel IVSChannel?
+  ivs_channel       IVSChannel?
   stream_idx        Int?     @unique
-  stream Stream?
+  stream            Stream?
 }
 
 // AWS IVS 채널 정보

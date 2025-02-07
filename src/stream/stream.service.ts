@@ -15,12 +15,6 @@ export class StreamService {
             idx: channel_idx,
           },
         },
-        play_cnt: 0,
-        like_cnt: 0,
-        thumbnail: '', // 기본값 설정
-        is_adult: false,
-        is_live: false,
-        is_pw: false,
       },
     });
   }
