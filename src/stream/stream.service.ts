@@ -1,21 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { StreamRepository } from './stream.repository';
 
 @Injectable()
 export class StreamService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly streamRepository: StreamRepository) {}
 
   async createStream(channel_idx: number, tx?: Prisma.TransactionClient) {
-    const prismaClient = tx ?? this.prisma;
-    return await prismaClient.stream.create({
-      data: {
-        Channel: {
-          connect: {
-            idx: channel_idx,
-          },
-        },
-      },
-    });
+    return await this.streamRepository.createStream(channel_idx, tx);
   }
 }
