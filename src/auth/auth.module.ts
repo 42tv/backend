@@ -8,19 +8,22 @@ import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
 import { JwtStrategy } from './guard/jwt.strategy';
 import { ChannelModule } from 'src/channel/channel.module';
+import { RefreshStrategy } from './guard/refresh.strategy';
+import { ChattingRedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports: [
     UserModule,
     PassportModule,
     JwtModule.register({
-      secret: jwtConstants.secret,
+      secret: jwtConstants.access_secret,
       signOptions: { expiresIn: '999d' },
     }),
+    ChattingRedisModule,
     ChannelModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, RefreshStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}
