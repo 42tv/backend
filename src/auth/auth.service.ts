@@ -3,6 +3,7 @@ import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ChannelService } from 'src/channel/channel.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class AuthService {
@@ -10,6 +11,7 @@ export class AuthService {
     private userService: UserService,
     private jwtService: JwtService,
     private channelService: ChannelService,
+    private redisService: RedisService,
   ) {}
 
   async validateUser(username: string, pw: string): Promise<any> {
@@ -21,19 +23,26 @@ export class AuthService {
     return null; // 인증 실패
   }
 
-  jwtSign(payload: any) {
-    return this.jwtService.sign(payload);
+  generateToken(payload: any) {
+    const access_token = this.jwtService.sign(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: '1d',
+    });
+    const refresh_token = this.jwtService.sign(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: '7d',
+    });
+    return { access_token, refresh_token };
   }
 
-  async login(user: any) {
+  login(user: any) {
     const payload = {
       idx: user.idx,
       user_id: user.user_id,
       nickname: user.nickname,
     };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+    const { access_token, refresh_token } = this.generateToken(payload);
+    return { access_token, refresh_token };
   }
 
   async verifyPhone(payload: any) {

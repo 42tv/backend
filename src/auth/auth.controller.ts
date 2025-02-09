@@ -1,4 +1,4 @@
-import { Controller, Request, Post, UseGuards } from '@nestjs/common';
+import { Controller, Request, Post, UseGuards, Res } from '@nestjs/common';
 import { LocalAuthGuard } from './guard/local-auth.guard';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guard/jwt-auth.guard';
@@ -11,6 +11,8 @@ import {
 } from '@nestjs/swagger';
 import { LoginResponse } from './entities/login.response';
 import { AuthEntity, AuthFailResponse } from './entities/login.entity';
+import { JwtRefreshGaurd } from './guard/jwt.refresh.guard';
+import { RefreshResponse } from './entities/refresh.response';
 
 @Controller('auth')
 export class AuthController {
@@ -34,8 +36,32 @@ export class AuthController {
   })
   @ApiBody({ description: 'Body 데이터', type: AuthEntity, required: true })
   @UseGuards(LocalAuthGuard)
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  async login(@Request() req, @Res() res) {
+    const { access_token, refresh_token } = this.authService.login(req.user);
+    res.cookie('access_token', access_token, { httpOnly: true });
+    res.cookie('refresh_token', refresh_token, { httpOnly: true });
+    res.send({ access_token, refresh_token });
+    return { access_token, refresh_token };
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: '리프레시 토큰' })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 201,
+    description: '리프레시 성공',
+    type: RefreshResponse,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'refresh token이 만료됨',
+    type: AuthFailResponse,
+  })
+  @UseGuards(JwtRefreshGaurd)
+  async refresh(@Request() req, @Res() res) {
+    const { access_token } = this.authService.login(req.user);
+    res.cookie('access_token', access_token, { httpOnly: true });
+    res.send({ access_token });
+    return { access_token };
   }
 
   /**

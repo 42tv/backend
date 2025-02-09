@@ -51,6 +51,7 @@ export class ChannelService {
         await this.ivsService.createChannel(channel.idx, channel.title, tx);
       });
     } catch (err) {
+      console.log(err);
       await this.ivsService.deleteChannel(ivs.arn);
       throw err;
     }

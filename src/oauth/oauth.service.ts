@@ -28,7 +28,7 @@ export class OauthService {
     return authorizationUrl;
   }
 
-  async getGoogleLoginJwt(code: string): Promise<string> {
+  async getGoogleLoginJwt(code: string) {
     const { tokens } = await this.googleOauth2Client.getToken(code);
     this.googleOauth2Client.setCredentials(tokens);
 
@@ -55,18 +55,20 @@ export class OauthService {
         'google',
         data.id,
       );
-      const jwt = await this.authService.jwtSign({
-        sub: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-      });
-      return jwt;
+      const { access_token, refresh_token } =
+        await this.authService.generateToken({
+          sub: user.idx,
+          user_id: user.user_id,
+          nickname: user.nickname,
+        });
+      return { access_token, refresh_token };
     }
-    const jwt = await this.authService.jwtSign({
-      sub: findedUser.idx,
-      user_id: findedUser.user_id,
-      nickname: findedUser.nickname,
-    });
-    return jwt;
+    const { access_token, refresh_token } =
+      await this.authService.generateToken({
+        sub: findedUser.idx,
+        user_id: findedUser.user_id,
+        nickname: findedUser.nickname,
+      });
+    return { access_token, refresh_token };
   }
 }
