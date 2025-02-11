@@ -1,23 +1,32 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Request,
+  Post,
+  Body,
+  Param,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { IvsService } from './ivs.service';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 // 이 컨트롤러는 테스트 용임으로 차후 삭제할 예정
 @Controller('ivs')
 export class IvsController {
   constructor(private readonly ivsService: IvsService) {}
 
-  @Get('create-channel/:channelName')
-  async createChannel(@Param('channelName') channelName: string) {
+  @Post('stream-key')
+  @UseGuards(JwtAuthGuard)
+  async createChannel(
+    @Request() req,
+    @Param('channelName') channelName: string,
+  ) {
     // return this.ivsService.createChannel(channelName);
     return channelName;
   }
 
-  @Post('create-stream-key')
-  async createStreamKey(@Body('channelArn') channelArn: string) {
-    return this.ivsService.createStreamKey(channelArn);
-  }
-
-  @Post('get-stream-key')
+  @Put('stream-key')
+  @UseGuards(JwtAuthGuard)
   async getStreamKey(@Body('streamKeyArn') streamKeyArn: string) {
     return this.ivsService.getStreamKey(streamKeyArn);
   }

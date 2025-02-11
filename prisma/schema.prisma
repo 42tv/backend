@@ -10,7 +10,7 @@ datasource db {
 
 // 회원 테이블
 model User {
-  idx          Int         @id @default(autoincrement())
+  idx               Int         @id @default(autoincrement())
   user_id           String      @unique
   password          String?
   nickname          String      @unique
@@ -22,8 +22,9 @@ model User {
   
   user_detail_idx Int?        //위 요소들은 본인인증을 진행했을때만 생성되야해서 옵셔널 처리
   userDetail      UserDetail?
-  channel_idx     Int?         //위 요소들은 본인인증을 진행했을때만 생성되야해서 옵셔널 처리
   channel         Channel?
+  ivs             IVSChannel?
+  stream          Stream?
   UserTerms       UserTerms[]
 }
 
@@ -69,7 +70,7 @@ model UserTerms {
 
 // 채널 테이블
 model Channel {
-  idx       Int      @id @default(autoincrement())
+  user_idx          Int      @id 
   title             String   @default("")
   bookmark          Int      @default(0)
   like              Int      @default(0)
@@ -80,17 +81,12 @@ model Channel {
   createdAt         DateTime @default(now())
 
   // Relations
-  user_idx          Int     @unique
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
-  ivs_channel_idx   Int?     @unique
-  ivs_channel       IVSChannel?
-  stream_idx        Int?     @unique
-  stream            Stream?
 }
 
 // AWS IVS 채널 정보
 model IVSChannel {
-  idx               Int        @id @default(autoincrement())
+  user_idx          Int        @id
   arn               String?    @unique
   ingest_endpoint   String?    @unique
   playback_url      String?    @unique
@@ -99,14 +95,13 @@ model IVSChannel {
   createdAt         DateTime   @default(now())
 
   // relations
-  channel_idx     Int       @unique
-  Channel Channel @relation(fields: [channel_idx], references: [idx], onDelete: Cascade)
+  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 }
 // Stream 정보
 // 이 정보들은 아마 서비스할때에는 redis에 복사본을 들고있다가 
 // 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
 model Stream {
-  idx             Int      @id @default(autoincrement())
+  user_idx        Int      @id
   play_cnt        Int      @default(0)
   like_cnt        Int      @default(0)
   thumbnail       String   @default("")
@@ -117,6 +112,5 @@ model Stream {
   live_type       String?
 
   // Relations
-  channel_idx     Int       @unique
-  Channel Channel @relation(fields: [channel_idx], references: [idx], onDelete: Cascade)
+  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 }

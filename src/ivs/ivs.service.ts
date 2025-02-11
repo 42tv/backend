@@ -45,14 +45,14 @@ export class IvsService {
    * @param tx
    * @returns
    */
-  async createDummy(channel_idx: number, tx?: Prisma.TransactionClient) {
+  async createDummy(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     // 채널명은 idx로 설정
     return await prismaClient.iVSChannel.create({
       data: {
-        Channel: {
+        User: {
           connect: {
-            idx: channel_idx,
+            idx: user_idx,
           },
         },
       },
@@ -67,13 +67,13 @@ export class IvsService {
    * @returns
    */
   async createIvsChannel(
-    channel_idx: number,
+    user_idx: number,
     channel_title: string,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
     // 채널명은 idx로 설정
-    const responseChannel = await this.requestChannel(channel_idx.toString());
+    const responseChannel = await this.requestChannel(user_idx.toString());
     return await prismaClient.iVSChannel.create({
       data: {
         name: channel_title,
@@ -81,9 +81,9 @@ export class IvsService {
         ingest_endpoint: responseChannel.channel.ingestEndpoint,
         playback_url: responseChannel.channel.playbackUrl,
         stream_key: responseChannel.streamKey.value,
-        Channel: {
+        User: {
           connect: {
-            idx: channel_idx,
+            idx: user_idx,
           },
         },
       },
