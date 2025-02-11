@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Request,
-  Post,
-  Put,
-  UseGuards,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Controller, Request, Post, Put, UseGuards } from '@nestjs/common';
 import { IvsService } from './ivs.service';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { User } from 'src/user/entities/user.entity';
@@ -14,7 +7,6 @@ import {
   ApiInternalServerErrorResponse,
   ApiOperation,
   ApiResponse,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CreateIvsResponse } from './entities/create.channel.response';
 import { CustomInternalServerErrorResponse } from 'src/utils/utils';
