@@ -58,8 +58,9 @@ export class IvsController {
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  async getStreamKey(@Request() req) {
+  // ※스트림키 재발급의 경우 방송중인 경우에는 재발급이 불가능하게 막아야함. 아직 방송중 상태를 구현 안해놨음으로 차후 수정해야할 부분
+  async reCreateStreamKey(@Request() req) {
     const user: User = req.user;
-    return this.ivsService.recreateStreamKey(user);
+    return this.ivsService.reCreateStreamKey(user);
   }
 }

@@ -181,7 +181,7 @@ export class IvsService {
    * 3. 있으면 스트림키만 지우고 재생성
    * @param user_idx
    */
-  async recreateStreamKey(user: User) {
+  async reCreateStreamKey(user: User) {
     const ivs = await this.prisma.iVSChannel.findFirst({
       where: {
         user_idx: user.idx,
