@@ -5,6 +5,7 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @Length(4, 20)
+  @Matches(/^[a-zA-Z0-9]*$/) //영문,숫자만 허용
   @ApiProperty({
     example: 'user123',
     minLength: 4,
