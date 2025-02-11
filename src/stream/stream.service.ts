@@ -6,7 +6,7 @@ import { StreamRepository } from './stream.repository';
 export class StreamService {
   constructor(private readonly streamRepository: StreamRepository) {}
 
-  async createStream(channel_idx: number, tx?: Prisma.TransactionClient) {
-    return await this.streamRepository.createStream(channel_idx, tx);
+  async createStream(user_idx: number, tx?: Prisma.TransactionClient) {
+    return await this.streamRepository.createStream(user_idx, tx);
   }
 }

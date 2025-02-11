@@ -21,7 +21,11 @@ export class ChannelRepository {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.channel.create({
       data: {
-        user_idx: user_idx,
+        User: {
+          connect: {
+            idx: user_idx,
+          },
+        },
         title: `${user_id} 님의 채널`,
       },
     });

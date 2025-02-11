@@ -89,12 +89,12 @@ export class UserService {
           createUserDto.nickname,
           tx,
         );
-        const createdChannel = await this.channelService.createChannel(
+        await this.channelService.createChannel(
           createdUser.idx,
           createdUser.user_id,
           tx,
         );
-        await this.ivsService.createDummy(createdChannel.idx, tx);
+        await this.ivsService.createDummy(createdUser.idx, tx);
         const sanitizedUser = { ...createdUser };
         delete sanitizedUser.password;
         return sanitizedUser;

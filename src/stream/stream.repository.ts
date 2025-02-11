@@ -4,13 +4,13 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class StreamRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createStream(channel_idx: number, tx?: Prisma.TransactionClient) {
+  async createStream(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.stream.create({
       data: {
-        Channel: {
+        User: {
           connect: {
-            idx: channel_idx,
+            idx: user_idx,
           },
         },
       },
