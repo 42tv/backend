@@ -74,18 +74,16 @@ export class IvsService {
     const prismaClient = tx ?? this.prisma;
     // 채널명은 idx로 설정
     const responseChannel = await this.requestChannel(user_idx.toString());
-    return await prismaClient.iVSChannel.create({
+    return await prismaClient.iVSChannel.update({
+      where: {
+        user_idx: user_idx,
+      },
       data: {
         name: channel_title,
         arn: responseChannel.channel.arn,
         ingest_endpoint: responseChannel.channel.ingestEndpoint,
         playback_url: responseChannel.channel.playbackUrl,
         stream_key: responseChannel.streamKey.value,
-        User: {
-          connect: {
-            idx: user_idx,
-          },
-        },
       },
     });
   }
