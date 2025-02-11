@@ -91,6 +91,7 @@ model IVSChannel {
   ingest_endpoint   String?    @unique
   playback_url      String?    @unique
   stream_key        String?    @unique
+  stream_key_arn    String?    @unique
   name              String?
   createdAt         DateTime   @default(now())
 
