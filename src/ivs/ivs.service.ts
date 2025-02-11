@@ -5,6 +5,7 @@ import {
   GetStreamKeyCommand,
   CreateStreamKeyCommand,
   DeleteChannelCommand,
+  DeleteStreamKeyCommand,
 } from '@aws-sdk/client-ivs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -38,9 +39,36 @@ export class IvsService {
     }
   }
 
-  async createChannel(
+  /**
+   * createUser에서 사용하는 더미 데이터 생성
+   * @param channel_idx
+   * @param tx
+   * @returns
+   */
+  async createDummy(channel_idx: number, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    // 채널명은 idx로 설정
+    return await prismaClient.iVSChannel.create({
+      data: {
+        Channel: {
+          connect: {
+            idx: channel_idx,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * 실제 aws ivs에 채널 생성 요청
+   * @param channel_idx
+   * @param channel_title
+   * @param tx
+   * @returns
+   */
+  async createIvsChannel(
     channel_idx: number,
-    channle_title: string,
+    channel_title: string,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
@@ -48,7 +76,7 @@ export class IvsService {
     const responseChannel = await this.requestChannel(channel_idx.toString());
     return await prismaClient.iVSChannel.create({
       data: {
-        name: channle_title,
+        name: channel_title,
         arn: responseChannel.channel.arn,
         ingest_endpoint: responseChannel.channel.ingestEndpoint,
         playback_url: responseChannel.channel.playbackUrl,
@@ -99,6 +127,20 @@ export class IvsService {
       return response;
     } catch (error) {
       console.error('Error fetching stream key:', error);
+      throw error;
+    }
+  }
+
+  async DeleteStreamKeyCommand(streamKeyArn: string) {
+    try {
+      const command = new DeleteStreamKeyCommand({
+        arn: streamKeyArn,
+      });
+
+      const response = await this.client.send(command);
+      return response;
+    } catch (error) {
+      console.error('Error deleting stream key:', error);
       throw error;
     }
   }
