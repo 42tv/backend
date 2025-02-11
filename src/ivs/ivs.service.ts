@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import {
   IvsClient,
   CreateChannelCommand,
@@ -39,8 +43,7 @@ export class IvsService {
       const response = await this.client.send(command);
       return response;
     } catch (error) {
-      console.error('Error creating channel:', error);
-      throw error;
+      throw new InternalServerErrorException('AWS의 IVS 채널 생성요청 실패');
     }
   }
 
@@ -121,6 +124,11 @@ export class IvsService {
     }
   }
 
+  /**
+   * channelArn에 streamKey 생성
+   * @param channelArn
+   * @returns
+   */
   async createStreamKey(channelArn: string) {
     try {
       const command = new CreateStreamKeyCommand({
@@ -129,7 +137,7 @@ export class IvsService {
       const response = await this.client.send(command);
       return response;
     } catch (error) {
-      console.error('Error creating stream key:', error);
+      throw new InternalServerErrorException('AWS의 streamKey 생성 실패');
       throw error;
     }
   }
@@ -148,6 +156,11 @@ export class IvsService {
     }
   }
 
+  /**
+   * streamKey ARN 으로 streamKey 삭제
+   * @param streamKeyArn
+   * @returns
+   */
   async DeleteStreamKey(streamKeyArn: string) {
     try {
       const command = new DeleteStreamKeyCommand({
@@ -157,8 +170,7 @@ export class IvsService {
       const response = await this.client.send(command);
       return response;
     } catch (error) {
-      console.error('Error deleting stream key:', error);
-      throw error;
+      throw new InternalServerErrorException('AWS의 스트림키 삭제 실패');
     }
   }
 
