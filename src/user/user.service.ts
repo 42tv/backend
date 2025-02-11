@@ -4,12 +4,16 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { ChannelService } from 'src/channel/channel.service';
 import { Prisma } from '@prisma/client';
 import { UserRepository } from './user.repository';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { IvsService } from 'src/ivs/ivs.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly channelService: ChannelService,
+    private readonly ivsService: IvsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -77,18 +81,27 @@ export class UserService {
     const salt = await bcrypt.genSalt();
     const hash = await bcrypt.hash(createUserDto.password, salt);
 
-    const createdUser = await this.userRepository.createUser(
-      createUserDto.id,
-      hash,
-      createUserDto.nickname,
-      tx,
-    );
-    await this.channelService.createChannel(
-      createdUser.idx,
-      createdUser.user_id,
-      tx,
-    );
-    return createdUser;
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const createdUser = await this.userRepository.createUser(
+          createUserDto.id,
+          hash,
+          createUserDto.nickname,
+          tx,
+        );
+        const createdChannel = await this.channelService.createChannel(
+          createdUser.idx,
+          createdUser.user_id,
+          tx,
+        );
+        await this.ivsService.createDummy(createdChannel.idx, tx);
+        const sanitizedUser = { ...createdUser };
+        delete sanitizedUser.password;
+        return sanitizedUser;
+      });
+    } catch (error) {
+      throw new BadRequestException('User, Channel, Ivs 생성 트랜잭션 실패');
+    }
   }
 
   /**

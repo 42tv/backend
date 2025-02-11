@@ -90,13 +90,13 @@ model Channel {
 
 // AWS IVS 채널 정보
 model IVSChannel {
-  idx             Int      @id @default(autoincrement())
-  arn             String    @unique
-  ingest_endpoint String    @unique
-  playback_url     String   @unique
-  stream_key       String   @unique
-  name            String
-  createdAt       DateTime  @default(now())
+  idx               Int        @id @default(autoincrement())
+  arn               String?    @unique
+  ingest_endpoint   String?    @unique
+  playback_url      String?    @unique
+  stream_key        String?    @unique
+  name              String?
+  createdAt         DateTime   @default(now())
 
   // relations
   channel_idx     Int       @unique
