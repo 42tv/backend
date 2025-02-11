@@ -4,7 +4,7 @@ export class User {
   idx: number;
 
   @ApiProperty({ example: 'user123', description: '사용자 ID' })
-  user_id: string;
+  userId: string;
 
   @ApiProperty({
     example: 'password123!',
@@ -31,21 +31,21 @@ export class User {
     description: 'OAuth 제공자 (e.g., google, facebook)',
     required: false,
   })
-  oauth_provider?: string;
+  oauthProvider?: string;
 
   @ApiProperty({
     example: null,
     description: 'OAuth 제공자 unique ID',
     required: false,
   })
-  oauth_provider_id?: string;
+  oauthProviderId?: string;
 
   @ApiProperty({
     example: null,
     description: 'User detail index',
     required: false,
   })
-  user_detail_idx?: number;
+  userDetailIdx?: number;
 
   // @ApiProperty({
   //   description: 'Detailed user information',
@@ -53,9 +53,6 @@ export class User {
   //   type: () => UserDetail,
   // })
   // userDetail?: UserDetail;
-
-  @ApiProperty({ example: null, description: 'Channel index', required: false })
-  channel_idx?: number;
 
   // @ApiProperty({
   //   description: 'Channel information',
