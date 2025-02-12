@@ -14,6 +14,7 @@ import { AuthModule } from './auth/auth.module';
 import { OauthModule } from './oauth/oauth.module';
 import { StreamModule } from './stream/stream.module';
 import { ChattingRedisModule } from './redis/redis.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ChattingRedisModule } from './redis/redis.module';
     OauthModule,
     StreamModule,
     ChattingRedisModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService, IvsService],
