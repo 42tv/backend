@@ -9,6 +9,7 @@ async function bootstrap() {
   // HTTP 애플리케이션 생성
   const app = await NestFactory.create(AppModule);
   const graylogService = app.get(GraylogService);
+  const redis_ip = process.env.REDIS_IP;
 
   app.useGlobalFilters(new ExceptionfilterFormat(graylogService));
 
@@ -26,7 +27,7 @@ async function bootstrap() {
     await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
       transport: Transport.REDIS,
       options: {
-        host: '112.162.99.107',
+        host: redis_ip,
         port: 6379,
       },
     });

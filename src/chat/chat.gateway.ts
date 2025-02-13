@@ -48,19 +48,19 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @UseGuards(WsGuard)
   async handleConnection(client: Socket) {
     console.log(`Connected WS : ${client.id}`);
-    try {
-      const jwt = client.handshake.auth.token.split(' ')[1];
-      const user_id = this.authService.decode(jwt)['user_id'];
-      const user = await this.userService.findByUserId(user_id);
-      if (!user) throw new WsException('존재하지 않는 아이디입니다.');
-      const bj = await this.bjService.findById(user.bj_id);
-      if (!bj) throw new WsException('존재하지 않는 BJ/매니저 입니다.');
-      const tmp = new WebSocketDto(client.id, client, bj.panda_id);
-      this.wsClients.set(client.id, tmp);
-      console.log(Array.from(this.wsClients.values()).length);
-    } catch (e) {
-      console.log(`Disconnected WS : ${client.id}`);
-    }
+    // try {
+    //   const jwt = client.handshake.auth.token.split(' ')[1];
+    //   const user_id = this.authService.decode(jwt)['user_id'];
+    //   const user = await this.userService.findByUserId(user_id);
+    //   if (!user) throw new WsException('존재하지 않는 아이디입니다.');
+    //   const bj = await this.bjService.findById(user.bj_id);
+    //   if (!bj) throw new WsException('존재하지 않는 BJ/매니저 입니다.');
+    //   const tmp = new WebSocketDto(client.id, client, bj.panda_id);
+    //   this.wsClients.set(client.id, tmp);
+    //   console.log(Array.from(this.wsClients.values()).length);
+    // } catch (e) {
+    //   console.log(`Disconnected WS : ${client.id}`);
+    // }
   }
 
   async handleDisconnect(client: Socket) {
@@ -70,30 +70,30 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   getClientClassByPandaId(panda_id: string) {
-    const clientData = Array.from(this.wsClients.values()).find(
-      (client) => client.panda_id == panda_id,
-    );
-    if (clientData) {
-      return clientData;
-    }
-    return null;
+    // const clientData = Array.from(this.wsClients.values()).find(
+    //   (client) => client.panda_id == panda_id,
+    // );
+    // if (clientData) {
+    //   return clientData;
+    // }
+    // return null;
   }
 
   async sendRoomJoin(panda_id: string, nicknames: any[]) {
-    // console.log(nicknames);
-    const client: WebSocketDto = this.getClientClassByPandaId(panda_id);
-    if (!client) return;
-    const data = await this.roomService.getHartData(panda_id, nicknames);
-    // console.log(data.length);
-    console.log(client.socket.client.conn.remoteAddress);
-    client.socket.emit('room-join', data);
+    // // console.log(nicknames);
+    // const client: WebSocketDto = this.getClientClassByPandaId(panda_id);
+    // if (!client) return;
+    // const data = await this.roomService.getHartData(panda_id, nicknames);
+    // // console.log(data.length);
+    // console.log(client.socket.client.conn.remoteAddress);
+    // client.socket.emit('room-join', data);
   }
 
   async sendRoomLeave(panda_id: string, nicknames: string[]) {
-    const client: WebSocketDto = this.getClientClassByPandaId(panda_id);
-    if (!client) return;
-    console.log(`socket `, nicknames);
-    client.socket.emit('room-leave', nicknames);
+    // const client: WebSocketDto = this.getClientClassByPandaId(panda_id);
+    // if (!client) return;
+    // console.log(`socket `, nicknames);
+    // client.socket.emit('room-leave', nicknames);
   }
 
   broadCastHartEvent(data: any) {
