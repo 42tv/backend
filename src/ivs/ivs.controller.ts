@@ -1,4 +1,12 @@
-import { Controller, Request, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Request,
+  Post,
+  Put,
+  UseGuards,
+  Body,
+  Get,
+} from '@nestjs/common';
 import { IvsService } from './ivs.service';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { User } from 'src/user/entities/user.entity';
@@ -54,5 +62,24 @@ export class IvsController {
   async reCreateStreamKey(@Request() req) {
     const user: User = req.user;
     return this.ivsService.reCreateStreamKey(user);
+  }
+
+  @Post('callback/lambda')
+  @ApiOperation({ summary: 'IVS 콜백 람다' })
+  async ivsLambdaCallback(@Body() data) {
+    console.log(data);
+    return {
+      message: 'success',
+    };
+  }
+
+  @Get('callback/test')
+  async ivsCallbackTest() {
+    const channelArn =
+      'arn:aws:ivs:ap-northeast-2:881820017539:channel/B9ZWjL8rmMKP';
+    await this.ivsService.getChannel(channelArn);
+    return {
+      message: 'success',
+    };
   }
 }

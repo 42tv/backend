@@ -6,10 +6,10 @@ import {
 import {
   IvsClient,
   CreateChannelCommand,
-  GetStreamKeyCommand,
   CreateStreamKeyCommand,
   DeleteChannelCommand,
   DeleteStreamKeyCommand,
+  GetStreamCommand,
 } from '@aws-sdk/client-ivs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -142,16 +142,26 @@ export class IvsService {
     }
   }
 
-  async getStreamKey(channelArn: string) {
+  async getChannel(channelArn: string) {
     try {
-      const command = new GetStreamKeyCommand({
-        arn: channelArn,
+      const command = new GetStreamCommand({
+        channelArn: channelArn,
       });
 
       const response = await this.client.send(command);
+      console.log(response);
+      console.log(response.$metadata.httpStatusCode);
+      console.log(response.stream);
       return response;
     } catch (error) {
-      console.error('Error fetching stream key:', error);
+      console.log(error);
+      if (error.Code == 'ChannelNotBroadcasting') {
+        const errorData = {
+          $metadata: error.$metadata,
+          Code: error.Code,
+        };
+        return errorData;
+      }
       throw error;
     }
   }
