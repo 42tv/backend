@@ -20,7 +20,6 @@ model User {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   
-  user_detail_idx Int?        //위 요소들은 본인인증을 진행했을때만 생성되야해서 옵셔널 처리
   userDetail      UserDetail?
   channel         Channel?
   ivs             IVSChannel?
@@ -30,8 +29,7 @@ model User {
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
 model UserDetail {
-  idx Int      @id @default(autoincrement())
-  user_idx        Int      @unique
+  user_idx        Int      @id
   name            String   
   sex             String   
   resident_number String   // 암호화 필요
