@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
@@ -8,7 +8,12 @@ import { UserRepository } from './user.repository';
 import { IvsModule } from 'src/ivs/ivs.module';
 
 @Module({
-  imports: [PrismaModule, LogModule, ChannelModule, IvsModule],
+  imports: [
+    PrismaModule,
+    LogModule,
+    ChannelModule,
+    forwardRef(() => IvsModule),
+  ],
   controllers: [UserController],
   providers: [UserService, UserRepository],
   exports: [UserService],

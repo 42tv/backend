@@ -9,4 +9,16 @@ export class StreamService {
   async createStream(user_idx: number, tx?: Prisma.TransactionClient) {
     return await this.streamRepository.createStream(user_idx, tx);
   }
+
+  async changeStreamStatus(
+    stream_idx: number,
+    status: boolean,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return await this.streamRepository.changeStreamStatus(
+      stream_idx,
+      status,
+      tx,
+    );
+  }
 }

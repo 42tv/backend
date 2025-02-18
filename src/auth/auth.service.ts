@@ -45,6 +45,14 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
+  validate(token: string) {
+    return this.jwtService.verify(token);
+  }
+
+  decode(token: string) {
+    return this.jwtService.decode(token);
+  }
+
   async verifyPhone(payload: any) {
     console.log(payload);
     // const user = await this.userService.findByUserIdx(payload.idx);

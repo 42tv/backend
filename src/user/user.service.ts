@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChannelService } from 'src/channel/channel.service';
@@ -12,6 +17,7 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly channelService: ChannelService,
+    @Inject(forwardRef(() => IvsService))
     private readonly ivsService: IvsService,
     private readonly prisma: PrismaService,
   ) {}
