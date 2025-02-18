@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { CreateIvsResponse } from './entities/create.channel.response';
 import { CustomInternalServerErrorResponse } from 'src/utils/utils';
+import { IvsEvent } from './entities/lambda.response';
 
 // 이 컨트롤러는 테스트 용임으로 차후 삭제할 예정
 @Controller('ivs')
@@ -66,8 +67,9 @@ export class IvsController {
 
   @Post('callback/lambda')
   @ApiOperation({ summary: 'IVS 콜백 람다' })
-  async ivsLambdaCallback(@Body() data) {
-    console.log(data);
+  async ivsLambdaCallback(@Body() ivsEvnet: IvsEvent) {
+    console.log(ivsEvnet);
+    await this.ivsService.changeStreamState(ivsEvnet);
     return {
       message: 'success',
     };

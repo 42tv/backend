@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -14,12 +16,22 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { User } from 'src/user/entities/user.entity';
+import { UserService } from 'src/user/user.service';
+import { StreamService } from 'src/stream/stream.service';
+import { IvsRepository } from './ivs.repository';
+import { IvsEvent } from './entities/lambda.response';
 
 @Injectable()
 export class IvsService {
   private readonly client: IvsClient;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ivsRepository: IvsRepository,
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
+    private readonly streamService: StreamService,
+  ) {
     this.client = new IvsClient({
       region: process.env.AWS_REGION,
       credentials: {
@@ -224,5 +236,23 @@ export class IvsService {
         },
       });
     }
+  }
+
+  async changeStreamState(ivsEvnet: IvsEvent) {
+    const ivs = await this.ivsRepository.findByArn(ivsEvnet.resource);
+    if (!ivs) {
+      throw new BadRequestException('채널이 존재하지 않습니다.');
+    }
+    let is_live = false;
+    if (ivsEvnet.eventName == 'Stream Start') {
+      is_live = true;
+    } else {
+      is_live = false;
+    }
+    const stream = await this.streamService.changeStreamStatus(
+      ivs.user_idx,
+      is_live,
+    );
+    return stream;
   }
 }
