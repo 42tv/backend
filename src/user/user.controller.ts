@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
+  Req,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -19,16 +22,19 @@ import {
   CustomBadRequestResponse,
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 @Controller('user')
 @UsePipes(new ValidationPipe())
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  //@Get('')
-  //async getUser(): Promise<string> {
-  //    return 'Hello World';
-  //}
+  @Get('')
+  @UseGuards(JwtAuthGuard)
+  async getUser(@Req() req) {
+    console.log(req.user);
+    return 'Hello World';
+  }
 
   @Post('')
   @ApiOperation({ summary: '유저생성' })
