@@ -21,6 +21,15 @@ export class UserRepository {
     return user;
   }
 
+  async findByUserNickname(nickname: string, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.findFirst({
+      where: {
+        nickname: nickname,
+      },
+    });
+  }
+
   /**
    * Oauth로그인 과정에서 유저가 있는지 확인하기 위한 함수
    * @param user_id

@@ -30,6 +30,7 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty()
+  @Length(1, 10)
   @ApiProperty({
     example: 'nickname123',
     not: null,

@@ -30,12 +30,13 @@ export class UserService {
    */
   async findOneByLocalAuth(user_id: string, password: string) {
     const user = await this.userRepository.findByUserId(user_id);
+    console.log(user);
     if (!user) {
-      throw new BadRequestException('존재하지 않는 아이디입니다.');
+      throw new BadRequestException('존재하지 않는 아이디입니다');
     }
     const compare = await bcrypt.compare(password, user.password);
     if (!compare) {
-      return null;
+      throw new BadRequestException('비밀번호가 일치하지 않습니다');
     }
     return user;
   }
@@ -83,6 +84,13 @@ export class UserService {
     if (user) {
       throw new BadRequestException('이미 존재하는 아이디입니다.');
     }
+    const nickname = await this.userRepository.findByUserNickname(
+      createUserDto.nickname,
+      tx,
+    );
+    if (nickname) {
+      throw new BadRequestException('이미 존재하는 닉네임입니다.');
+    }
 
     const salt = await bcrypt.genSalt();
     const hash = await bcrypt.hash(createUserDto.password, salt);
@@ -106,6 +114,7 @@ export class UserService {
         return sanitizedUser;
       });
     } catch (error) {
+      console.log(error);
       throw new BadRequestException('User, Channel, Ivs 생성 트랜잭션 실패');
     }
   }
