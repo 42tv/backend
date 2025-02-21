@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -14,6 +14,7 @@ import { OauthModule } from './oauth/oauth.module';
 import { StreamModule } from './stream/stream.module';
 import { ChattingRedisModule } from './redis/redis.module';
 import { ChatModule } from './chat/chat.module';
+import { JwtCookieMiddleware } from './middle-ware/jwt-cookie.middleware';
 
 @Module({
   imports: [
@@ -34,4 +35,8 @@ import { ChatModule } from './chat/chat.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(JwtCookieMiddleware).forRoutes('*');
+  }
+}

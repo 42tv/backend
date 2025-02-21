@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ExceptionfilterFormat } from './middle-ware/exception-filter';
 import { GraylogService } from 'nestjs-graylog';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   // HTTP 애플리케이션 생성
@@ -12,6 +13,8 @@ async function bootstrap() {
   const redis_ip = process.env.REDIS_IP;
 
   app.useGlobalFilters(new ExceptionfilterFormat(graylogService));
+  // Cookie 미들웨어 설정
+  app.use(cookieParser());
 
   // Swagger 설정
   const config = new DocumentBuilder()
