@@ -32,8 +32,14 @@ export class UserController {
   @Get('')
   @UseGuards(JwtAuthGuard)
   async getUser(@Req() req) {
-    console.log(req.user);
-    return 'Hello World';
+    const user = await this.userService.findByUserIdx(req.user.idx);
+    const result = {
+      idx: user.idx,
+      user_id: user.user_id,
+      profile_img: user.profile_img,
+      nickname: user.nickname,
+    };
+    return result;
   }
 
   @Post('')
