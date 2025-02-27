@@ -24,6 +24,7 @@ import {
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { ChangePasswordDto } from './dto/change.password.dto';
 
 @Controller('user')
 @UsePipes(new ValidationPipe())
@@ -73,13 +74,12 @@ export class UserController {
   })
   async updatePassword(
     @Req() req,
-    @Body('password') password,
-    @Body('new_password') new_password,
+    @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return await this.userService.updatePassword(
       req.user.idx,
-      password,
-      new_password,
+      changePasswordDto.password,
+      changePasswordDto.new_password,
     );
   }
 

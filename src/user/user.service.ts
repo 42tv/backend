@@ -136,6 +136,11 @@ export class UserService {
         message: '이용가능한 닉네임입니다',
       };
     }
+    if (nickname.length < 1 || nickname.length > 10) {
+      throw new BadRequestException(
+        '닉네임은 1자리 이상 10자리 이하로 입력해주세요',
+      );
+    }
 
     let updatedUser;
     await this.prisma.$transaction(async (tx) => {
