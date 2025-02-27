@@ -177,6 +177,13 @@ export class UserService {
       throw new BadRequestException('비밀번호가 일치하지 않습니다');
     }
 
+    const regex =
+      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!regex.test(new_password)) {
+      throw new BadRequestException(
+        '새 비밀번호는 8자리 이상 알파벳,숫자,특수문자 1개씩 이상이어야 합니다',
+      );
+    }
     const salt = await bcrypt.genSalt();
     const hash = await bcrypt.hash(new_password, salt);
     const updatedUser = await this.userRepository.updatePassword(
