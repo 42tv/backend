@@ -26,11 +26,11 @@ export class AuthService {
   generateToken(payload: any) {
     const access_token = this.jwtService.sign(payload, {
       secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: '15s',
+      expiresIn: '1h',
     });
     const refresh_token = this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: '60s',
+      expiresIn: '1d',
     });
     return { access_token, refresh_token };
   }
