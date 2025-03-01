@@ -21,6 +21,12 @@ export class UserRepository {
     return user;
   }
 
+  /**
+   * 닉네임으로 유저 찾기
+   * @param nickname
+   * @param tx
+   * @returns
+   */
   async findByUserNickname(nickname: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.user.findFirst({
@@ -28,6 +34,53 @@ export class UserRepository {
         nickname: nickname,
       },
     });
+  }
+
+  /**
+   * 유저 닉네임 업데이트
+   * @param user_idx
+   * @param nickname
+   * @param tx
+   * @returns
+   */
+  async updateNickname(
+    user_idx: number,
+    nickname: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.update({
+      where: {
+        idx: user_idx,
+      },
+      data: {
+        nickname: nickname,
+      },
+    });
+  }
+
+  /**
+   * 비밀번호 변경
+   * @param user_idx
+   * @param new_password
+   * @param tx
+   * @returns
+   */
+  async updatePassword(
+    user_idx: number,
+    new_password: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    const user = await prismaClient.user.update({
+      where: {
+        idx: user_idx,
+      },
+      data: {
+        password: new_password,
+      },
+    });
+    return user;
   }
 
   /**

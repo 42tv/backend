@@ -14,7 +14,7 @@ model User {
   user_id           String      @unique
   password          String?
   nickname          String      @unique
-  profileImg        String      @default("")
+  profile_img        String      @default("")
   oauth_provider    String?
   oauth_provider_id String?
   createdAt         DateTime    @default(now())

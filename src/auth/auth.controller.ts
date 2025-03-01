@@ -58,10 +58,11 @@ export class AuthController {
   })
   @UseGuards(JwtRefreshGaurd)
   async refresh(@Request() req, @Res() res) {
-    const { access_token } = this.authService.login(req.user);
+    const { access_token, refresh_token } = this.authService.login(req.user);
     res.cookie('jwt', access_token, { httpOnly: true });
-    res.send({ access_token });
-    return { access_token };
+    res.cookie('refresh', refresh_token, { httpOnly: true });
+    res.send({ access_token, refresh_token });
+    return { access_token, refresh_token };
   }
 
   /**

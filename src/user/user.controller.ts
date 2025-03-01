@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Req,
   UseGuards,
   UsePipes,
@@ -32,8 +33,54 @@ export class UserController {
   @Get('')
   @UseGuards(JwtAuthGuard)
   async getUser(@Req() req) {
-    console.log(req.user);
-    return 'Hello World';
+    const user = await this.userService.findByUserIdx(req.user.idx);
+    const result = {
+      idx: user.idx,
+      user_id: user.user_id,
+      profile_img: user.profile_img,
+      nickname: user.nickname,
+    };
+    return result;
+  }
+
+  @Put('nickname')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '닉네임 변경' })
+  @ApiCreatedResponse({ description: '변경 성공', type: User })
+  @ApiBadRequestResponse({
+    description: '이미 존재하는 닉네임입니다.',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  async updateNickname(@Req() req, @Body('nickname') nickname) {
+    return await this.userService.updateNickname(req.user.idx, nickname);
+  }
+
+  @Put('password')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '닉네임 변경' })
+  @ApiCreatedResponse({ description: '변경 성공', type: User })
+  @ApiBadRequestResponse({
+    description: '비밀번호가 틀렸습니다 | 존재하지 않는 유저',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  async updatePassword(
+    @Req() req,
+    @Body('password') password,
+    @Body('new_password') new_password,
+  ) {
+    return await this.userService.updatePassword(
+      req.user.idx,
+      password,
+      new_password,
+    );
   }
 
   @Post('')

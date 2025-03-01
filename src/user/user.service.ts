@@ -120,6 +120,85 @@ export class UserService {
   }
 
   /**
+   * User Nickname 변경
+   * @param user_idx
+   * @param nickname
+   * @returns
+   */
+  async updateNickname(user_idx: number, nickname: string) {
+    const user = await this.userRepository.findByUserIdx(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+    if (user.nickname === nickname) {
+      return {
+        user: user,
+        message: '이용가능한 닉네임입니다',
+      };
+    }
+    if (nickname.length < 1 || nickname.length > 10) {
+      throw new BadRequestException(
+        '닉네임은 1자리 이상 10자리 이하로 입력해주세요',
+      );
+    }
+
+    let updatedUser;
+    await this.prisma.$transaction(async (tx) => {
+      const findedUser = await this.userRepository.findByUserNickname(
+        nickname,
+        tx,
+      );
+      if (findedUser) {
+        throw new BadRequestException('이미 존재하는 닉네임입니다');
+      }
+      updatedUser = await this.userRepository.updateNickname(
+        user_idx,
+        nickname,
+        tx,
+      );
+    });
+    return {
+      user: updatedUser,
+      message: '닉네임이 변경되었습니다',
+    };
+  }
+
+  async updatePassword(
+    user_idx: number,
+    password: string,
+    new_password: string,
+  ) {
+    const user = await this.userRepository.findByUserIdx(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+    const compare = await bcrypt.compare(password, user.password);
+    if (!compare) {
+      throw new BadRequestException('비밀번호가 일치하지 않습니다');
+    }
+
+    const regex =
+      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!regex.test(new_password)) {
+      throw new BadRequestException(
+        '새 비밀번호는 8자리 이상 알파벳,숫자,특수문자 1개씩 이상이어야 합니다',
+      );
+    }
+    const salt = await bcrypt.genSalt();
+    const hash = await bcrypt.hash(new_password, salt);
+    const updatedUser = await this.userRepository.updatePassword(
+      user_idx,
+      hash,
+    );
+    const sanitizedUser = { ...updatedUser };
+    delete sanitizedUser.password;
+    return {
+      user: sanitizedUser,
+      message: '비밀번호가 변경되었습니다',
+    };
+  }
+
+  /**
    * Oauth 유저생성
    * @param user_id
    * @param nickname
