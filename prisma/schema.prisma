@@ -33,6 +33,13 @@ model User {
   // Posts relations
   sentPosts      Posts[] @relation("SentPosts")
   receivedPosts  Posts[] @relation("ReceivedPosts")
+  
+  // Fan relations
+  fans           Fan[] @relation("UserFans")
+  following      Fan[] @relation("UserFollowing")
+  
+  // Fan Rank Tier relation
+  fanRankTiers   FanRankTier[] @relation("CreatorRankTiers")
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -125,16 +132,15 @@ model Stream {
 // 쪽지 테이블 (유저간 메시지)
 model Posts {
   idx             Int      @id @default(autoincrement())
-  title           String   // 쪽지 제목
   content         String   // 쪽지 내용
-  sender_idx      Int      // 보낸 사용자
-  recipient_idx   Int      // 받는 사용자
   is_read         Boolean  @default(false) // 읽음 상태
   sent_at         DateTime @default(now()) // 보낸 시간
   read_at         DateTime? // 읽은 시간
   createdAt       DateTime @default(now())
 
   // Relations
+  sender_idx      Int      // 보낸 사용자
+  recipient_idx   Int      // 받는 사용자
   sender     User   @relation("SentPosts", fields: [sender_idx], references: [idx], onDelete: Cascade)
   recipient  User   @relation("ReceivedPosts", fields: [recipient_idx], references: [idx], onDelete: Cascade)
 }
@@ -153,7 +159,7 @@ model Coin {
   user            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 }
 
-// 선물(후원) 테이블 - 사용자 간 코인 선물 기록
+// 선물(후원) 기록 테이블 - 사용자 간 코인 선물 기록
 model Gift {
   idx             Int      @id @default(autoincrement())
   sender_idx      Int      // 선물을 보낸 사용자
@@ -166,4 +172,44 @@ model Gift {
   // Relations
   sender          User     @relation("GiftSender", fields: [sender_idx], references: [idx])
   recipient       User     @relation("GiftRecipient", fields: [recipient_idx], references: [idx])
+}
+
+
+// 팬 관계 테이블 - 사용자간 팬 관계 관리
+model Fan {
+  idx             Int      @id @default(autoincrement())
+
+  total_gifts     Int      @default(0) // 팬이 보낸 총 선물 수
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  creator_idx     Int      // 크리에이터(팔로우 당하는 사람) 인덱스
+  creator         User     @relation("UserFans", fields: [creator_idx], references: [idx], onDelete: Cascade)
+
+  fan_idx         Int      // 팬(팔로우 하는 사람) 인덱스
+  fan             User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
+
+  rank_tier_idx   Int?     // Reference to the rank tier
+  rankTier        FanRankTier? @relation(fields: [rank_tier_idx], references: [idx], onDelete: SetNull)
+  
+  // Ensure a user can only follow another user once
+  @@unique([creator_idx, fan_idx])
+}
+
+// 팬 등급 시스템 - 각 크리에이터별 팬 등급 정의
+model FanRankTier {
+  idx             Int      @id @default(autoincrement())
+  creator_idx     Int      // 크리에이터(등급 소유자) 인덱스
+  tier_name       String   // 등급 이름 (예: "브론즈", "실버", "골드")
+  donation        Int      // 해당 등급에 도달하기 위한 최소 후원 금액
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  creator         User     @relation("CreatorRankTiers", fields: [creator_idx], references: [idx], onDelete: Cascade)
+  fans            Fan[]    // 이 등급을 가진 팬들
+  
+  // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
+  @@unique([creator_idx, tier_name])
 }
