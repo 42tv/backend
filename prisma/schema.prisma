@@ -132,16 +132,15 @@ model Stream {
 // 쪽지 테이블 (유저간 메시지)
 model Posts {
   idx             Int      @id @default(autoincrement())
-  title           String   // 쪽지 제목
   content         String   // 쪽지 내용
-  sender_idx      Int      // 보낸 사용자
-  recipient_idx   Int      // 받는 사용자
   is_read         Boolean  @default(false) // 읽음 상태
   sent_at         DateTime @default(now()) // 보낸 시간
   read_at         DateTime? // 읽은 시간
   createdAt       DateTime @default(now())
 
   // Relations
+  sender_idx      Int      // 보낸 사용자
+  recipient_idx   Int      // 받는 사용자
   sender     User   @relation("SentPosts", fields: [sender_idx], references: [idx], onDelete: Cascade)
   recipient  User   @relation("ReceivedPosts", fields: [recipient_idx], references: [idx], onDelete: Cascade)
 }
