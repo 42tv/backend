@@ -15,6 +15,7 @@ import { StreamModule } from './stream/stream.module';
 import { ChattingRedisModule } from './redis/redis.module';
 import { ChatModule } from './chat/chat.module';
 import { JwtCookieMiddleware } from './middle-ware/jwt-cookie.middleware';
+import { PostModule } from './post/post.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { JwtCookieMiddleware } from './middle-ware/jwt-cookie.middleware';
     StreamModule,
     ChattingRedisModule,
     ChatModule,
+    PostModule,
   ],
   controllers: [AppController],
   providers: [AppService],
