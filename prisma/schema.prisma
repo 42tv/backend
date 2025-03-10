@@ -16,8 +16,8 @@ model User {
   profile_img        String      @default("")
   oauth_provider    String?
   oauth_provider_id String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  created_at         DateTime    @default(now())
+  updated_at         DateTime    @updatedAt
   
   userDetail      UserDetail?
   channel         Channel?
@@ -51,7 +51,7 @@ model UserDetail {
   phone           String   // 암호화 필요
   email           String   @unique // 암호화 필요
   address         String   // 암호화 필요
-  createdAt       DateTime @default(now())
+  created_at       DateTime @default(now())
   User            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)  // 반드시 1:1 관계를 유지하도록 설정
 }
 
@@ -61,7 +61,7 @@ model Terms {
   version       Float
   content       String
   effectiveDate DateTime
-  createdAt     DateTime    @default(now())
+  created_at     DateTime    @default(now())
   UserTerms     UserTerms[]
 }
 
@@ -136,7 +136,7 @@ model Posts {
   is_read         Boolean  @default(false) // 읽음 상태
   sent_at         DateTime @default(now()) // 보낸 시간
   read_at         DateTime? // 읽은 시간
-  createdAt       DateTime @default(now())
+  created_at       DateTime @default(now())
 
   // Relations
   sender_idx      Int      // 보낸 사용자
@@ -153,7 +153,7 @@ model Coin {
   total_spent     Int      @default(0)
   total_charged   Int      @default(0)
   last_updated    DateTime @updatedAt
-  createdAt       DateTime @default(now())
+  created_at       DateTime @default(now())
 
   // Relations
   user            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
@@ -167,7 +167,7 @@ model Gift {
   amount          Int      // 선물한 코인 양
   message         String?  // 선물과 함께 보낸 메시지
   stream_id       Int?     // 연결된 스트림 (선물이 특정 스트림에서 이루어진 경우)
-  createdAt       DateTime @default(now())
+  created_at       DateTime @default(now())
   
   // Relations
   sender          User     @relation("GiftSender", fields: [sender_idx], references: [idx])
@@ -180,8 +180,8 @@ model Fan {
   idx             Int      @id @default(autoincrement())
 
   total_gifts     Int      @default(0) // 팬이 보낸 총 선물 수
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
   
   // Relations
   creator_idx     Int      // 크리에이터(팔로우 당하는 사람) 인덱스
@@ -203,8 +203,8 @@ model FanRankTier {
   creator_idx     Int      // 크리에이터(등급 소유자) 인덱스
   tier_name       String   // 등급 이름 (예: "브론즈", "실버", "골드")
   donation        Int      // 해당 등급에 도달하기 위한 최소 후원 금액
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
   
   // Relations
   creator         User     @relation("CreatorRankTiers", fields: [creator_idx], references: [idx], onDelete: Cascade)
