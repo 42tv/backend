@@ -70,6 +70,16 @@ export class UserService {
   }
 
   /**
+   * User의 id로 찾기
+   * @param user_id
+   * @param tx
+   * @returns
+   */
+  async findByUserId(user_id: string, tx?: Prisma.TransactionClient) {
+    return await this.userRepository.findByUserId(user_id, tx);
+  }
+
+  /**
    * 기본 회원가입 함수
    * @param id
    * @param pw
