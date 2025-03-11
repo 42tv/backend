@@ -17,20 +17,20 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty()
-  //비밀번호 8자리 이상 알파벳,숫자,특수문자 1개씩 이상
-  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+  // 비밀번호 8자리 이상, 알파벳, 숫자, 특수문자 1개씩 이상 포함
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/)
   @ApiProperty({
     example: 'password123!',
     not: null,
-    pattern: '^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$',
+    pattern: '^(?=.*[A-Za-z])(?=.*\\d)(?=.*[\\W_])[A-Za-z\\d\\W_]{8,}$',
     minLength: 8,
-    description: '8자리 이상 알파벳,숫자,특수문자 1개씩 이상',
+    description: '8자리 이상, 알파벳, 숫자, 특수문자 1개씩 포함',
   })
   password: string;
 
   @IsString()
   @IsNotEmpty()
-  @Length(1, 10)
+  @Length(1, 14)
   @ApiProperty({
     example: 'nickname123',
     not: null,
