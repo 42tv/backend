@@ -1,10 +1,12 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [pgcrypto]
 }
 
 // 회원 테이블
@@ -16,8 +18,8 @@ model User {
   profile_img        String      @default("")
   oauth_provider    String?
   oauth_provider_id String?
-  created_at         DateTime    @default(now())
-  updated_at         DateTime    @updatedAt
+  created_at         DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at         DateTime    @updatedAt()
   
   userDetail      UserDetail?
   channel         Channel?
@@ -51,34 +53,34 @@ model UserDetail {
   phone           String   // 암호화 필요
   email           String   @unique // 암호화 필요
   address         String   // 암호화 필요
-  created_at       DateTime @default(now())
+  created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   User            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)  // 반드시 1:1 관계를 유지하도록 설정
 }
 
 // 이용약관
 model Terms {
-  idx     Int         @id @default(autoincrement())
+  id     Int         @id @default(autoincrement())
   version       Float
   content       String
   effectiveDate DateTime
-  created_at     DateTime    @default(now())
+  created_at     DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
   UserTerms     UserTerms[]
 }
 
 // 이용약관 동의 여부
 model UserTerms {
-  idx Int      @id @default(autoincrement())
+  id Int      @id @default(autoincrement())
   agreedAt       DateTime
-  createdAt      DateTime @default(now())
+  createdAt      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
 
   // Relations
   user_idx       Int
-  terms_idx      Int
+  terms_id      Int
   user  User  @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
-  terms Terms @relation(fields: [terms_idx], references: [idx], onDelete: Cascade)
+  terms Terms @relation(fields: [terms_id], references: [id], onDelete: Cascade)
 
   // Constraints
-  @@unique([user_idx, terms_idx]) // 한 사용자당 한 약관 버전에 대해 한 번만 동의 가능
+  @@unique([user_idx, terms_id]) // 한 사용자당 한 약관 버전에 대해 한 번만 동의 가능
 }
 
 // 채널 테이블
@@ -91,7 +93,7 @@ model Channel {
   month_time        Int      @default(0)
   total_time        Int      @default(0)
   first_start_time  DateTime?
-  createdAt         DateTime @default(now())
+  createdAt         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
 
   // Relations
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
@@ -131,12 +133,11 @@ model Stream {
 
 // 쪽지 테이블 (유저간 메시지)
 model Posts {
-  idx             Int      @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   content         String   // 쪽지 내용
   is_read         Boolean  @default(false) // 읽음 상태
-  sent_at         DateTime @default(now()) // 보낸 시간
+  sent_at         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   read_at         DateTime? // 읽은 시간
-  created_at       DateTime @default(now())
 
   // Relations
   sender_idx      Int      // 보낸 사용자
@@ -153,7 +154,7 @@ model Coin {
   total_spent     Int      @default(0)
   total_charged   Int      @default(0)
   last_updated    DateTime @updatedAt
-  created_at       DateTime @default(now())
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
 
   // Relations
   user            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
@@ -161,13 +162,13 @@ model Coin {
 
 // 선물(후원) 기록 테이블 - 사용자 간 코인 선물 기록
 model Gift {
-  idx             Int      @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   sender_idx      Int      // 선물을 보낸 사용자
   recipient_idx   Int      // 선물을 받은 사용자
   amount          Int      // 선물한 코인 양
   message         String?  // 선물과 함께 보낸 메시지
   stream_id       Int?     // 연결된 스트림 (선물이 특정 스트림에서 이루어진 경우)
-  created_at       DateTime @default(now())
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   
   // Relations
   sender          User     @relation("GiftSender", fields: [sender_idx], references: [idx])
@@ -177,39 +178,40 @@ model Gift {
 
 // 팬 관계 테이블 - 사용자간 팬 관계 관리
 model Fan {
-  idx             Int      @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
 
   total_gifts     Int      @default(0) // 팬이 보낸 총 선물 수
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at      DateTime @updatedAt
   
   // Relations
-  creator_idx     Int      // 크리에이터(팔로우 당하는 사람) 인덱스
-  creator         User     @relation("UserFans", fields: [creator_idx], references: [idx], onDelete: Cascade)
+  creator_id     Int      // 크리에이터(팔로우 당하는 사람) 인덱스
+  creator         User     @relation("UserFans", fields: [creator_id], references: [idx], onDelete: Cascade)
 
   fan_idx         Int      // 팬(팔로우 하는 사람) 인덱스
   fan             User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
 
-  rank_tier_idx   Int?     // Reference to the rank tier
-  rankTier        FanRankTier? @relation(fields: [rank_tier_idx], references: [idx], onDelete: SetNull)
+  rank_tier_id   Int?     // Reference to the rank tier
+  rankTier        FanRankTier? @relation(fields: [rank_tier_id], references: [id], onDelete: SetNull)
   
   // Ensure a user can only follow another user once
-  @@unique([creator_idx, fan_idx])
+  @@unique([creator_id, fan_idx])
 }
 
 // 팬 등급 시스템 - 각 크리에이터별 팬 등급 정의
 model FanRankTier {
-  idx             Int      @id @default(autoincrement())
-  creator_idx     Int      // 크리에이터(등급 소유자) 인덱스
+  id             Int      @id @default(autoincrement())
+  
   tier_name       String   // 등급 이름 (예: "브론즈", "실버", "골드")
   donation        Int      // 해당 등급에 도달하기 위한 최소 후원 금액
-  created_at       DateTime @default(now())
+  created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at       DateTime @updatedAt
   
   // Relations
-  creator         User     @relation("CreatorRankTiers", fields: [creator_idx], references: [idx], onDelete: Cascade)
+  creator_id     Int      // 크리에이터(등급 소유자) 인덱스
+  creator         User     @relation("CreatorRankTiers", fields: [creator_id], references: [idx], onDelete: Cascade)
   fans            Fan[]    // 이 등급을 가진 팬들
   
   // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
-  @@unique([creator_idx, tier_name])
+  @@unique([creator_id, tier_name])
 }
