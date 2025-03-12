@@ -77,7 +77,36 @@ export class PostService {
     try {
       await this.postRepository.readPosts(recipient_idx, Number(postId));
     } catch (e) {
-      console.log(e);
+      throw new BadRequestException('유효하지 않은 요청입니다');
+    }
+    return;
+  }
+
+  /**
+   * 쪽지 삭제 함수
+   * @param recipient_idx 받는 유저 idx
+   * @param postId 삭제할 쪽지 idx
+   * @returns
+   */
+  async deletePost(recipient_idx: number, postId: string) {
+    try {
+      await this.postRepository.deletePost(recipient_idx, Number(postId));
+    } catch (e) {
+      throw new BadRequestException('유효하지 않은 요청입니다');
+    }
+    return;
+  }
+
+  /**
+   * 쪽지 삭제 함수
+   * @param recipient_idx 받는 유저 idx
+   * @param postId 삭제할 쪽지 idx
+   * @returns
+   */
+  async deletePosts(recipient_idx: number, postIds: []) {
+    try {
+      await this.postRepository.deletePosts(recipient_idx, postIds);
+    } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
     }
     return;

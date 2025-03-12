@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -27,6 +28,22 @@ import {
 class PostResponse {
   @ApiProperty({
     example: '쪽지를 성공적으로 보냈습니다.',
+    description: '성공 메시지',
+  })
+  message: string;
+}
+
+class PutResponse {
+  @ApiProperty({
+    example: '쪽지를 읽었습니다',
+    description: '성공 메시지',
+  })
+  message: string;
+}
+
+class DeleteResponse {
+  @ApiProperty({
+    example: '쪽지를 삭제했습니다',
     description: '성공 메시지',
   })
   message: string;
@@ -146,7 +163,7 @@ export class PostController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: '닉네임 변경' })
+  @ApiOperation({ summary: '쪽지 쓰기' })
   @ApiCreatedResponse({
     description: '변경 성공',
     type: PostResponse,
@@ -169,11 +186,70 @@ export class PostController {
 
   @Put(':postId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '쪽지 읽기' })
+  @ApiCreatedResponse({
+    description: '읽기 성공',
+    type: PutResponse,
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
   async readPosts(@Req() req, @Param('postId') postId) {
-    console.log(req.user.idx, postId);
     await this.postService.readPosts(req.user.idx, postId);
     return {
-      message: '쪽지를 성공적으로 읽었습니다.',
+      message: '쪽지를 읽었습니다.',
+    };
+  }
+
+  @Delete()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '쪽지 삭제' })
+  @ApiCreatedResponse({
+    description: '삭제 성공',
+    type: DeleteResponse,
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
+  async deletePosts(@Req() req, @Body('postIds') postIds) {
+    await this.postService.deletePosts(req.user.idx, postIds);
+    return {
+      message: '쪽지를 삭제했습니다.',
+    };
+  }
+
+  @Delete(':postId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '쪽지 삭제' })
+  @ApiCreatedResponse({
+    description: '삭제 성공',
+    type: DeleteResponse,
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
+  async deletePost(@Req() req, @Param('postId') postId) {
+    await this.postService.deletePost(req.user.idx, postId);
+    return {
+      message: '쪽지를 삭제했습니다.',
     };
   }
 }

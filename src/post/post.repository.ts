@@ -79,4 +79,48 @@ export class PostRepository {
       },
     });
   }
+
+  /**
+   * 쪽지 삭제
+   * @param recipient_idx
+   * @param postId
+   * @param tx
+   * @returns
+   */
+  async deletePost(
+    recipient_idx: number,
+    postId: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.posts.delete({
+      where: {
+        recipient_idx: recipient_idx,
+        id: postId,
+      },
+    });
+  }
+
+  /**
+   * 쪽지 여러개 삭제
+   * @param recipient_idx
+   * @param postIds
+   * @param tx
+   * @returns
+   */
+  async deletePosts(
+    recipient_idx: number,
+    postIds: number[],
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.posts.deleteMany({
+      where: {
+        recipient_idx: recipient_idx,
+        id: {
+          in: postIds,
+        },
+      },
+    });
+  }
 }
