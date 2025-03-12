@@ -32,6 +32,11 @@ export class PostService {
     );
   }
 
+  /**
+   * recipient_idx의 쪽지를 읽는 함수
+   * @param recipient_idx 받는 유저 idx
+   * @returns
+   */
   async getPosts(recipient_idx: number) {
     console.log(recipient_idx);
     const posts = await this.postRepository.getPosts(recipient_idx);
@@ -44,6 +49,7 @@ export class PostService {
       result.push({
         id: post.id,
         message: post.content,
+        is_read: post.is_read,
         sender: {
           idx: sender.idx,
           userId: sender.user_id,
@@ -59,5 +65,21 @@ export class PostService {
       });
     }
     return result;
+  }
+
+  /**
+   * 쪽지 읽는 함수
+   * @param recipient_idx 받은 유저 idx
+   * @param postId 읽을 쪽지 idx
+   * @returns
+   */
+  async readPosts(recipient_idx: number, postId: string) {
+    try {
+      await this.postRepository.readPosts(recipient_idx, Number(postId));
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException('유효하지 않은 요청입니다');
+    }
+    return;
   }
 }

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { PostService } from './post.service';
 import { PostDto } from './dto/create.post.dto';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
@@ -155,6 +164,16 @@ export class PostController {
     await this.postService.createPost(req.user.idx, postDto);
     return {
       message: '쪽지를 성공적으로 보냈습니다.',
+    };
+  }
+
+  @Put(':postId')
+  @UseGuards(JwtAuthGuard)
+  async readPosts(@Req() req, @Param('postId') postId) {
+    console.log(req.user.idx, postId);
+    await this.postService.readPosts(req.user.idx, postId);
+    return {
+      message: '쪽지를 성공적으로 읽었습니다.',
     };
   }
 }
