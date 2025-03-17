@@ -37,9 +37,30 @@ export class PostService {
    * @param recipient_idx 받는 유저 idx
    * @returns
    */
-  async getPosts(recipient_idx: number) {
-    console.log(recipient_idx);
-    const posts = await this.postRepository.getPosts(recipient_idx);
+  async getPosts(recipient_idx: number, kind: string, nickname: string) {
+    let posts;
+    if (kind == 'receive') {
+      if (nickname) {
+        posts = await this.postRepository.getReceivePostsByNickname(
+          recipient_idx,
+          nickname,
+        );
+      } else {
+        posts = await this.postRepository.getPosts(recipient_idx);
+      }
+    } else if (kind == 'send') {
+      if (nickname) {
+        posts = await this.postRepository.getSendPostsByNickname(
+          recipient_idx,
+          nickname,
+        );
+      } else {
+        posts = await this.postRepository.getSendPosts(recipient_idx);
+      }
+    } else {
+      throw new BadRequestException('유효하지 않은 요청입니다');
+    }
+
     const result = [];
     for (const post of posts) {
       const sender = await this.userService.findByUserIdx(post.sender_idx);

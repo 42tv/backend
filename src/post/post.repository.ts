@@ -52,6 +52,80 @@ export class PostRepository {
       orderBy: {
         sent_at: 'desc',
       },
+      take: 100,
+    });
+  }
+
+  /**
+   * 보낸 닉네임이 일치하는 쪽지리스트 가져오기
+   * @param recipient_idx
+   * @param nickname
+   * @param tx
+   * @returns
+   */
+  async getReceivePostsByNickname(
+    recipient_idx: number,
+    nickname: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.posts.findMany({
+      where: {
+        recipient_idx: recipient_idx,
+        sender: {
+          nickname: nickname,
+        },
+      },
+      orderBy: {
+        sent_at: 'desc',
+      },
+      take: 100,
+    });
+  }
+
+  /**
+   * 보낸 쪽지 가져오기
+   * @param sender_idx
+   * @param tx
+   * @returns
+   */
+  async getSendPosts(sender_idx: number, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.posts.findMany({
+      where: {
+        sender_idx: sender_idx,
+      },
+      orderBy: {
+        sent_at: 'desc',
+      },
+      take: 100,
+    });
+  }
+
+  /**
+   * 보낸 쪽지 닉네임 검색
+   * @param sender_idx
+   * @param nickname
+   * @param tx
+   * @returns
+   */
+  async getSendPostsByNickname(
+    sender_idx: number,
+    nickname: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.posts.findMany({
+      where: {
+        sender_idx: sender_idx,
+        recipient: {
+          nickname: nickname,
+        },
+      },
+      orderBy: {
+        sent_at: 'desc',
+      },
+      take: 100,
     });
   }
 

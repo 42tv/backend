@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -157,8 +158,8 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async getPosts(@Req() req) {
-    return await this.postService.getPosts(req.user.idx);
+  async getPosts(@Req() req, @Query('kind') kind, @Query('nickname') nickname) {
+    return await this.postService.getPosts(req.user.idx, kind, nickname);
   }
 
   @Post()
