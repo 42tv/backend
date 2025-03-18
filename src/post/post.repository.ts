@@ -197,4 +197,70 @@ export class PostRepository {
       },
     });
   }
+
+  /**
+   * blocker_idx가 blocked_idx를 차단했는지 확인하는 함수
+   * @param blocker_idx
+   * @param blocked_idx
+   * @param tx
+   * @returns 없다면 null
+   */
+  async findBlockUser(
+    blocker_idx: number,
+    blocked_idx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.postBlockedUsers.findFirst({
+      where: {
+        blocker_idx: blocker_idx,
+        blocked_idx: blocked_idx,
+      },
+    });
+  }
+
+  /**
+   * PostBlockUser테이블에 쪽지 차단 유저 추가
+   * @param blocker_idx
+   * @param blocked_idx
+   * @param tx
+   */
+  async blockUser(
+    blocker_idx: number,
+    blocked_idx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    await prismaClient.postBlockedUsers.create({
+      data: {
+        blocker_idx: blocker_idx,
+        blocked_idx: blocked_idx,
+      },
+    });
+    return;
+  }
+
+  /**
+   * blocker의 blocked 유저 차단 해제
+   * @param blocker_idx
+   * @param blocked_idx
+   * @param tx
+   * @returns
+   */
+  async unblockUser(
+    blocker_idx: number,
+    blocked_idx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    await prismaClient.postBlockedUsers.delete({
+      where: {
+        blocker_idx_blocked_idx: {
+          blocker_idx: blocker_idx,
+          blocked_idx: blocked_idx,
+        },
+      },
+    });
+    return;
+  }
 }

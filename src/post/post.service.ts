@@ -132,4 +132,45 @@ export class PostService {
     }
     return;
   }
+
+  async checkBlockedUser(blocker_idx: number, blocked_idx: number) {
+    const blockedUser = await this.postRepository.findBlockUser(
+      blocker_idx,
+      blocked_idx,
+    );
+    if (blockedUser) {
+      throw new BadRequestException('차단한 유저입니다');
+    }
+    return;
+  }
+
+  /**
+   * blocker가 blocked유저의 쪽지를 차단
+   * @param blocker_idx
+   * @param blocked_idx
+   * @returns
+   */
+  async blockUser(blocker_idx: number, blocked_idx: number) {
+    const blockedUser = await this.postRepository.findBlockUser(
+      blocker_idx,
+      blocked_idx,
+    );
+    if (blockedUser) {
+      throw new BadRequestException('이미 차단한 유저입니다');
+    }
+    await this.postRepository.blockUser(blocker_idx, blocked_idx);
+    return;
+  }
+
+  async unblockUser(blocker_idx: number, blocked_idx: number) {
+    const blockedUser = await this.postRepository.findBlockUser(
+      blocker_idx,
+      blocked_idx,
+    );
+    if (!blockedUser) {
+      throw new BadRequestException('차단하지 않은 유저입니다');
+    }
+    await this.postRepository.unblockUser(blocker_idx, blocked_idx);
+    return;
+  }
 }

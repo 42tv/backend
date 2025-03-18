@@ -19,128 +19,20 @@ import {
   ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiOperation,
-  ApiProperty,
 } from '@nestjs/swagger';
 import {
   CustomBadRequestResponse,
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
-
-class PostResponse {
-  @ApiProperty({
-    example: '쪽지를 성공적으로 보냈습니다.',
-    description: '성공 메시지',
-  })
-  message: string;
-}
-
-class PutResponse {
-  @ApiProperty({
-    example: '쪽지를 읽었습니다',
-    description: '성공 메시지',
-  })
-  message: string;
-}
-
-class DeleteResponse {
-  @ApiProperty({
-    example: '쪽지를 삭제했습니다',
-    description: '성공 메시지',
-  })
-  message: string;
-}
-
-class PostsData {
-  id: number;
-  message: string;
-  sender: {
-    idx: number;
-    userId: string;
-    nickname: string;
-  };
-  recipient: {
-    idx: number;
-    userId: string;
-    nickname: string;
-  };
-  sentAt: string;
-  readAt: string;
-}
-
-class GetResponse {
-  @ApiProperty({
-    example: [
-      [
-        {
-          id: 9,
-          message: '대충 쪽지 내용1',
-          sender: {
-            idx: 5,
-            userId: '3333',
-            nickname: '3333',
-          },
-          recipient: {
-            idx: 4,
-            userId: '1234',
-            nickname: '1234',
-          },
-          sentAt: '2025-03-10T15:12:33.468Z',
-          readAt: '2025-03-10T15:12:33.468Z',
-        },
-        {
-          id: 10,
-          message: '대충 쪽지 내용12',
-          sender: {
-            idx: 5,
-            userId: '3333',
-            nickname: '3333',
-          },
-          recipient: {
-            idx: 4,
-            userId: '1234',
-            nickname: '1234',
-          },
-          sentAt: '2025-03-10T15:12:35.952Z',
-          readAt: null,
-        },
-        {
-          id: 11,
-          message: '대충 쪽지 내용123',
-          sender: {
-            idx: 5,
-            userId: '3333',
-            nickname: '3333',
-          },
-          recipient: {
-            idx: 4,
-            userId: '1234',
-            nickname: '1234',
-          },
-          sentAt: '2025-03-10T15:12:37.378Z',
-          readAt: null,
-        },
-        {
-          id: 12,
-          message: '대충 쪽지 내용1234',
-          sender: {
-            idx: 5,
-            userId: '3333',
-            nickname: '3333',
-          },
-          recipient: {
-            idx: 4,
-            userId: '1234',
-            nickname: '1234',
-          },
-          sentAt: '2025-03-10T15:12:39.143Z',
-          readAt: null,
-        },
-      ],
-    ],
-    description: 'post 내용',
-  })
-  posts: PostsData[];
-}
+import {
+  DeleteResponse,
+  GetResponse,
+  PostBlockBadRequestResponse,
+  PostBlockResponse,
+  PostResponse,
+  PostUnBlockResponse,
+  PutResponse,
+} from './swagger.entity/swagger.entity';
 
 @Controller('post')
 export class PostController {
@@ -251,6 +143,52 @@ export class PostController {
     await this.postService.deletePost(req.user.idx, postId);
     return {
       message: '쪽지를 삭제했습니다.',
+    };
+  }
+
+  @Post('block/:blockedUserIdx')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '쪽지 차단 유저' })
+  @ApiCreatedResponse({
+    description: '차단 성공',
+    type: PostBlockResponse,
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: PostBlockBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
+  async blockUser(@Req() req, @Param('blockedUserIdx') blockedUserIdx) {
+    await this.postService.blockUser(req.user.idx, blockedUserIdx);
+    return {
+      message: '유저를 차단했습니다.',
+    };
+  }
+
+  @Delete('block/:blockedUserIdx')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '쪽지 차단 해제' })
+  @ApiCreatedResponse({
+    description: '차단 해제 성공',
+    type: PostUnBlockResponse,
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: PostBlockBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
+  async unblockUser(@Req() req, @Param('blockedUserIdx') blockedUserIdx) {
+    await this.postService.unblockUser(req.user.idx, blockedUserIdx);
+    return {
+      message: '유저를 차단 해제했습니다.',
     };
   }
 }
