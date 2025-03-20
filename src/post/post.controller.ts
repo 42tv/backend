@@ -146,6 +146,26 @@ export class PostController {
     };
   }
 
+  @Get('block')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '차단된 유저 리스트 가져오기' })
+  @ApiCreatedResponse({
+    description: '차단된 유저 리스트',
+    type: GetResponse, // 수정 요망
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: GetResponse, // 수정 요망
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
+  async getBlockedPostUser(@Req() req) {
+    return await this.postService.getBlockedPostUser(req.user.idx);
+  }
+
   @Post('block/:blockedUserIdx')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '쪽지 차단 유저' })

@@ -133,15 +133,15 @@ export class PostService {
     return;
   }
 
-  async checkBlockedUser(blocker_idx: number, blocked_idx: number) {
-    const blockedUser = await this.postRepository.findBlockUser(
-      blocker_idx,
-      blocked_idx,
-    );
-    if (blockedUser) {
-      throw new BadRequestException('차단한 유저입니다');
-    }
-    return;
+  /**
+   * 차단한 유저를 확인하는 함수
+   * @param blocker_idx
+   * @returns
+   */
+  async getBlockedPostUser(blocker_idx: number) {
+    const blockcedUsers =
+      await this.postRepository.getBlockedPostUser(blocker_idx);
+    return blockcedUsers;
   }
 
   /**
@@ -151,6 +151,10 @@ export class PostService {
    * @returns
    */
   async blockUser(blocker_idx: number, blocked_idx: number) {
+    if (isNaN(blocked_idx)) {
+      throw new BadRequestException('유효하지 않은 요청입니다');
+    }
+    blocked_idx = Number(blocked_idx);
     const blockedUser = await this.postRepository.findBlockUser(
       blocker_idx,
       blocked_idx,

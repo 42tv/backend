@@ -220,6 +220,35 @@ export class PostRepository {
   }
 
   /**
+   * 유저의 쪽지 차단 리스트 가져오는 함수
+   * @param blocker_idx
+   * @param tx
+   * @returns
+   */
+  async getBlockedPostUser(blocker_idx: number, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.postBlockedUsers.findMany({
+      where: {
+        blocker_idx: blocker_idx,
+      },
+      select: {
+        id: true,
+        blocked: {
+          select: {
+            idx: true,
+            nickname: true,
+            profile_img: true,
+          },
+        },
+        created_at: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+  }
+
+  /**
    * PostBlockUser테이블에 쪽지 차단 유저 추가
    * @param blocker_idx
    * @param blocked_idx
