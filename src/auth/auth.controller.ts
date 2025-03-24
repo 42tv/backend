@@ -76,4 +76,28 @@ export class AuthController {
     console.log(req.user);
     return await this.authService.verifyPhone(req.user);
   }
+
+  /**
+   * 로그아웃 처리
+   * @param res 쿠키를 삭제하기 위한 Response 객체
+   * @returns 로그아웃 성공 메시지
+   */
+  @Post('logout')
+  @ApiOperation({ summary: '로그아웃' })
+  @ApiResponse({
+    status: 201,
+    description: '로그아웃 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Successfully logged out' },
+      },
+    },
+  })
+  async logout(@Res() res) {
+    // Clear authentication cookies by setting to empty with expired date
+    res.cookie('jwt', '', { httpOnly: true, expires: new Date(0) });
+    res.cookie('refresh', '', { httpOnly: true, expires: new Date(0) });
+    res.send({ message: 'Successfully logged out' });
+  }
 }
