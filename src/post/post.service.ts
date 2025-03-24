@@ -166,15 +166,42 @@ export class PostService {
     return;
   }
 
+  /**
+   * 차단 해제 함수
+   * @param blocker_idx
+   * @param blocked_idx
+   * @returns
+   */
   async unblockUser(blocker_idx: number, blocked_idx: number) {
+    if (isNaN(blocked_idx)) {
+      throw new BadRequestException('유효하지 않은 요청입니다');
+    }
+    blocked_idx = Number(blocked_idx);
+    console.log(blocker_idx, blocked_idx);
     const blockedUser = await this.postRepository.findBlockUser(
       blocker_idx,
       blocked_idx,
     );
+    console.log(blockedUser);
     if (!blockedUser) {
       throw new BadRequestException('차단하지 않은 유저입니다');
     }
     await this.postRepository.unblockUser(blocker_idx, blocked_idx);
+    return;
+  }
+
+  /**
+   * 다수 차단 해제 함수
+   * @param blocker_idx
+   * @param blockedUserIdxs
+   * @returns
+   */
+  async unblockUsers(blocker_idx: number, blockedUserIdxs: []) {
+    for (const blockedUserIdx of blockedUserIdxs) {
+      try {
+        await this.unblockUser(blocker_idx, blockedUserIdx);
+      } catch (e) {}
+    }
     return;
   }
 }

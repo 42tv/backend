@@ -236,6 +236,7 @@ export class PostRepository {
         blocked: {
           select: {
             idx: true,
+            user_id: true,
             nickname: true,
             profile_img: true,
           },

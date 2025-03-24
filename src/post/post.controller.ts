@@ -146,7 +146,7 @@ export class PostController {
     };
   }
 
-  @Get('block')
+  @Get('block/user')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '차단된 유저 리스트 가져오기' })
   @ApiCreatedResponse({
@@ -166,7 +166,7 @@ export class PostController {
     return await this.postService.getBlockedPostUser(req.user.idx);
   }
 
-  @Post('block/:blockedUserIdx')
+  @Post('block/user/:blockedUserIdx')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '쪽지 차단 유저' })
   @ApiCreatedResponse({
@@ -189,9 +189,9 @@ export class PostController {
     };
   }
 
-  @Delete('block/:blockedUserIdx')
+  @Delete('block/user')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: '쪽지 차단 해제' })
+  @ApiOperation({ summary: '쪽지 차단 동시 해제' })
   @ApiCreatedResponse({
     description: '차단 해제 성공',
     type: PostUnBlockResponse,
@@ -205,7 +205,34 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async unblockUser(@Req() req, @Param('blockedUserIdx') blockedUserIdx) {
+  async unblockUsers(@Req() req, @Body('blockedUserIdxs') blockedUserIdxs) {
+    console.log(blockedUserIdxs);
+    await this.postService.unblockUsers(req.user.idx, blockedUserIdxs);
+    return {
+      message: '유저를 차단 해제했습니다.',
+    };
+  }
+
+  @Delete('block/user/:blockedUserIdx')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '쪽지 차단 다수 해제' })
+  @ApiCreatedResponse({
+    description: '차단 다수 해제 성공',
+    type: PostUnBlockResponse,
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: PostBlockBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
+  async unblockUser(
+    @Req() req,
+    @Param('blockedUserIdx') blockedUserIdx: number,
+  ) {
     await this.postService.unblockUser(req.user.idx, blockedUserIdx);
     return {
       message: '유저를 차단 해제했습니다.',
