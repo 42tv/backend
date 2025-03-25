@@ -178,15 +178,11 @@ export class PostService {
     }
     blocked_idx = Number(blocked_idx);
     console.log(blocker_idx, blocked_idx);
-    const blockedUser = await this.postRepository.findBlockUser(
-      blocker_idx,
-      blocked_idx,
-    );
-    console.log(blockedUser);
-    if (!blockedUser) {
-      throw new BadRequestException('차단하지 않은 유저입니다');
+    try {
+      await this.postRepository.unblockUser(blocker_idx, blocked_idx);
+    } catch (e) {
+      throw new BadRequestException('유효하지 않은 요청입니다');
     }
-    await this.postRepository.unblockUser(blocker_idx, blocked_idx);
     return;
   }
 
