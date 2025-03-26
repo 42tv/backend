@@ -51,6 +51,8 @@ export class IvsService {
       const command = new CreateChannelCommand({
         name: channelName,
         type: 'STANDARD', // or STANDARD
+        recordingConfigurationArn:
+          process.env.AWS_IVS_RECORDING_CONFIG_ONLYTHUMBNAIL_ARN,
       });
       const response = await this.client.send(command);
       return response;
@@ -68,6 +70,8 @@ export class IvsService {
   async createDummy(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     // 채널명은 idx로 설정
+    await this.requestCreateIvs(user_idx.toString());
+    console.log('createDummy');
     return await prismaClient.iVSChannel.create({
       data: {
         User: {

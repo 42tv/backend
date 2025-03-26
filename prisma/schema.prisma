@@ -42,6 +42,10 @@ model User {
   
   // Fan Rank Tier relation
   fanRankTiers   FanRankTier[] @relation("CreatorRankTiers")
+  
+  // Block relations
+  blockedUsers   PostBlockedUsers[] @relation("PostBlockingUser")
+  blockedBy      PostBlockedUsers[] @relation("PostBlockedUser")
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -214,4 +218,19 @@ model FanRankTier {
   
   // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
   @@unique([creator_id, tier_name])
+}
+
+// 유저 차단 테이블 - 메시지 차단 관리
+model PostBlockedUsers {
+  id              Int      @id @default(autoincrement())
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  
+  // Relations
+  blocker_idx     Int      // 차단한 사용자
+  blocked_idx     Int      // 차단된 사용자
+  blocker         User     @relation("PostBlockingUser", fields: [blocker_idx], references: [idx], onDelete: Cascade)
+  blocked         User     @relation("PostBlockedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
+  
+  // Ensure a user can only block another user once
+  @@unique([blocker_idx, blocked_idx])
 }
