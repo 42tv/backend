@@ -5,7 +5,6 @@ import {
   Put,
   UseGuards,
   Body,
-  Get,
 } from '@nestjs/common';
 import { IvsService } from './ivs.service';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
@@ -69,17 +68,17 @@ export class IvsController {
   @ApiOperation({ summary: 'IVS 콜백 람다' })
   async ivsLambdaCallback(@Body() ivsEvnet: IvsEvent) {
     console.log(ivsEvnet);
-    await this.ivsService.changeStreamState(ivsEvnet);
+    // await this.ivsService.changeStreamState(ivsEvnet);
     return {
       message: 'success',
     };
   }
 
-  @Get('callback/test')
-  async ivsCallbackTest() {
-    const channelArn =
-      'arn:aws:ivs:ap-northeast-2:881820017539:channel/B9ZWjL8rmMKP';
-    await this.ivsService.getChannel(channelArn);
+  @Post('callback/test')
+  async ivsCallbackTest(@Body() ivsEvnet) {
+    console.log('========this is s3 callback test ==============');
+    console.log(ivsEvnet);
+    console.log(ivsEvnet.Records[0].s3);
     return {
       message: 'success',
     };

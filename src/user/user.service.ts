@@ -118,7 +118,7 @@ export class UserService {
           createdUser.user_id,
           tx,
         );
-        await this.ivsService.createDummy(createdUser.idx, tx);
+        await this.ivsService.createIvs(createdUser.idx, tx);
         const sanitizedUser = { ...createdUser };
         delete sanitizedUser.password;
         return sanitizedUser;

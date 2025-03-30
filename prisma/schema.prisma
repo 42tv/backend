@@ -128,7 +128,7 @@ model Stream {
   like_cnt        Int      @default(0)
   thumbnail       String   @default("")
   is_adult        Boolean  @default(false)
-  is_live         Boolean  @default(false)
+  is_live         Boolean  @default(true)
   is_pw           Boolean  @default(false)
   start_time      DateTime?
   live_type       String?

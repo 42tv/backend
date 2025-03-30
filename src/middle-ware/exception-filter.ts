@@ -33,7 +33,10 @@ export class ExceptionfilterFormat implements ExceptionFilter {
     if (httpStatus == 500) {
       this.graylogService.error(exception.stack);
     }
-    console.log('filter: ', exception.stack);
+    if (!(httpStatus == HttpStatus.UNAUTHORIZED)) {
+      console.log('filter: ', exception.stack);
+    }
+
     response.status(httpStatus).json({
       code: httpStatus,
       message: message,
