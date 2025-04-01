@@ -24,10 +24,10 @@ model User {
   userDetail      UserDetail?
   channel         Channel?
   ivs             IVSChannel?
-  stream          Stream?
   UserTerms       UserTerms[]
   coin            Coin?
   
+  streams        Stream? @relation("StreamData")
   // Gift relations
   sentGifts      Gift[] @relation("GiftSender")
   receivedGifts  Gift[] @relation("GiftRecipient")
@@ -105,14 +105,16 @@ model Channel {
 
 // AWS IVS 채널 정보
 model IVSChannel {
-  user_idx          Int        @id
-  arn               String?    @unique
-  ingest_endpoint   String?    @unique
-  playback_url      String?    @unique
-  stream_key        String?    @unique
-  stream_key_arn    String?    @unique
-  name              String?
-  createdAt         DateTime   @default(now())
+  user_idx                Int        @id
+  arn                     String?    @unique
+  ingest_endpoint         String?    @unique
+  playback_url            String?    @unique
+  stream_key              String?    @unique
+  stream_key_arn          String?    @unique
+  recording_arn           String?
+  restriction_policy_arn  String?
+  name                    String?
+  createdAt               DateTime   @default(now())
 
   // relations
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
@@ -121,18 +123,19 @@ model IVSChannel {
 // 이 정보들은 아마 서비스할때에는 redis에 복사본을 들고있다가 
 // 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
 model Stream {
-  user_idx        Int      @id
+  id              Int      @id @default(autoincrement())
   play_cnt        Int      @default(0)
   like_cnt        Int      @default(0)
   thumbnail       String   @default("")
   is_adult        Boolean  @default(false)
-  is_live         Boolean  @default(false)
+  is_live         Boolean  @default(true)
   is_pw           Boolean  @default(false)
   start_time      DateTime?
   live_type       String?
 
   // Relations
-  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  user_idx        Int      @unique
+  user            User     @relation("StreamData", fields: [user_idx], references: [idx], onDelete: Cascade)
 }
 
 // 쪽지 테이블 (유저간 메시지)
@@ -212,7 +215,7 @@ model FanRankTier {
   updated_at       DateTime @updatedAt
   
   // Relations
-  creator_id     Int      // 크리에이터(등급 소유자) 인덱스
+  creator_id      Int      // 크리에이터(등급 소유자) 인덱스
   creator         User     @relation("CreatorRankTiers", fields: [creator_id], references: [idx], onDelete: Cascade)
   fans            Fan[]    // 이 등급을 가진 팬들
   

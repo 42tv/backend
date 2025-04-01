@@ -67,13 +67,21 @@ export class IvsService {
    * @param tx
    * @returns
    */
-  async createDummy(user_idx: number, tx?: Prisma.TransactionClient) {
+  async createIvs(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     // 채널명은 idx로 설정
-    await this.requestCreateIvs(user_idx.toString());
-    console.log('createDummy');
+    const response = await this.requestCreateIvs(user_idx.toString());
+    console.log(response);
     return await prismaClient.iVSChannel.create({
       data: {
+        arn: response.channel.arn,
+        ingest_endpoint: response.channel.ingestEndpoint,
+        playback_url: response.channel.playbackUrl,
+        stream_key: response.streamKey.value,
+        stream_key_arn: response.streamKey.arn,
+        recording_arn: response.channel.recordingConfigurationArn,
+        restriction_policy_arn: response.channel.playbackRestrictionPolicyArn,
+        name: user_idx.toString(),
         User: {
           connect: {
             idx: user_idx,

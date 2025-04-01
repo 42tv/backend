@@ -16,7 +16,7 @@ export class StreamRepository {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.stream.create({
       data: {
-        User: {
+        user: {
           connect: {
             idx: user_idx,
           },
