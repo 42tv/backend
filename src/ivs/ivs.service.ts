@@ -242,11 +242,14 @@ export class IvsService {
           stream_key_arn: response.streamKey.arn,
         },
       });
-      return await this.prisma.iVSChannel.findFirst({
+      const finded_ivs = await this.prisma.iVSChannel.findFirst({
         where: {
           user_idx: user.idx,
         },
       });
+      return {
+        streamKey: finded_ivs.stream_key,
+      };
     }
   }
 
