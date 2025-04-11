@@ -6,12 +6,14 @@ import { LogModule } from 'src/log/log.module';
 import { ChannelModule } from 'src/channel/channel.module';
 import { UserRepository } from './user.repository';
 import { IvsModule } from 'src/ivs/ivs.module';
+import { FanLevelModule } from 'src/fan-level/fan-level.module';
 
 @Module({
   imports: [
     PrismaModule,
     LogModule,
     ChannelModule,
+    FanLevelModule,
     forwardRef(() => IvsModule),
   ],
   controllers: [UserController],

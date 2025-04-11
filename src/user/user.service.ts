@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
+import { FanLevelService } from 'src/fan-level/fan-level.service';
 
 @Injectable()
 export class UserService {
@@ -20,6 +21,7 @@ export class UserService {
     @Inject(forwardRef(() => IvsService))
     private readonly ivsService: IvsService,
     private readonly prisma: PrismaService,
+    private readonly fanLevelService: FanLevelService,
   ) {}
 
   /**
@@ -118,7 +120,20 @@ export class UserService {
           createdUser.user_id,
           tx,
         );
-        await this.ivsService.createIvs(createdUser.idx, tx);
+        await tx.broadCastSetting.create({
+          data: {
+            User: {
+              connect: {
+                idx: createdUser.idx,
+              },
+            },
+            title: `${createdUser.user_id}의 채널입니다`,
+          },
+        });
+        //AWS IVS 채널 생성
+        await this.ivsService.createIvs(createdUser.user_id, tx);
+        //FanLevel 브실골플다 생성
+        await this.fanLevelService.createInitFanLevel(createdUser.idx, tx);
         const sanitizedUser = { ...createdUser };
         delete sanitizedUser.password;
         return sanitizedUser;

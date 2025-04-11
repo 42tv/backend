@@ -98,4 +98,29 @@ export class UserController {
   async createUser(@Body() createUserDto: CreateUserDto) {
     return await this.userService.createUser(createUserDto);
   }
+
+  @Put('broadcast-setting')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '방송 제한설정 변경' })
+  @ApiCreatedResponse({ description: '변경 성공', type: User })
+  @ApiBadRequestResponse({
+    description: '존재하지 않는 프리셋입니다.',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  async updateBroadcastPreset(
+    @Req() req,
+    @Body('preset_idx') preset_idx: number,
+    @Body('preset_name') preset_name: string,
+  ) {
+    // return await this.userService.updateBroadcastPreset(
+    //   req.user.idx,
+    //   preset_idx,
+    //   preset_name,
+    // );
+    return;
+  }
 }

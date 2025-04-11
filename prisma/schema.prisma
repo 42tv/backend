@@ -24,6 +24,7 @@ model User {
   userDetail      UserDetail?
   channel         Channel?
   ivs             IVSChannel?
+  broadcastSetting BroadCastSetting?
   UserTerms       UserTerms[]
   coin            Coin?
   
@@ -41,7 +42,7 @@ model User {
   following      Fan[] @relation("UserFollowing")
   
   // Fan Rank Tier relation
-  fanRankTiers   FanRankTier[] @relation("CreatorRankTiers")
+  fanLevel       FanLevel[] @relation("CreatorRankTiers")
   
   // Block relations
   blockedUsers   PostBlockedUsers[] @relation("PostBlockingUser")
@@ -101,6 +102,22 @@ model Channel {
   total_time        Int      @default(0)
   first_start_time  DateTime?
   createdAt         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // Relations
+  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+}
+
+model BroadCastSetting {
+  user_idx          Int      @id
+  title             String
+  is_adult          Boolean  @default(false)
+  is_pw             Boolean  @default(false)
+  //팬 등급 제한 설정
+  spon_only         Boolean  @default(false)
+  spon_count        Int      @default(0)
+  password          String?  // 비밀번호 (암호화 필요)
+  createdAt         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updatedAt         DateTime @updatedAt()
 
   // Relations
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
@@ -205,7 +222,7 @@ model Gift {
 model Fan {
   id             Int      @id @default(autoincrement())
 
-  total_gifts     Int      @default(0) // 팬이 보낸 총 선물 수
+  total_donation     Int      @default(0) // 팬이 보낸 총 선물 수
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at      DateTime @updatedAt
   
@@ -216,29 +233,25 @@ model Fan {
   fan_idx         Int      // 팬(팔로우 하는 사람) 인덱스
   fan             User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
 
-  rank_tier_id   Int?     // Reference to the rank tier
-  rankTier        FanRankTier? @relation(fields: [rank_tier_id], references: [id], onDelete: SetNull)
-  
   // Ensure a user can only follow another user once
   @@unique([creator_id, fan_idx])
 }
 
 // 팬 등급 시스템 - 각 크리에이터별 팬 등급 정의
-model FanRankTier {
+model FanLevel {
   id               Int      @id @default(autoincrement())
   
-  tier_name        String   // 등급 이름 (예: "브론즈", "실버", "골드")
-  donation         Int      // 해당 등급에 도달하기 위한 최소 후원 금액
+  name             String   // 등급 이름 (예: "브론즈", "실버", "골드")
+  min_donation     Int      // 해당 등급에 도달하기 위한 최소 후원 금액
   created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at       DateTime @updatedAt
   
   // Relations
-  creator_id      Int      // 크리에이터(등급 소유자) 인덱스
-  creator         User     @relation("CreatorRankTiers", fields: [creator_id], references: [idx], onDelete: Cascade)
-  fans            Fan[]    // 이 등급을 가진 팬들
+  user_idx      Int      // 크리에이터(등급 소유자) 인덱스
+  user         User     @relation("CreatorRankTiers", fields: [user_idx], references: [idx], onDelete: Cascade)
   
   // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
-  @@unique([creator_id, tier_name])
+  @@unique([user_idx, name])
 }
 
 // 유저 차단 테이블 - 메시지 차단 관리
