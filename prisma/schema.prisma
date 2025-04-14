@@ -24,6 +24,7 @@ model User {
   userDetail      UserDetail?
   channel         Channel?
   ivs             IVSChannel?
+  broadcastSetting BroadCastSetting?
   UserTerms       UserTerms[]
   coin            Coin?
   
@@ -41,11 +42,14 @@ model User {
   following      Fan[] @relation("UserFollowing")
   
   // Fan Rank Tier relation
-  fanRankTiers   FanRankTier[] @relation("CreatorRankTiers")
+  fanLevel       FanLevel[] @relation("CreatorRankTiers")
   
   // Block relations
   blockedUsers   PostBlockedUsers[] @relation("PostBlockingUser")
   blockedBy      PostBlockedUsers[] @relation("PostBlockedUser")
+  
+  // Stream viewer relation
+  viewingSessions StreamViewer[] @relation("StreamViewers")
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -103,6 +107,22 @@ model Channel {
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 }
 
+model BroadCastSetting {
+  user_idx          Int      @id
+  title             String
+  is_adult          Boolean  @default(false)
+  is_pw             Boolean  @default(false)
+  //팬 등급 제한 설정
+  is_fan            Boolean  @default(false)
+  fan_level         Int      @default(1)
+  password          String?  // 비밀번호 (암호화 필요)
+  createdAt         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updatedAt         DateTime @updatedAt()
+
+  // Relations
+  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+}
+
 // AWS IVS 채널 정보
 model IVSChannel {
   user_idx                Int        @id
@@ -124,6 +144,7 @@ model IVSChannel {
 // 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
 model Stream {
   id              Int      @id @default(autoincrement())
+  title           String   @default("")
   play_cnt        Int      @default(0)
   like_cnt        Int      @default(0)
   thumbnail       String   @default("")
@@ -136,6 +157,20 @@ model Stream {
   // Relations
   user_idx        Int      @unique
   user            User     @relation("StreamData", fields: [user_idx], references: [idx], onDelete: Cascade)
+  
+  // Stream viewers relation
+  viewers         StreamViewer[]
+}
+
+// 시청자 정보 테이블 - 스트림 시청 정보 관리
+model StreamViewer {
+  id              Int      @id @default(autoincrement())
+  // Relations
+  stream_id       Int      // 시청 중인 스트림 ID
+  viewer_idx      Int      // 시청자 ID
+  stream          Stream   @relation(fields: [stream_id], references: [id], onDelete: Cascade)
+  viewer          User     @relation("StreamViewers", fields: [viewer_idx], references: [idx], onDelete: Cascade)
+  @@unique([stream_id, viewer_idx]) // 한 사용자는 스트림당 하나의 시청 세션만 가질 수 있음
 }
 
 // 쪽지 테이블 (유저간 메시지)
@@ -187,7 +222,7 @@ model Gift {
 model Fan {
   id             Int      @id @default(autoincrement())
 
-  total_gifts     Int      @default(0) // 팬이 보낸 총 선물 수
+  total_donation     Int      @default(0) // 팬이 보낸 총 선물 수
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at      DateTime @updatedAt
   
@@ -198,29 +233,25 @@ model Fan {
   fan_idx         Int      // 팬(팔로우 하는 사람) 인덱스
   fan             User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
 
-  rank_tier_id   Int?     // Reference to the rank tier
-  rankTier        FanRankTier? @relation(fields: [rank_tier_id], references: [id], onDelete: SetNull)
-  
   // Ensure a user can only follow another user once
   @@unique([creator_id, fan_idx])
 }
 
 // 팬 등급 시스템 - 각 크리에이터별 팬 등급 정의
-model FanRankTier {
-  id             Int      @id @default(autoincrement())
+model FanLevel {
+  id               Int      @id @default(autoincrement())
   
-  tier_name       String   // 등급 이름 (예: "브론즈", "실버", "골드")
-  donation        Int      // 해당 등급에 도달하기 위한 최소 후원 금액
+  name             String   // 등급 이름 (예: "브론즈", "실버", "골드")
+  min_donation     Int      // 해당 등급에 도달하기 위한 최소 후원 금액
   created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at       DateTime @updatedAt
   
   // Relations
-  creator_id      Int      // 크리에이터(등급 소유자) 인덱스
-  creator         User     @relation("CreatorRankTiers", fields: [creator_id], references: [idx], onDelete: Cascade)
-  fans            Fan[]    // 이 등급을 가진 팬들
+  user_idx      Int      // 크리에이터(등급 소유자) 인덱스
+  user         User     @relation("CreatorRankTiers", fields: [user_idx], references: [idx], onDelete: Cascade)
   
   // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
-  @@unique([creator_id, tier_name])
+  @@unique([user_idx, name])
 }
 
 // 유저 차단 테이블 - 메시지 차단 관리

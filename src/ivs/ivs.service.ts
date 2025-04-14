@@ -67,10 +67,10 @@ export class IvsService {
    * @param tx
    * @returns
    */
-  async createIvs(user_idx: number, tx?: Prisma.TransactionClient) {
+  async createIvs(user_id: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     // 채널명은 idx로 설정
-    const response = await this.requestCreateIvs(user_idx.toString());
+    const response = await this.requestCreateIvs(user_id);
     console.log(response);
     return await prismaClient.iVSChannel.create({
       data: {
@@ -81,10 +81,10 @@ export class IvsService {
         stream_key_arn: response.streamKey.arn,
         recording_arn: response.channel.recordingConfigurationArn,
         restriction_policy_arn: response.channel.playbackRestrictionPolicyArn,
-        name: user_idx.toString(),
+        name: user_id.toString(),
         User: {
           connect: {
-            idx: user_idx,
+            user_id: user_id,
           },
         },
       },
@@ -242,11 +242,14 @@ export class IvsService {
           stream_key_arn: response.streamKey.arn,
         },
       });
-      return await this.prisma.iVSChannel.findFirst({
+      const finded_ivs = await this.prisma.iVSChannel.findFirst({
         where: {
           user_idx: user.idx,
         },
       });
+      return {
+        streamKey: finded_ivs.stream_key,
+      };
     }
   }
 

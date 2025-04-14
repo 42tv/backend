@@ -16,6 +16,7 @@ import { ChattingRedisModule } from './redis/redis.module';
 import { ChatModule } from './chat/chat.module';
 import { JwtCookieMiddleware } from './middle-ware/jwt-cookie.middleware';
 import { PostModule } from './post/post.module';
+import { FanLevelModule } from './fan-level/fan-level.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PostModule } from './post/post.module';
     ChattingRedisModule,
     ChatModule,
     PostModule,
+    FanLevelModule,
   ],
   controllers: [AppController],
   providers: [AppService],

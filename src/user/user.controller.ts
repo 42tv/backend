@@ -24,6 +24,7 @@ import {
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 
 @Controller('user')
 @UsePipes(new ValidationPipe())
@@ -46,7 +47,10 @@ export class UserController {
   @Put('nickname')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '닉네임 변경' })
-  @ApiCreatedResponse({ description: '변경 성공', type: User })
+  @ApiCreatedResponse({
+    description: '변경 성공',
+    type: User,
+  })
   @ApiBadRequestResponse({
     description: '이미 존재하는 닉네임입니다.',
     type: CustomBadRequestResponse,
@@ -97,5 +101,46 @@ export class UserController {
   @ApiBody({ description: 'Body 데이터', type: CreateUserDto, required: true })
   async createUser(@Body() createUserDto: CreateUserDto) {
     return await this.userService.createUser(createUserDto);
+  }
+
+  @Get('broadcast-setting')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '방송 제한설정 조회' })
+  @ApiCreatedResponse({
+    description: '조회 성공',
+  })
+  @ApiBadRequestResponse({
+    description: '존재하지 않는 프리셋입니다.',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  async getBroadcastPreset(@Req() req) {
+    return await this.userService.getBroadcastSetting(req.user.idx);
+  }
+
+  @Put('broadcast-setting')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '방송 제한설정 변경' })
+  @ApiCreatedResponse({ description: '변경 성공', type: User })
+  @ApiBadRequestResponse({
+    description: '존재하지 않는 프리셋입니다.',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  async updateBroadcastPreset(
+    @Req() req,
+    @Body() settingDto: BroadcastSettingDto,
+  ) {
+    console.log(settingDto);
+    await this.userService.updateBroadcastSetting(req.user.idx, settingDto);
+    return {
+      message: '변경 성공',
+    };
   }
 }

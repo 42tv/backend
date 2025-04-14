@@ -11,6 +11,8 @@ import { Prisma } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
+import { FanLevelService } from 'src/fan-level/fan-level.service';
+import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 
 @Injectable()
 export class UserService {
@@ -20,6 +22,7 @@ export class UserService {
     @Inject(forwardRef(() => IvsService))
     private readonly ivsService: IvsService,
     private readonly prisma: PrismaService,
+    private readonly fanLevelService: FanLevelService,
   ) {}
 
   /**
@@ -118,7 +121,20 @@ export class UserService {
           createdUser.user_id,
           tx,
         );
-        await this.ivsService.createIvs(createdUser.idx, tx);
+        await tx.broadCastSetting.create({
+          data: {
+            User: {
+              connect: {
+                idx: createdUser.idx,
+              },
+            },
+            title: `${createdUser.user_id}의 채널입니다`,
+          },
+        });
+        //AWS IVS 채널 생성
+        await this.ivsService.createIvs(createdUser.user_id, tx);
+        //FanLevel 브실골플다 생성
+        await this.fanLevelService.createInitFanLevel(createdUser.idx, tx);
         const sanitizedUser = { ...createdUser };
         delete sanitizedUser.password;
         return sanitizedUser;
@@ -226,5 +242,61 @@ export class UserService {
       provider,
       provider_id,
     );
+  }
+
+  async getBroadcastSetting(user_idx: number) {
+    const user =
+      await this.userRepository.findUserWithIvsAndBroadcastSetting(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+    const sanitizedUser = {
+      idx: user.idx,
+      user_id: user.user_id,
+      profile_img: user.profile_img,
+      nickname: user.nickname,
+      ivs: {
+        stream_key: user.ivs.stream_key,
+        ingest_endpoint: user.ivs.ingest_endpoint,
+      },
+      broadcastSetting: user.broadcastSetting,
+    };
+    console.log(sanitizedUser);
+    return sanitizedUser;
+  }
+
+  /**
+   * user_idx의 broadcastSEtting 업데이트
+   * @param user_idx
+   * @param settingDto
+   * @returns
+   */
+  async updateBroadcastSetting(
+    user_idx: number,
+    settingDto: BroadcastSettingDto,
+  ) {
+    const user =
+      await this.userRepository.findUserWithBroadcastSetting(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+
+    try {
+      await this.userRepository.updateBroadcastSetting(
+        user.idx,
+        settingDto.title,
+        settingDto.isAdult,
+        settingDto.isPrivate,
+        settingDto.isFanClub,
+        settingDto.fanLevel,
+        settingDto.isPrivate ? settingDto.password : null,
+      );
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException('업데이트에 실패했습니다');
+    }
+    return {
+      message: '방송 설정이 변경되었습니다',
+    };
   }
 }
