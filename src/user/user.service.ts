@@ -12,6 +12,7 @@ import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
+import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 
 @Injectable()
 export class UserService {
@@ -241,5 +242,61 @@ export class UserService {
       provider,
       provider_id,
     );
+  }
+
+  async getBroadcastSetting(user_idx: number) {
+    const user =
+      await this.userRepository.findUserWithIvsAndBroadcastSetting(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+    const sanitizedUser = {
+      idx: user.idx,
+      user_id: user.user_id,
+      profile_img: user.profile_img,
+      nickname: user.nickname,
+      ivs: {
+        stream_key: user.ivs.stream_key,
+        ingest_endpoint: user.ivs.ingest_endpoint,
+      },
+      broadcastSetting: user.broadcastSetting,
+    };
+    console.log(sanitizedUser);
+    return sanitizedUser;
+  }
+
+  /**
+   * user_idx의 broadcastSEtting 업데이트
+   * @param user_idx
+   * @param settingDto
+   * @returns
+   */
+  async updateBroadcastSetting(
+    user_idx: number,
+    settingDto: BroadcastSettingDto,
+  ) {
+    const user =
+      await this.userRepository.findUserWithBroadcastSetting(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+
+    try {
+      await this.userRepository.updateBroadcastSetting(
+        user.idx,
+        settingDto.title,
+        settingDto.isAdult,
+        settingDto.isPrivate,
+        settingDto.isFanClub,
+        settingDto.fanLevel,
+        settingDto.isPrivate ? settingDto.password : null,
+      );
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException('업데이트에 실패했습니다');
+    }
+    return {
+      message: '방송 설정이 변경되었습니다',
+    };
   }
 }

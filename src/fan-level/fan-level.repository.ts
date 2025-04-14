@@ -6,6 +6,12 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class FanLevelRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * 초기 5개 팬레벨 생성
+   * @param user_idx
+   * @param tx
+   * @returns
+   */
   async createInitFanLevel(user_idx, tx?: Prisma.TransactionClient) {
     const prismaClient = tx || this.prisma;
     await prismaClient.fanLevel.create({
@@ -64,5 +70,23 @@ export class FanLevelRepository {
       },
     });
     return;
+  }
+
+  /**
+   * user_idx의 팬레벨 조회
+   * @param user_idx
+   * @param tx
+   * @returns
+   */
+  async findByUserIdx(user_idx, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx || this.prisma;
+    return await prismaClient.fanLevel.findMany({
+      where: {
+        user_idx: user_idx,
+      },
+      orderBy: {
+        min_donation: 'asc',
+      },
+    });
   }
 }

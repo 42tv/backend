@@ -113,8 +113,8 @@ model BroadCastSetting {
   is_adult          Boolean  @default(false)
   is_pw             Boolean  @default(false)
   //팬 등급 제한 설정
-  spon_only         Boolean  @default(false)
-  spon_count        Int      @default(0)
+  is_fan            Boolean  @default(false)
+  fan_level         Int      @default(1)
   password          String?  // 비밀번호 (암호화 필요)
   createdAt         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updatedAt         DateTime @updatedAt()

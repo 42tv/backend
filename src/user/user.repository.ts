@@ -120,6 +120,42 @@ export class UserRepository {
   }
 
   /**
+   * user_idx로 broadcastingSetting 포함 가져오기
+   * @param user_idx
+   * @param tx
+   */
+  async findUserWithBroadcastSetting(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.findFirst({
+      where: {
+        idx: user_idx,
+      },
+      include: {
+        broadcastSetting: true,
+      },
+    });
+  }
+
+  async findUserWithIvsAndBroadcastSetting(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.findFirst({
+      where: {
+        idx: user_idx,
+      },
+      include: {
+        ivs: true,
+        broadcastSetting: true,
+      },
+    });
+  }
+
+  /**
    * User 생성
    * @param user_id
    * @param hash
@@ -156,6 +192,44 @@ export class UserRepository {
         nickname: nickname,
         oauth_provider: provider,
         oauth_provider_id: provider_id,
+      },
+    });
+  }
+
+  /**
+   * 채널 방송 설정 업데이트
+   * @param user_idx
+   * @param title
+   * @param is_adult
+   * @param is_pw
+   * @param spon_only
+   * @param spon_count
+   * @param password
+   */
+  async updateBroadcastSetting(
+    user_idx: number,
+    title: string,
+    is_adult: boolean,
+    is_pw: boolean,
+    is_fan: boolean,
+    fan_level: number,
+    password?: string,
+  ) {
+    return await this.prisma.user.update({
+      where: {
+        idx: user_idx,
+      },
+      data: {
+        broadcastSetting: {
+          update: {
+            title: title,
+            is_adult: is_adult,
+            is_pw: is_pw,
+            is_fan: is_fan,
+            fan_level: fan_level,
+            password: password,
+          },
+        },
       },
     });
   }
