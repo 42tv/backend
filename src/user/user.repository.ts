@@ -195,42 +195,4 @@ export class UserRepository {
       },
     });
   }
-
-  /**
-   * 채널 방송 설정 업데이트
-   * @param user_idx
-   * @param title
-   * @param is_adult
-   * @param is_pw
-   * @param spon_only
-   * @param spon_count
-   * @param password
-   */
-  async updateBroadcastSetting(
-    user_idx: number,
-    title: string,
-    is_adult: boolean,
-    is_pw: boolean,
-    is_fan: boolean,
-    fan_level: number,
-    password?: string,
-  ) {
-    return await this.prisma.user.update({
-      where: {
-        idx: user_idx,
-      },
-      data: {
-        broadcastSetting: {
-          update: {
-            title: title,
-            is_adult: is_adult,
-            is_pw: is_pw,
-            is_fan: is_fan,
-            fan_level: fan_level,
-            password: password,
-          },
-        },
-      },
-    });
-  }
 }

@@ -12,7 +12,16 @@ export class StreamRepository {
    * @param tx
    * @returns
    */
-  async createStream(user_idx: number, tx?: Prisma.TransactionClient) {
+  async createStream(
+    user_idx: number,
+    title: string,
+    is_adult: boolean,
+    is_pw: boolean,
+    is_fan: boolean,
+    password: string,
+    fan_level: number,
+    tx?: Prisma.TransactionClient,
+  ) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.stream.create({
       data: {
@@ -21,28 +30,21 @@ export class StreamRepository {
             idx: user_idx,
           },
         },
+        title: title,
+        is_adult: is_adult,
+        is_pw: is_pw,
+        is_fan: is_fan,
+        password: password,
+        fan_level: fan_level,
       },
     });
   }
 
-  /**
-   * user_idx의 Stream 상태를 변경하는 함수
-   * @param user_idx
-   * @param is_live
-   * @param tx
-   */
-  async changeStreamStatus(
-    user_idx: number,
-    is_live: boolean,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async deleteStream(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.stream.update({
+    return await prismaClient.stream.delete({
       where: {
         user_idx: user_idx,
-      },
-      data: {
-        is_live: is_live,
       },
     });
   }

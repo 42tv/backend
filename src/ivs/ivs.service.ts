@@ -20,6 +20,7 @@ import { UserService } from 'src/user/user.service';
 import { StreamService } from 'src/stream/stream.service';
 import { IvsRepository } from './ivs.repository';
 import { IvsEvent } from './entities/lambda.response';
+import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 
 @Injectable()
 export class IvsService {
@@ -31,6 +32,7 @@ export class IvsService {
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     private readonly streamService: StreamService,
+    private readonly broadcastSettingService: BroadcastSettingService,
   ) {
     this.client = new IvsClient({
       region: process.env.AWS_REGION,
@@ -253,21 +255,52 @@ export class IvsService {
     }
   }
 
-  async changeStreamState(ivsEvnet: IvsEvent) {
-    const ivs = await this.ivsRepository.findByArn(ivsEvnet.resource);
+  /**
+   * 방송 시작 람다 콜백의 경우
+   * @param ivsEvent
+   * @returns
+   */
+  async streamStart(ivsEvent: IvsEvent) {
+    const ivs = await this.ivsRepository.findByArn(ivsEvent.resource);
     if (!ivs) {
       throw new BadRequestException('채널이 존재하지 않습니다.');
     }
-    let is_live = false;
-    if (ivsEvnet.eventName == 'Stream Start') {
-      is_live = true;
-    } else {
-      is_live = false;
+    const broadcastSetting =
+      await this.broadcastSettingService.getBroadcastSetting(ivs.user_idx);
+    if (!broadcastSetting) {
+      throw new BadRequestException('방송 설정이 존재하지 않습니다.');
     }
-    const stream = await this.streamService.changeStreamStatus(
+    await this.streamService.createStream(
       ivs.user_idx,
-      is_live,
+      broadcastSetting.title,
+      broadcastSetting.is_adult,
+      broadcastSetting.is_pw,
+      broadcastSetting.is_fan,
+      broadcastSetting.password,
+      broadcastSetting.fan_level,
     );
-    return stream;
+    // return stream;
+  }
+
+  async streamStop(ivsEvent: IvsEvent) {
+    const ivs = await this.ivsRepository.findByArn(ivsEvent.resource);
+    if (!ivs) {
+      throw new BadRequestException('채널이 존재하지 않습니다.');
+    }
+    await this.streamService.deleteStream(ivs.user_idx);
+  }
+
+  async callbackStreamEvent(ivsEvent: IvsEvent) {
+    if (ivsEvent.eventName == 'Stream Start') {
+      await this.streamStart(ivsEvent);
+    } else if (ivsEvent.eventName == 'Stream Stop') {
+      await this.streamStop(ivsEvent);
+    }
+    const ivs = await this.ivsRepository.findByArn(ivsEvent.resource);
+    if (!ivs) {
+      throw new BadRequestException('채널이 존재하지 않습니다.');
+    }
+
+    return ivs;
   }
 }

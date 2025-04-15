@@ -17,6 +17,7 @@ import { ChatModule } from './chat/chat.module';
 import { JwtCookieMiddleware } from './middle-ware/jwt-cookie.middleware';
 import { PostModule } from './post/post.module';
 import { FanLevelModule } from './fan-level/fan-level.module';
+import { BroadcastSettingModule } from './broadcast-setting/broadcast-setting.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { FanLevelModule } from './fan-level/fan-level.module';
     ChatModule,
     PostModule,
     FanLevelModule,
+    BroadcastSettingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
