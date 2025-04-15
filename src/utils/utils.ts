@@ -12,3 +12,21 @@ export class CustomInternalServerErrorResponse {
   @ApiProperty({ example: '내부 서버 오류가 발생하였습니다.' })
   message: any;
 }
+
+export function timeFormatter(time: string) {
+  const isoDate = time;
+
+  // 1. Date 객체로 변환 (Z는 UTC를 의미함)
+  const date = new Date(isoDate);
+
+  // 2. 원하는 포맷으로 수동 포매팅
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+
+  const formatted = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+  return formatted;
+}

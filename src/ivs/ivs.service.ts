@@ -21,6 +21,7 @@ import { StreamService } from 'src/stream/stream.service';
 import { IvsRepository } from './ivs.repository';
 import { IvsEvent } from './entities/lambda.response';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
+import { timeFormatter } from 'src/utils/utils';
 
 @Injectable()
 export class IvsService {
@@ -128,7 +129,7 @@ export class IvsService {
       data: {
         name: channel_title,
         arn: responseChannel.channel.arn,
-        ingest_endpoint: responseChannel.channel.ingestEndpoint,
+        ingest_endpoint: 'rtmp://' + responseChannel.channel.ingestEndpoint,
         playback_url: responseChannel.channel.playbackUrl,
         stream_key: responseChannel.streamKey.value,
         stream_key_arn: responseChannel.streamKey.arn,
@@ -270,8 +271,12 @@ export class IvsService {
     if (!broadcastSetting) {
       throw new BadRequestException('방송 설정이 존재하지 않습니다.');
     }
+    ivsEvent.time = timeFormatter(ivsEvent.time);
     await this.streamService.createStream(
       ivs.user_idx,
+      ivsEvent.id,
+      ivsEvent.streamId,
+      ivsEvent.time,
       broadcastSetting.title,
       broadcastSetting.is_adult,
       broadcastSetting.is_pw,
@@ -287,13 +292,13 @@ export class IvsService {
     if (!ivs) {
       throw new BadRequestException('채널이 존재하지 않습니다.');
     }
-    await this.streamService.deleteStream(ivs.user_idx);
+    await this.streamService.deleteStream(ivsEvent.streamId);
   }
 
-  async callbackStreamEvent(ivsEvent: IvsEvent) {
+  async handleCallbackStreamEvent(ivsEvent: IvsEvent) {
     if (ivsEvent.eventName == 'Stream Start') {
       await this.streamStart(ivsEvent);
-    } else if (ivsEvent.eventName == 'Stream Stop') {
+    } else if (ivsEvent.eventName == 'Stream End') {
       await this.streamStop(ivsEvent);
     }
     const ivs = await this.ivsRepository.findByArn(ivsEvent.resource);

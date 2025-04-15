@@ -20,6 +20,9 @@ export class StreamService {
    */
   async createStream(
     user_idx: number,
+    request_id: string,
+    stream_id: string,
+    start_time: string,
     title: string,
     is_adult: boolean,
     is_private: boolean,
@@ -30,6 +33,9 @@ export class StreamService {
   ) {
     return await this.streamRepository.createStream(
       user_idx,
+      request_id,
+      stream_id,
+      start_time,
       title,
       is_adult,
       is_private,
@@ -46,7 +52,7 @@ export class StreamService {
    * @param tx
    * @returns
    */
-  async deleteStream(user_idx: number, tx?: Prisma.TransactionClient) {
-    return await this.streamRepository.deleteStream(user_idx, tx);
+  async deleteStream(stream_id: string, tx?: Prisma.TransactionClient) {
+    return await this.streamRepository.deleteStream(stream_id, tx);
   }
 }

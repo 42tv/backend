@@ -14,6 +14,9 @@ export class StreamRepository {
    */
   async createStream(
     user_idx: number,
+    request_id: string,
+    stream_id: string,
+    start_time: string,
     title: string,
     is_adult: boolean,
     is_pw: boolean,
@@ -30,6 +33,9 @@ export class StreamRepository {
             idx: user_idx,
           },
         },
+        request_id: request_id,
+        stream_id: stream_id,
+        start_time: start_time,
         title: title,
         is_adult: is_adult,
         is_pw: is_pw,
@@ -40,11 +46,11 @@ export class StreamRepository {
     });
   }
 
-  async deleteStream(user_idx: number, tx?: Prisma.TransactionClient) {
+  async deleteStream(stream_id: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.stream.delete({
       where: {
-        user_idx: user_idx,
+        stream_id: stream_id,
       },
     });
   }
