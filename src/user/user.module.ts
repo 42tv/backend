@@ -7,6 +7,7 @@ import { ChannelModule } from 'src/channel/channel.module';
 import { UserRepository } from './user.repository';
 import { IvsModule } from 'src/ivs/ivs.module';
 import { FanLevelModule } from 'src/fan-level/fan-level.module';
+import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { FanLevelModule } from 'src/fan-level/fan-level.module';
     LogModule,
     ChannelModule,
     FanLevelModule,
+    BroadcastSettingModule,
     forwardRef(() => IvsModule),
   ],
   controllers: [UserController],

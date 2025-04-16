@@ -144,15 +144,20 @@ model IVSChannel {
 // 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
 model Stream {
   id              Int      @id @default(autoincrement())
-  title           String   @default("")
+  request_id      String
+  stream_id       String   @unique
+  title           String
+  start_time      String
+
   play_cnt        Int      @default(0)
   like_cnt        Int      @default(0)
   thumbnail       String   @default("")
-  is_adult        Boolean  @default(false)
-  is_live         Boolean  @default(true)
-  is_pw           Boolean  @default(false)
-  start_time      DateTime?
-  live_type       String?
+  is_adult        Boolean
+  is_pw           Boolean
+  is_fan          Boolean 
+  password        String?  // 비밀번호 (암호화 필요)
+  fan_level       Int?     // 팬 등급 제한 설정
+ 
 
   // Relations
   user_idx        Int      @unique

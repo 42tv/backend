@@ -13,6 +13,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
+import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 
 @Injectable()
 export class UserService {
@@ -23,6 +24,7 @@ export class UserService {
     private readonly ivsService: IvsService,
     private readonly prisma: PrismaService,
     private readonly fanLevelService: FanLevelService,
+    private readonly broadcastSettingService: BroadcastSettingService,
   ) {}
 
   /**
@@ -110,30 +112,28 @@ export class UserService {
 
     try {
       return await this.prisma.$transaction(async (tx) => {
+        //유저 생성
         const createdUser = await this.userRepository.createUser(
           createUserDto.id,
           hash,
           createUserDto.nickname,
           tx,
         );
+        //채널 생성
         await this.channelService.createChannel(
           createdUser.idx,
           createdUser.user_id,
           tx,
         );
-        await tx.broadCastSetting.create({
-          data: {
-            User: {
-              connect: {
-                idx: createdUser.idx,
-              },
-            },
-            title: `${createdUser.user_id}의 채널입니다`,
-          },
-        });
+        //방송 설정 생성
+        await this.broadcastSettingService.createBroadcastSetting(
+          createdUser.idx,
+          createdUser.user_id,
+          tx,
+        );
         //AWS IVS 채널 생성
         await this.ivsService.createIvs(createdUser.user_id, tx);
-        //FanLevel 브실골플다 생성
+        //팬레벨 생성
         await this.fanLevelService.createInitFanLevel(createdUser.idx, tx);
         const sanitizedUser = { ...createdUser };
         delete sanitizedUser.password;
@@ -189,6 +189,13 @@ export class UserService {
     };
   }
 
+  /**
+   * 패스워드 변경
+   * @param user_idx
+   * @param password
+   * @param new_password
+   * @returns
+   */
   async updatePassword(
     user_idx: number,
     password: string,
@@ -282,7 +289,7 @@ export class UserService {
     }
 
     try {
-      await this.userRepository.updateBroadcastSetting(
+      await this.broadcastSettingService.updateBroadcastSetting(
         user.idx,
         settingDto.title,
         settingDto.isAdult,

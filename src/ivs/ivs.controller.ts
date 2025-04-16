@@ -68,7 +68,7 @@ export class IvsController {
   @ApiOperation({ summary: 'IVS 콜백 람다' })
   async ivsLambdaCallback(@Body() ivsEvnet: IvsEvent) {
     console.log(ivsEvnet);
-    // await this.ivsService.changeStreamState(ivsEvnet);
+    await this.ivsService.handleCallbackStreamEvent(ivsEvnet);
     return {
       message: 'success',
     };
