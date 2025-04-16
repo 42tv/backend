@@ -6,7 +6,9 @@ import {
   Post,
   Put,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -26,6 +28,8 @@ import {
 } from 'src/utils/utils';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';
 
 @Controller('user')
 @UsePipes(new ValidationPipe())
@@ -86,6 +90,26 @@ export class UserController {
       password,
       new_password,
     );
+  }
+
+  @Post('profile')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 1024 * 1024 * 5, // 100MB
+      },
+    }),
+  )
+  @UseGuards(JwtAuthGuard)
+  async uploadProfileImage(
+    @Req() req,
+    @UploadedFile() file: Express.MulterS3.File,
+  ) {
+    await this.userService.uploadProfileImage(req.user.idx, file);
+
+    console.log(file);
+    return { fileUrl: file.location };
   }
 
   @Post('')

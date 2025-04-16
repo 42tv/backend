@@ -251,6 +251,11 @@ export class UserService {
     );
   }
 
+  /**
+   * 브로드캐스팅 설정 가져오기
+   * @param user_idx
+   * @returns
+   */
   async getBroadcastSetting(user_idx: number) {
     const user =
       await this.userRepository.findUserWithIvsAndBroadcastSetting(user_idx);
@@ -305,5 +310,42 @@ export class UserService {
     return {
       message: '방송 설정이 변경되었습니다',
     };
+  }
+
+  /**
+   * User 프로필을 s3에 업로드 하고 DB에 주소 저장
+   * @param user_idx
+   * @param file
+   */
+  async uploadProfileImage(user_idx: number, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('파일이 없습니다');
+    }
+    if (
+      !file.mimetype.endsWith('jpeg') &&
+      !file.mimetype.endsWith('png') &&
+      !file.mimetype.endsWith('jpg')
+    ) {
+      throw new BadRequestException('jpeg, png, jpg 파일만 업로드 가능합니다');
+    }
+    if (file.size > 1024 * 1024 * 5) {
+      throw new BadRequestException(
+        '파일 사이즈는 5MB 이하로 업로드 가능합니다',
+      );
+    }
+    const user = await this.userRepository.findByUserIdx(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+
+    // const key = `${Date.now()}-${file.originalname}`;
+    // const command = new PutObjectCommand({
+    //   Bucket: 'cdn-42tv',
+    //   Key: key,
+    //   Body: file.buffer,
+    //   ContentType: file.mimetype,
+    // });
+
+    // await this.s3.send(command);
   }
 }
