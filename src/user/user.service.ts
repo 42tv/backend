@@ -14,6 +14,7 @@ import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
+import { AwsService } from 'src/aws/aws.service';
 
 @Injectable()
 export class UserService {
@@ -25,6 +26,7 @@ export class UserService {
     private readonly prisma: PrismaService,
     private readonly fanLevelService: FanLevelService,
     private readonly broadcastSettingService: BroadcastSettingService,
+    private readonly awsService: AwsService,
   ) {}
 
   /**
@@ -328,7 +330,7 @@ export class UserService {
     ) {
       throw new BadRequestException('jpeg, png, jpg 파일만 업로드 가능합니다');
     }
-    if (file.size > 1024 * 1024 * 5) {
+    if (file.size > 1024 * 1024 * 1) {
       throw new BadRequestException(
         '파일 사이즈는 5MB 이하로 업로드 가능합니다',
       );
@@ -337,15 +339,6 @@ export class UserService {
     if (!user) {
       throw new BadRequestException('존재하지 않는 유저입니다');
     }
-
-    // const key = `${Date.now()}-${file.originalname}`;
-    // const command = new PutObjectCommand({
-    //   Bucket: 'cdn-42tv',
-    //   Key: key,
-    //   Body: file.buffer,
-    //   ContentType: file.mimetype,
-    // });
-
-    // await this.s3.send(command);
+    const key = `profile/${user.user_id}.jpg`;
   }
 }
