@@ -7,6 +7,13 @@ export class StreamService {
   constructor(private readonly streamRepository: StreamRepository) {}
 
   /**
+   * getStreamByUserIdx
+   */
+  async getStreamByUserIdx(user_idx: number) {
+    return await this.streamRepository.getStreamByUserIdx(user_idx);
+  }
+
+  /**
    * 방송시작 콜백시 user_idx의 스트림 생성.
    * @param user_idx
    * @param title

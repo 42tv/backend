@@ -227,6 +227,11 @@ export class IvsService {
     if (!ivs) {
       throw new BadRequestException('채널이 존재하지 않습니다.');
     }
+    const stream = await this.streamService.getStreamByUserIdx(user.idx);
+    if (stream) {
+      throw new BadRequestException('방송중에는 변경불가능합니다');
+    }
+
     if (!ivs.arn) {
       const ivs = await this.updateIvsChannel(
         user.idx,

@@ -46,11 +46,25 @@ export class StreamRepository {
     });
   }
 
+  /**
+   * 스트림 삭제
+   * @param stream_id
+   * @param tx
+   * @returns
+   */
   async deleteStream(stream_id: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.stream.delete({
       where: {
         stream_id: stream_id,
+      },
+    });
+  }
+
+  async getStreamByUserIdx(user_idx: number) {
+    return await this.prisma.stream.findFirst({
+      where: {
+        user_idx: user_idx,
       },
     });
   }
