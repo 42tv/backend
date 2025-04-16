@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Put,
   Req,
@@ -44,7 +45,7 @@ export class UserController {
     return result;
   }
 
-  @Put('nickname')
+  @Patch('nickname')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '닉네임 변경' })
   @ApiCreatedResponse({
@@ -63,7 +64,7 @@ export class UserController {
     return await this.userService.updateNickname(req.user.idx, nickname);
   }
 
-  @Put('password')
+  @Patch('password')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '닉네임 변경' })
   @ApiCreatedResponse({ description: '변경 성공', type: User })
