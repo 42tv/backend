@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+
 export class CustomBadRequestResponse {
   @ApiProperty({ example: 400 })
   code: number;

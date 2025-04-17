@@ -2,10 +2,13 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Put,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -25,6 +28,8 @@ import {
 } from 'src/utils/utils';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';
 
 @Controller('user')
 @UsePipes(new ValidationPipe())
@@ -44,7 +49,7 @@ export class UserController {
     return result;
   }
 
-  @Put('nickname')
+  @Patch('nickname')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '닉네임 변경' })
   @ApiCreatedResponse({
@@ -63,7 +68,7 @@ export class UserController {
     return await this.userService.updateNickname(req.user.idx, nickname);
   }
 
-  @Put('password')
+  @Patch('password')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '닉네임 변경' })
   @ApiCreatedResponse({ description: '변경 성공', type: User })
@@ -85,6 +90,37 @@ export class UserController {
       password,
       new_password,
     );
+  }
+
+  @Post('profile')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 1024 * 1024 * 5, // 5MB
+      },
+    }),
+  )
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '프로필 이미지 업로드' })
+  @ApiCreatedResponse({ description: '업로드 성공' })
+  @ApiBadRequestResponse({
+    description: '파일 형식 불일치 | 파일 크기 초과 | 존재하지 않는 유저',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  async uploadProfileImage(
+    @Req() req,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const profileImageUrl = await this.userService.uploadProfileImage(
+      req.user.idx,
+      file,
+    );
+    return { imageUrl: profileImageUrl };
   }
 
   @Post('')

@@ -18,6 +18,7 @@ import { JwtCookieMiddleware } from './middle-ware/jwt-cookie.middleware';
 import { PostModule } from './post/post.module';
 import { FanLevelModule } from './fan-level/fan-level.module';
 import { BroadcastSettingModule } from './broadcast-setting/broadcast-setting.module';
+import { AwsModule } from './aws/aws.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { BroadcastSettingModule } from './broadcast-setting/broadcast-setting.mo
     PostModule,
     FanLevelModule,
     BroadcastSettingModule,
+    AwsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
