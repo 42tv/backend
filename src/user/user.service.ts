@@ -15,6 +15,7 @@ import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AwsService } from 'src/aws/aws.service';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class UserService {
@@ -330,7 +331,7 @@ export class UserService {
     ) {
       throw new BadRequestException('jpeg, png, jpg 파일만 업로드 가능합니다');
     }
-    if (file.size > 1024 * 1024 * 1) {
+    if (file.size > 1024 * 1024 * 5) {
       throw new BadRequestException(
         '파일 사이즈는 5MB 이하로 업로드 가능합니다',
       );
@@ -339,6 +340,15 @@ export class UserService {
     if (!user) {
       throw new BadRequestException('존재하지 않는 유저입니다');
     }
-    const key = `profile/${user.user_id}.jpg`;
+    const key = `profile/${user.user_id}-2.${file.mimetype.split('/')[1]}`;
+    await this.awsService.uploadToS3(key, file.buffer, file.mimetype);
+    const buffer = await sharp(file.buffer)
+      .resize(400, 400)
+      .toFormat('jpeg')
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    const key2 = `profile/${user.user_id}-2.jpg`;
+    await this.awsService.uploadToS3(key2, buffer, 'image/jpeg');
+    console.log('업로드 완료');
   }
 }
