@@ -195,4 +195,27 @@ export class UserRepository {
       },
     });
   }
+
+  /**
+   * 프로필 이미지 URL 업데이트
+   * @param user_idx
+   * @param profile_img_url
+   * @param tx
+   * @returns
+   */
+  async updateProfileImage(
+    user_idx: number,
+    profile_img_url: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.update({
+      where: {
+        idx: user_idx,
+      },
+      data: {
+        profile_img: profile_img_url,
+      },
+    });
+  }
 }

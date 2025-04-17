@@ -54,8 +54,7 @@ export class IvsService {
       const command = new CreateChannelCommand({
         name: channelName,
         type: 'STANDARD', // or STANDARD
-        recordingConfigurationArn:
-          process.env.AWS_IVS_RECORDING_CONFIG_ONLYTHUMBNAIL_ARN,
+        recordingConfigurationArn: process.env.AWS_IVS_RECORDING_CONFIG_ARN,
       });
       const response = await this.client.send(command);
       return response;
@@ -78,7 +77,7 @@ export class IvsService {
     return await prismaClient.iVSChannel.create({
       data: {
         arn: response.channel.arn,
-        ingest_endpoint: response.channel.ingestEndpoint,
+        ingest_endpoint: 'rtmps://' + response.channel.ingestEndpoint,
         playback_url: response.channel.playbackUrl,
         stream_key: response.streamKey.value,
         stream_key_arn: response.streamKey.arn,

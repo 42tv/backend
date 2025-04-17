@@ -340,15 +340,47 @@ export class UserService {
     if (!user) {
       throw new BadRequestException('존재하지 않는 유저입니다');
     }
-    const key = `profile/${user.user_id}-2.${file.mimetype.split('/')[1]}`;
-    await this.awsService.uploadToS3(key, file.buffer, file.mimetype);
-    const buffer = await sharp(file.buffer)
-      .resize(400, 400)
-      .toFormat('jpeg')
-      .jpeg({ quality: 80 })
-      .toBuffer();
-    const key2 = `profile/${user.user_id}-2.jpg`;
-    await this.awsService.uploadToS3(key2, buffer, 'image/jpeg');
-    console.log('업로드 완료');
+
+    try {
+      // 기존 프로필 이미지가 있는지 확인하고 있으면 삭제
+      if (user.profile_img) {
+        // URL에서 파일명 추출 (URL에 S3 버킷 경로가 포함되어 있다고 가정)
+        const profileUrl = user.profile_img;
+        const keyMatch = profileUrl.match(/profile\/.*$/);
+
+        if (keyMatch) {
+          const oldKey = keyMatch[0];
+          try {
+            // 원본 프로필 이미지와 리사이즈된 이미지 모두 삭제 시도
+            await this.awsService.deleteFromS3(oldKey);
+            console.log(`기존 프로필 이미지 삭제 완료: ${oldKey}`);
+          } catch (error) {
+            console.log(`기존 프로필 이미지 삭제 실패: ${error.message}`);
+            // 기존 파일 삭제 실패해도 계속 진행
+          }
+        }
+      }
+
+      // 이미지 리사이징 및 업로드
+      const buffer = await sharp(file.buffer)
+        .resize(400, 400)
+        .toFormat('jpeg')
+        .toBuffer();
+
+      const resizedKey = `profile/${user.user_id}-${Date.now()}.jpg`;
+      await this.awsService.uploadToS3(resizedKey, buffer, 'image/jpeg');
+
+      // S3 버킷 베이스 URL 생성
+      const profileImageUrl = `${process.env.CDN_URL}/${resizedKey}`;
+
+      // DB의 사용자 프로필 이미지 URL 업데이트
+      await this.userRepository.updateProfileImage(user_idx, profileImageUrl);
+
+      console.log('프로필 이미지 업로드 및 업데이트 완료');
+      return profileImageUrl;
+    } catch (error) {
+      console.error('프로필 이미지 업로드 실패:', error);
+      throw new BadRequestException('프로필 이미지 업로드에 실패했습니다');
+    }
   }
 }
