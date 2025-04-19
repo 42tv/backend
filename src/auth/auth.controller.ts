@@ -1,4 +1,13 @@
-import { Controller, Request, Post, UseGuards, Res } from '@nestjs/common';
+import {
+  Controller,
+  Request,
+  Post,
+  UseGuards,
+  Res,
+  Get,
+  Req,
+  HttpStatus,
+} from '@nestjs/common';
 import { LocalAuthGuard } from './guard/local-auth.guard';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guard/jwt-auth.guard';
@@ -13,10 +22,15 @@ import { LoginResponse } from './entities/login.response';
 import { AuthEntity, AuthFailResponse } from './entities/login.entity';
 import { JwtRefreshGaurd } from './guard/jwt.refresh.guard';
 import { RefreshResponse } from './entities/refresh.response';
+import { UserService } from 'src/user/user.service';
+import { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private userService: UserService,
+  ) {}
 
   /**
    * 기본 local 인증을 사용한 로그인(username, password)
@@ -99,5 +113,30 @@ export class AuthController {
     res.cookie('jwt', '', { httpOnly: true, expires: new Date(0) });
     res.cookie('refresh', '', { httpOnly: true, expires: new Date(0) });
     res.send({ message: 'Successfully logged out' });
+  }
+
+  /**
+   * 로그인 정보 조회
+   * @param req 요청 객체
+   * @param res 응답 객체 (쿠키 설정을 위해 추가)
+   * @returns 로그인 정보 또는 게스트 정보 반환
+   */
+  @Get('login_info')
+  @ApiOperation({ summary: '로그인 정보 조회' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '로그인 정보 조회 성공 또는 게스트 정보 반환',
+  })
+  @ApiBearerAuth()
+  async getLoginInfo(@Req() req, @Res({ passthrough: true }) res: Response) {
+    const authorizationHeader = req.headers.authorization;
+    const loginInfo = await this.authService.getLoginInfo(authorizationHeader);
+
+    // loginInfo가 게스트이고 tokens 객체를 포함하는 경우 access_token을 쿠키에 설정
+    if (loginInfo && loginInfo.isGuest && loginInfo.tokens) {
+      res.cookie('jwt', loginInfo.tokens.access_token, { httpOnly: true });
+      delete loginInfo.tokens;
+    }
+    return loginInfo; // 로그인 정보 또는 게스트 상태 반환
   }
 }

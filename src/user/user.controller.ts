@@ -70,7 +70,7 @@ export class UserController {
 
   @Patch('password')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: '닉네임 변경' })
+  @ApiOperation({ summary: '비밀번호 변경' })
   @ApiCreatedResponse({ description: '변경 성공', type: User })
   @ApiBadRequestResponse({
     description: '비밀번호가 틀렸습니다 | 존재하지 않는 유저',

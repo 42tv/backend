@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -40,13 +44,21 @@ export class AuthService {
       idx: user.idx,
       user_id: user.user_id,
       nickname: user.nickname,
+      is_guest: false,
     };
     const { access_token, refresh_token } = this.generateToken(payload);
     return { access_token, refresh_token };
   }
 
   validate(token: string) {
-    return this.jwtService.verify(token);
+    try {
+      return this.jwtService.verify(token, {
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+    } catch (error) {
+      console.log('Token validation failed:', error.message);
+      throw new UnauthorizedException('Invalid or expired token');
+    }
   }
 
   decode(token: string) {
@@ -58,5 +70,62 @@ export class AuthService {
     // const user = await this.userService.findByUserIdx(payload.idx);
     // return await this.channelService.verifyPhone(user.idx);
     return null;
+  }
+
+  /**
+   * 게스트 토큰 발급
+   * @returns 게스트 토큰
+   */
+  generateGuestToken() {
+    const payload = { isGuest: true, guestId: `guest_${Date.now()}` }; // Example guest payload
+    return this.generateToken(payload);
+  }
+
+  /**
+   * 로그인 정보 조회 로직
+   * @param authorizationHeader Authorization 헤더 값
+   * @returns 로그인 정보 또는 게스트 정보
+   */
+  async getLoginInfo(authorizationHeader: string | undefined) {
+    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+      // 토큰이 없거나 형식이 잘못된 경우, 새로운 게스트 토큰과 함께 게스트 정보 반환
+      const guestTokens = this.generateGuestToken();
+      return { isGuest: true, tokens: guestTokens };
+    }
+
+    const token = authorizationHeader.split(' ')[1];
+    const decoded = this.validate(token);
+
+    // 게스트 토큰인지 확인
+    if (decoded.isGuest) {
+      // 게스트 정보 반환
+      return {
+        isGuest: true,
+        guestId: decoded.guestId,
+      };
+    }
+
+    // 사용자 토큰인 경우, 사용자 상세 정보 조회
+    const user_idx = decoded.idx;
+    if (!user_idx || isNaN(user_idx)) {
+      throw new BadRequestException('Invalid user index in token');
+    }
+
+    const user = await this.userService.findByUserIdx(user_idx);
+    if (!user) {
+      // 사용자를 찾을 수 없는 경우 (토큰이 오래되었거나 사용자가 삭제된 경우)
+      throw new BadRequestException('User not found');
+    }
+
+    // 인증된 사용자 정보 반환
+    return {
+      isGuest: false,
+      user: {
+        idx: user.idx,
+        user_id: user.user_id,
+        nickname: user.nickname,
+        profile_img: user.profile_img,
+      },
+    };
   }
 }
