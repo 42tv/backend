@@ -127,7 +127,7 @@ model BroadCastSetting {
 model IVSChannel {
   user_idx                Int        @id
   arn                     String?    @unique
-  ingest_endpoint         String?    @unique
+  ingest_endpoint         String?
   playback_url            String?    @unique
   stream_key              String?    @unique
   stream_key_arn          String?    @unique
