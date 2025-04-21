@@ -64,6 +64,23 @@ export class IvsService {
   }
 
   /**
+   * IVS 채널 삭제 요청
+   * @param channelArn
+   * @returns
+   */
+  async requestDeleteIvs(channelArn: string) {
+    try {
+      const command = new DeleteChannelCommand({
+        arn: channelArn,
+      });
+      const response = await this.client.send(command);
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException('AWS의 IVS 채널 삭제요청 실패');
+    }
+  }
+
+  /**
    * createUser에서 사용하는 더미 데이터 생성
    * @param channel_idx
    * @param tx
@@ -71,26 +88,32 @@ export class IvsService {
    */
   async createIvs(user_id: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    // 채널명은 idx로 설정
     const response = await this.requestCreateIvs(user_id);
     console.log(response);
-    return await prismaClient.iVSChannel.create({
-      data: {
-        arn: response.channel.arn,
-        ingest_endpoint: 'rtmps://' + response.channel.ingestEndpoint,
-        playback_url: response.channel.playbackUrl,
-        stream_key: response.streamKey.value,
-        stream_key_arn: response.streamKey.arn,
-        recording_arn: response.channel.recordingConfigurationArn,
-        restriction_policy_arn: response.channel.playbackRestrictionPolicyArn,
-        name: user_id.toString(),
-        User: {
-          connect: {
-            user_id: user_id,
+    const channelId = response.channel.arn.split('/')[1];
+    // 채널명은 idx로 설정
+    try {
+      return await prismaClient.iVSChannel.create({
+        data: {
+          arn: response.channel.arn,
+          ingest_endpoint: 'rtmps://' + response.channel.ingestEndpoint,
+          playback_url: response.channel.playbackUrl,
+          stream_key: response.streamKey.value,
+          stream_key_arn: response.streamKey.arn,
+          recording_arn: response.channel.recordingConfigurationArn,
+          restriction_policy_arn: response.channel.playbackRestrictionPolicyArn,
+          name: user_id.toString(),
+          channel_id: channelId,
+          User: {
+            connect: {
+              user_id: user_id,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (e) {
+      await this.requestDeleteIvs(response.channel.arn);
+    }
   }
 
   /**
@@ -276,8 +299,11 @@ export class IvsService {
       throw new BadRequestException('방송 설정이 존재하지 않습니다.');
     }
     ivsEvent.time = timeFormatter(ivsEvent.time);
+    const channelId = ivsEvent.resource.split('/')[1];
+    const thumbnailUrl = `${process.env.CDN_URL}/thumbnails/${channelId}.jpg`;
     await this.streamService.createStream(
       ivs.user_idx,
+      thumbnailUrl,
       ivsEvent.id,
       ivsEvent.streamId,
       ivsEvent.time,
@@ -303,7 +329,7 @@ export class IvsService {
     if (ivsEvent.eventName == 'Stream Start') {
       await this.streamStart(ivsEvent);
     } else if (ivsEvent.eventName == 'Stream End') {
-      await this.streamStop(ivsEvent);
+      // await this.streamStop(ivsEvent);
     }
     const ivs = await this.ivsRepository.findByArn(ivsEvent.resource);
     if (!ivs) {

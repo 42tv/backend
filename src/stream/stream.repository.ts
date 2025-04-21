@@ -14,6 +14,7 @@ export class StreamRepository {
    */
   async createStream(
     user_idx: number,
+    thumbnail_url: string,
     request_id: string,
     stream_id: string,
     start_time: string,
@@ -34,6 +35,7 @@ export class StreamRepository {
           },
         },
         request_id: request_id,
+        thumbnail: thumbnail_url,
         stream_id: stream_id,
         start_time: start_time,
         title: title,
@@ -61,11 +63,56 @@ export class StreamRepository {
     });
   }
 
+  /**
+   * User idx로 스트림 조회
+   * @param user_idx
+   * @returns
+   */
   async getStreamByUserIdx(user_idx: number) {
     return await this.prisma.stream.findFirst({
       where: {
         user_idx: user_idx,
       },
+    });
+  }
+
+  async getLiveList() {
+    const streams = await this.prisma.stream.findMany({
+      select: {
+        // user_idx: true,
+        thumbnail: true,
+        // request_id: true,
+        // stream_id: true,
+        start_time: true,
+        title: true,
+        is_adult: true,
+        is_pw: true,
+        is_fan: true,
+        fan_level: true,
+        play_cnt: true,
+        like_cnt: true,
+        user: {
+          select: {
+            idx: true,
+            nickname: true,
+            profile_img: true,
+          },
+        },
+        _count: {
+          select: {
+            viewers: true, // Assuming the relation name is 'viewers' in your Prisma schema
+          },
+        },
+      },
+    });
+
+    // Map the result to rename _count to viewerCount
+    return streams.map((stream) => {
+      const { _count, ...rest } = stream;
+      return {
+        ...rest,
+        viewerCount: _count.viewers,
+      };
     });
   }
 }

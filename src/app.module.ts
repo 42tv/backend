@@ -19,6 +19,8 @@ import { PostModule } from './post/post.module';
 import { FanLevelModule } from './fan-level/fan-level.module';
 import { BroadcastSettingModule } from './broadcast-setting/broadcast-setting.module';
 import { AwsModule } from './aws/aws.module';
+import { LiveController } from './live/live.controller';
+import { LiveModule } from './live/live.module';
 
 @Module({
   imports: [
@@ -39,8 +41,9 @@ import { AwsModule } from './aws/aws.module';
     FanLevelModule,
     BroadcastSettingModule,
     AwsModule,
+    LiveModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, LiveController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {

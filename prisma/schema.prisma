@@ -126,14 +126,15 @@ model BroadCastSetting {
 // AWS IVS 채널 정보
 model IVSChannel {
   user_idx                Int        @id
-  arn                     String?    @unique
-  ingest_endpoint         String?
-  playback_url            String?    @unique
-  stream_key              String?    @unique
-  stream_key_arn          String?    @unique
+  channel_id              String    @unique
+  arn                     String    @unique
+  ingest_endpoint         String
+  playback_url            String    @unique
+  stream_key              String    @unique
+  stream_key_arn          String    @unique
   recording_arn           String?
   restriction_policy_arn  String?
-  name                    String?
+  name                    String
   createdAt               DateTime   @default(now())
 
   // relations
