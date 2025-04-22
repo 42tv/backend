@@ -39,11 +39,6 @@ export class StreamRepository {
         stream_id: stream_id,
         start_time: start_time,
         title: title,
-        is_adult: is_adult,
-        is_pw: is_pw,
-        is_fan: is_fan,
-        password: password,
-        fan_level: fan_level,
       },
     });
   }
@@ -85,10 +80,6 @@ export class StreamRepository {
         // stream_id: true,
         start_time: true,
         title: true,
-        is_adult: true,
-        is_pw: true,
-        is_fan: true,
-        fan_level: true,
         play_cnt: true,
         like_cnt: true,
         user: {

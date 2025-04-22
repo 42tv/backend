@@ -153,13 +153,6 @@ model Stream {
   play_cnt        Int      @default(0)
   like_cnt        Int      @default(0)
   thumbnail       String   @default("")
-  is_adult        Boolean
-  is_pw           Boolean
-  is_fan          Boolean 
-  password        String?  // 비밀번호 (암호화 필요)
-  fan_level       Int?     // 팬 등급 제한 설정
- 
-
   // Relations
   user_idx        Int      @unique
   user            User     @relation("StreamData", fields: [user_idx], references: [idx], onDelete: Cascade)
