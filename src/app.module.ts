@@ -21,6 +21,7 @@ import { BroadcastSettingModule } from './broadcast-setting/broadcast-setting.mo
 import { AwsModule } from './aws/aws.module';
 import { LiveController } from './live/live.controller';
 import { LiveModule } from './live/live.module';
+import { PlayModule } from './play/play.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { LiveModule } from './live/live.module';
     BroadcastSettingModule,
     AwsModule,
     LiveModule,
+    PlayModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],
