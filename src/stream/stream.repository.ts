@@ -94,6 +94,7 @@ export class StreamRepository {
         user: {
           select: {
             idx: true,
+            user_id: true,
             nickname: true,
             profile_img: true,
           },
