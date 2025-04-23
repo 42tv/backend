@@ -1,6 +1,6 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { jwtConstants } from '../constants';
 
 @Injectable()
@@ -14,6 +14,9 @@ export class MemberStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: any) {
+    if (!payload.idx) {
+      throw new UnauthorizedException('Member Guard not allow guest');
+    }
     return {
       idx: payload.idx,
       userId: payload.user_id,
