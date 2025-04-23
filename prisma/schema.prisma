@@ -219,18 +219,18 @@ model Gift {
 
 // 팬 관계 테이블 - 사용자간 팬 관계 관리
 model Fan {
-  id             Int      @id @default(autoincrement())
+  id                  Int      @id @default(autoincrement())
 
-  total_donation     Int      @default(0) // 팬이 보낸 총 선물 수
-  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  updated_at      DateTime @updatedAt
+  total_donation      Int      @default(0) // 팬이 보낸 총 선물 수
+  created_at          DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at          DateTime @updatedAt
   
   // Relations
-  creator_id     Int      // 크리에이터(팔로우 당하는 사람) 인덱스
-  creator         User     @relation("UserFans", fields: [creator_id], references: [idx], onDelete: Cascade)
+  creator_id          Int      // 크리에이터(팔로우 당하는 사람) 인덱스
+  creator             User     @relation("UserFans", fields: [creator_id], references: [idx], onDelete: Cascade)
 
-  fan_idx         Int      // 팬(팔로우 하는 사람) 인덱스
-  fan             User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
+  fan_idx             Int      // 팬(팔로우 하는 사람) 인덱스
+  fan                 User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
 
   // Ensure a user can only follow another user once
   @@unique([creator_id, fan_idx])
@@ -246,8 +246,8 @@ model FanLevel {
   updated_at       DateTime @updatedAt
   
   // Relations
-  user_idx      Int      // 크리에이터(등급 소유자) 인덱스
-  user         User     @relation("CreatorRankTiers", fields: [user_idx], references: [idx], onDelete: Cascade)
+  user_idx         Int      // 크리에이터(등급 소유자) 인덱스
+  user             User     @relation("CreatorRankTiers", fields: [user_idx], references: [idx], onDelete: Cascade)
   
   // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
   @@unique([user_idx, name])
