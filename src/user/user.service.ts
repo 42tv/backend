@@ -38,7 +38,6 @@ export class UserService {
    */
   async findOneByLocalAuth(user_id: string, password: string) {
     const user = await this.userRepository.findByUserId(user_id);
-    console.log(user);
     if (!user) {
       throw new BadRequestException('존재하지 않는 아이디입니다');
     }
