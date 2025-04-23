@@ -31,3 +31,11 @@ export function timeFormatter(time: string) {
   const formatted = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
   return formatted;
 }
+
+export type UserIncludeOptions = {
+  user_detail?: boolean;
+  channel?: boolean;
+  braodcast_setting?: boolean;
+  ivs_channel?: boolean;
+  coin?: boolean;
+};

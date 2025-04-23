@@ -16,6 +16,7 @@ import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AwsService } from 'src/aws/aws.service';
 import * as sharp from 'sharp';
+import { UserIncludeOptions } from 'src/utils/utils';
 
 @Injectable()
 export class UserService {
@@ -64,6 +65,21 @@ export class UserService {
       user_id,
       oauth_provider,
       oauth_id,
+    );
+  }
+  /**
+   * user_idx로 유저 찾기
+   * @param user_idx
+   * @param includeOptions
+   * @returns
+   */
+  async getUserWithRelations(
+    user_idx: number,
+    includeOptions: UserIncludeOptions = {},
+  ) {
+    return await this.userRepository.getUserWithRelations(
+      user_idx,
+      includeOptions,
     );
   }
 
@@ -260,8 +276,10 @@ export class UserService {
    */
   async getBroadcastSetting(user_idx: number) {
     console.log(user_idx);
-    const user =
-      await this.userRepository.findUserWithIvsAndBroadcastSetting(user_idx);
+    const user = await this.userRepository.getUserWithRelations(user_idx, {
+      ivs_channel: true,
+      braodcast_setting: true,
+    });
     if (!user) {
       throw new BadRequestException('존재하지 않는 유저입니다');
     }
@@ -291,8 +309,9 @@ export class UserService {
     user_idx: number,
     settingDto: BroadcastSettingDto,
   ) {
-    const user =
-      await this.userRepository.findUserWithBroadcastSetting(user_idx);
+    const user = await this.userRepository.getUserWithRelations(user_idx, {
+      braodcast_setting: true,
+    });
     if (!user) {
       throw new BadRequestException('존재하지 않는 유저입니다');
     }

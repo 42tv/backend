@@ -15,12 +15,19 @@ export class PlayService {
 
   async play(userIdx, streamerId, password) {
     const user = await this.userService.findByUserIdx(userIdx);
+    if (!user) {
+      throw new BadRequestException('탈퇴한 유저입니다.');
+    }
     const streamer = await this.userService.findByUserId(streamerId);
+    if (!streamer) {
+      throw new BadRequestException('존재하지 않는 스트리머입니다.');
+    }
     const streamerSetting =
       await this.braodcastSettingService.getBroadcastSetting(streamer.idx);
     if (!streamerSetting) {
       throw new InternalServerErrorException('스트리머 방송 설정이 없습니다.');
     }
+
     if (streamerSetting.is_adult) {
       //성인 여부 검사 로직
     }
@@ -32,6 +39,6 @@ export class PlayService {
         throw new BadRequestException('비밀번호가 틀렸습니다');
       }
     }
-    return { message: `Playing for user ${streamerId}` };
+    return {};
   }
 }

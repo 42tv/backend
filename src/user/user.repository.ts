@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UserIncludeOptions } from 'src/utils/utils';
 
 @Injectable()
 export class UserRepository {
@@ -17,6 +18,7 @@ export class UserRepository {
       where: {
         user_id: user_id,
       },
+      include: {},
     });
     return user;
   }
@@ -120,12 +122,15 @@ export class UserRepository {
   }
 
   /**
-   * user_idx로 broadcastingSetting 포함 가져오기
+   * 선택적 relation을 포함한 User 가져오기
    * @param user_idx
+   * @param includeOptions
    * @param tx
+   * @returns
    */
-  async findUserWithBroadcastSetting(
+  async getUserWithRelations(
     user_idx: number,
+    includeOptions: UserIncludeOptions,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
@@ -134,23 +139,11 @@ export class UserRepository {
         idx: user_idx,
       },
       include: {
-        broadcastSetting: true,
-      },
-    });
-  }
-
-  async findUserWithIvsAndBroadcastSetting(
-    user_idx: number,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const prismaClient = tx ?? this.prisma;
-    return await prismaClient.user.findUnique({
-      where: {
-        idx: user_idx,
-      },
-      include: {
-        ivs: true,
-        broadcastSetting: true,
+        ...(includeOptions.user_detail && { user_detail: true }),
+        ...(includeOptions.channel && { channel: true }),
+        ...(includeOptions.braodcast_setting && { broadcastSetting: true }),
+        ...(includeOptions.ivs_channel && { ivs: true }),
+        ...(includeOptions.coin && { coin: true }),
       },
     });
   }
