@@ -37,7 +37,7 @@ export class ChannelRepository {
    * @returns
    */
   async findChannelByUserIdx(user_idx: number) {
-    return await this.prisma.channel.findFirst({
+    return await this.prisma.channel.findUnique({
       where: {
         user_idx: user_idx,
       },

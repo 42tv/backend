@@ -211,10 +211,13 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.postBlockedUsers.findFirst({
+    return await prismaClient.postBlockedUsers.findUnique({
       where: {
-        blocker_idx: blocker_idx,
-        blocked_idx: blocked_idx,
+        blocker_idx_blocked_idx: {
+          // 복합 고유 키 이름 사용
+          blocker_idx: blocker_idx,
+          blocked_idx: blocked_idx,
+        },
       },
     });
   }

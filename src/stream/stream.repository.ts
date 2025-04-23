@@ -64,7 +64,7 @@ export class StreamRepository {
    * @returns
    */
   async getStreamByUserIdx(user_idx: number) {
-    return await this.prisma.stream.findFirst({
+    return await this.prisma.stream.findUnique({
       where: {
         user_idx: user_idx,
       },

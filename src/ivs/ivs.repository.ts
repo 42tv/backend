@@ -14,7 +14,7 @@ export class IvsRepository {
    */
   async findByArn(channelArn: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.iVSChannel.findFirst({
+    return await prismaClient.iVSChannel.findUnique({
       where: {
         arn: channelArn,
       },

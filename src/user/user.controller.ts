@@ -154,7 +154,12 @@ export class UserController {
     type: CustomInternalServerErrorResponse,
   })
   async getBroadcastPreset(@Req() req) {
-    return await this.userService.getBroadcastSetting(req.user.idx);
+    console.log(req.user.idx);
+    const broadcastSetting = await this.userService.getBroadcastSetting(
+      req.user.idx,
+    );
+    delete broadcastSetting.ivs.playback_url;
+    return broadcastSetting;
   }
 
   @Put('broadcast-setting')

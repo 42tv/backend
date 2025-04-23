@@ -130,7 +130,7 @@ export class IvsService {
   ) {
     const prismaClient = tx ?? this.prisma;
     // 채널명은 idx로 설정
-    const ivs = await prismaClient.iVSChannel.findFirst({
+    const ivs = await prismaClient.iVSChannel.findUnique({
       where: {
         user_idx: user_idx,
       },
@@ -241,7 +241,7 @@ export class IvsService {
    * @param user_idx
    */
   async reCreateStreamKey(user: User) {
-    const ivs = await this.prisma.iVSChannel.findFirst({
+    const ivs = await this.prisma.iVSChannel.findUnique({
       where: {
         user_idx: user.idx,
       },
@@ -272,7 +272,7 @@ export class IvsService {
           stream_key_arn: response.streamKey.arn,
         },
       });
-      const finded_ivs = await this.prisma.iVSChannel.findFirst({
+      const finded_ivs = await this.prisma.iVSChannel.findUnique({
         where: {
           user_idx: user.idx,
         },

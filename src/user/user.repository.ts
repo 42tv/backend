@@ -13,7 +13,7 @@ export class UserRepository {
    */
   async findByUserId(user_id: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    const user = await prismaClient.user.findFirst({
+    const user = await prismaClient.user.findUnique({
       where: {
         user_id: user_id,
       },
@@ -29,7 +29,7 @@ export class UserRepository {
    */
   async findByUserNickname(nickname: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.user.findFirst({
+    return await prismaClient.user.findUnique({
       where: {
         nickname: nickname,
       },
@@ -97,7 +97,7 @@ export class UserRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.user.findFirst({
+    return await prismaClient.user.findUnique({
       where: {
         user_id: user_id,
         oauth_provider: oauth_provider,
@@ -112,7 +112,7 @@ export class UserRepository {
    */
   async findByUserIdx(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.user.findFirst({
+    return await prismaClient.user.findUnique({
       where: {
         idx: user_idx,
       },
@@ -129,7 +129,7 @@ export class UserRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.user.findFirst({
+    return await prismaClient.user.findUnique({
       where: {
         idx: user_idx,
       },
@@ -144,7 +144,7 @@ export class UserRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.user.findFirst({
+    return await prismaClient.user.findUnique({
       where: {
         idx: user_idx,
       },

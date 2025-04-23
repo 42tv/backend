@@ -51,7 +51,7 @@ describe('UserService', () => {
     try {
       await prisma.$transaction(async (tx) => {
         const user = await service.createUser(dto, tx);
-        const channel = await tx.channel.findFirst({
+        const channel = await tx.channel.findUnique({
           where: { user_idx: user.idx },
         });
         if (channel) {

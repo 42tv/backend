@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { PlayService } from './play.service';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
@@ -6,9 +6,11 @@ import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 export class PlayController {
   constructor(private readonly playService: PlayService) {}
 
-  @Get(':user_id')
+  @Post('')
   @UseGuards(JwtAuthGuard)
-  async play(@Param('user_id') userId: string) {
-    return this.playService.play(userId);
+  async play(@Req() req, @Body() body) {
+    const userIdx = req.user.idx;
+    const { streamerId, password } = body;
+    return this.playService.play(userIdx, streamerId, password);
   }
 }

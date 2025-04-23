@@ -76,7 +76,7 @@ export class BroadcastSettingService {
    */
   async getBroadcastSetting(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.broadCastSetting.findFirst({
+    return await prismaClient.broadCastSetting.findUnique({
       where: {
         user_idx: user_idx,
       },

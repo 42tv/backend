@@ -260,11 +260,13 @@ export class UserService {
    * @returns
    */
   async getBroadcastSetting(user_idx: number) {
+    console.log(user_idx);
     const user =
       await this.userRepository.findUserWithIvsAndBroadcastSetting(user_idx);
     if (!user) {
       throw new BadRequestException('존재하지 않는 유저입니다');
     }
+    console.log(user);
     const sanitizedUser = {
       idx: user.idx,
       user_id: user.user_id,
@@ -273,10 +275,10 @@ export class UserService {
       ivs: {
         stream_key: user.ivs.stream_key,
         ingest_endpoint: user.ivs.ingest_endpoint,
+        playback_url: user.ivs.playback_url,
       },
       broadcastSetting: user.broadcastSetting,
     };
-    console.log(sanitizedUser);
     return sanitizedUser;
   }
 
