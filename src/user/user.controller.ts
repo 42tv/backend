@@ -26,7 +26,7 @@ import {
   CustomBadRequestResponse,
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
-import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
@@ -37,7 +37,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   async getUser(@Req() req) {
     const user = await this.userService.findByUserIdx(req.user.idx);
     const result = {
@@ -50,7 +50,7 @@ export class UserController {
   }
 
   @Patch('nickname')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '닉네임 변경' })
   @ApiCreatedResponse({
     description: '변경 성공',
@@ -69,7 +69,7 @@ export class UserController {
   }
 
   @Patch('password')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '비밀번호 변경' })
   @ApiCreatedResponse({ description: '변경 성공', type: User })
   @ApiBadRequestResponse({
@@ -101,7 +101,7 @@ export class UserController {
       },
     }),
   )
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '프로필 이미지 업로드' })
   @ApiCreatedResponse({ description: '업로드 성공' })
   @ApiBadRequestResponse({
@@ -140,7 +140,7 @@ export class UserController {
   }
 
   @Get('broadcast-setting')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '방송 제한설정 조회' })
   @ApiCreatedResponse({
     description: '조회 성공',
@@ -163,7 +163,7 @@ export class UserController {
   }
 
   @Put('broadcast-setting')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '방송 제한설정 변경' })
   @ApiCreatedResponse({ description: '변경 성공', type: User })
   @ApiBadRequestResponse({

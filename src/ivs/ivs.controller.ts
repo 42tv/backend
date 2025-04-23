@@ -7,7 +7,7 @@ import {
   Body,
 } from '@nestjs/common';
 import { IvsService } from './ivs.service';
-import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { User } from 'src/user/entities/user.entity';
 import {
   ApiBearerAuth,
@@ -36,7 +36,7 @@ export class IvsController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   async createChannel(@Request() req) {
     const user: User = req.user;
     return await this.ivsService.updateIvsChannel(
@@ -57,7 +57,7 @@ export class IvsController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   // ※스트림키 재발급의 경우 방송중인 경우에는 재발급이 불가능하게 막아야함. 아직 방송중 상태를 구현 안해놨음으로 차후 수정해야할 부분
   async reCreateStreamKey(@Request() req) {
     const user: User = req.user;

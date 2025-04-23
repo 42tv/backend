@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { jwtConstants } from '../constants';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+export class JwtIdxStrategy extends PassportStrategy(Strategy, 'jwt-idx') {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -14,6 +14,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: any) {
+    // The validate function remains the same as the original MemberStrategy,
+    // returning the necessary user information from the payload.
+    // The check for 'idx' will be handled in the Guard.
     return {
       idx: payload.idx,
       userId: payload.user_id,

@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { PostDto } from './dto/create.post.dto';
-import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -39,7 +39,7 @@ export class PostController {
   constructor(private readonly postService: PostService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 리스트 가져오기' })
   @ApiCreatedResponse({
     description: '쪽지 리스트',
@@ -55,7 +55,7 @@ export class PostController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 쓰기' })
   @ApiCreatedResponse({
     description: '변경 성공',
@@ -78,7 +78,7 @@ export class PostController {
   }
 
   @Put(':postId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 읽기' })
   @ApiCreatedResponse({
     description: '읽기 성공',
@@ -101,7 +101,7 @@ export class PostController {
   }
 
   @Delete()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 삭제' })
   @ApiCreatedResponse({
     description: '삭제 성공',
@@ -124,7 +124,7 @@ export class PostController {
   }
 
   @Delete(':postId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 삭제' })
   @ApiCreatedResponse({
     description: '삭제 성공',
@@ -147,7 +147,7 @@ export class PostController {
   }
 
   @Get('block/user')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '차단된 유저 리스트 가져오기' })
   @ApiCreatedResponse({
     description: '차단된 유저 리스트',
@@ -167,7 +167,7 @@ export class PostController {
   }
 
   @Post('block/user/:blockedUserIdx')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 차단 유저' })
   @ApiCreatedResponse({
     description: '차단 성공',
@@ -190,7 +190,7 @@ export class PostController {
   }
 
   @Delete('block/user')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 차단 동시 해제' })
   @ApiCreatedResponse({
     description: '차단 해제 성공',
@@ -214,7 +214,7 @@ export class PostController {
   }
 
   @Delete('block/user/:blockedUserIdx')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 차단 다수 해제' })
   @ApiCreatedResponse({
     description: '차단 다수 해제 성공',

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { LocalAuthGuard } from './guard/local-auth.guard';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guard/jwt-auth.guard';
+import { MemberGuard } from './guard/jwt.member.guard';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -85,7 +85,7 @@ export class AuthController {
   @Post('phone-verification')
   @ApiOperation({ summary: '가칭. 본인인증 성공했을시 stream, ivs 만드는용도' })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(MemberGuard)
   async phoneVerification(@Request() req) {
     console.log(req.user);
     return await this.authService.verifyPhone(req.user);

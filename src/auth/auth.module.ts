@@ -6,7 +6,7 @@ import { UserModule } from 'src/user/user.module';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
-import { JwtStrategy } from './guard/jwt.strategy';
+import { MemberStrategy } from './guard/jwt.member.strategy';
 import { ChannelModule } from 'src/channel/channel.module';
 import { RefreshStrategy } from './guard/refresh.strategy';
 import { ChattingRedisModule } from 'src/redis/redis.module';
@@ -23,7 +23,7 @@ import { ChattingRedisModule } from 'src/redis/redis.module';
     ChannelModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, RefreshStrategy],
+  providers: [AuthService, LocalStrategy, MemberStrategy, RefreshStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}
