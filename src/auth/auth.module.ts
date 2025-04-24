@@ -10,6 +10,7 @@ import { MemberStrategy } from './guard/jwt.member.strategy';
 import { ChannelModule } from 'src/channel/channel.module';
 import { RefreshStrategy } from './guard/refresh.strategy';
 import { ChattingRedisModule } from 'src/redis/redis.module';
+import { GuestGuardStrategy } from './guard/jwt.guest.strategy';
 
 @Module({
   imports: [
@@ -23,7 +24,13 @@ import { ChattingRedisModule } from 'src/redis/redis.module';
     ChannelModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, MemberStrategy, RefreshStrategy],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    MemberStrategy,
+    RefreshStrategy,
+    GuestGuardStrategy,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}
