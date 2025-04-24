@@ -77,7 +77,7 @@ export class AuthService {
    * @returns 게스트 토큰
    */
   generateGuestToken() {
-    const payload = { isGuest: true, guestId: `guest_${Date.now()}` }; // Example guest payload
+    const payload = { is_guest: true, guest_id: `guest_${Date.now()}` }; // Example guest payload
     return this.generateToken(payload);
   }
 
