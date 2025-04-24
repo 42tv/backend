@@ -133,7 +133,7 @@ export class AuthController {
     const loginInfo = await this.authService.getLoginInfo(authorizationHeader);
 
     // loginInfo가 게스트이고 tokens 객체를 포함하는 경우 access_token을 쿠키에 설정
-    if (loginInfo && loginInfo.isGuest && loginInfo.tokens) {
+    if (loginInfo && loginInfo.is_guest && loginInfo.tokens) {
       res.cookie('jwt', loginInfo.tokens.access_token, { httpOnly: true });
       delete loginInfo.tokens;
     }

@@ -90,18 +90,18 @@ export class AuthService {
     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
       // 토큰이 없거나 형식이 잘못된 경우, 새로운 게스트 토큰과 함께 게스트 정보 반환
       const guestTokens = this.generateGuestToken();
-      return { isGuest: true, tokens: guestTokens };
+      return { is_guest: true, tokens: guestTokens };
     }
 
     const token = authorizationHeader.split(' ')[1];
     const decoded = this.validate(token);
 
     // 게스트 토큰인지 확인
-    if (decoded.isGuest) {
+    if (decoded.is_guest) {
       // 게스트 정보 반환
       return {
-        isGuest: true,
-        guestId: decoded.guestId,
+        is_guest: true,
+        guest_id: decoded.guest_id,
       };
     }
 
@@ -119,7 +119,7 @@ export class AuthService {
 
     // 인증된 사용자 정보 반환
     return {
-      isGuest: false,
+      is_guest: false,
       user: {
         idx: user.idx,
         user_id: user.user_id,
