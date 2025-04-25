@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { UserService } from 'src/user/user.service';
 
@@ -13,29 +9,49 @@ export class PlayService {
     private readonly braodcastSettingService: BroadcastSettingService,
   ) {}
 
-  async play(userIdx, streamerId, password) {
+  async play(userIdx, streamerId, isGuest, password) {
+    const streamer = await this.userService.getUserByUserIdWithRelations(
+      streamerId,
+      {
+        ivs_channel: true,
+        braodcast_setting: true,
+      },
+    );
+    if (!streamer) {
+      throw new BadRequestException('존재하지 않는 스트리머입니다.');
+    }
+    if (isGuest) {
+      if (
+        streamer.broadcastSetting.is_adult ||
+        streamer.broadcastSetting.is_fan ||
+        streamer.broadcastSetting.is_pw
+      ) {
+        throw new BadRequestException('게스트는 시청할 수 없습니다');
+      }
+      return {
+        playback_url: streamer.ivs.playback_url,
+      };
+    }
+
     const user = await this.userService.findByUserIdx(userIdx);
     if (!user) {
       throw new BadRequestException('탈퇴한 유저입니다.');
     }
-    const streamer = await this.userService.findByUserId(streamerId);
-    if (!streamer) {
-      throw new BadRequestException('존재하지 않는 스트리머입니다.');
-    }
-    const streamerSetting =
-      await this.braodcastSettingService.getBroadcastSetting(streamer.idx);
-    if (!streamerSetting) {
-      throw new InternalServerErrorException('스트리머 방송 설정이 없습니다.');
+
+    if (user.idx == streamer.idx) {
+      return {
+        playback_url: streamer.ivs.playback_url,
+      };
     }
 
-    if (streamerSetting.is_adult) {
+    if (streamer.broadcastSetting.is_adult) {
       //성인 여부 검사 로직
     }
-    if (streamerSetting.is_fan) {
+    if (streamer.broadcastSetting.is_fan) {
       // 팬 여부 검사 로직
     }
-    if (streamerSetting.is_pw) {
-      if (password != streamerSetting.password) {
+    if (streamer.broadcastSetting.is_pw) {
+      if (password != streamer.broadcastSetting.password) {
         throw new BadRequestException('비밀번호가 틀렸습니다');
       }
     }

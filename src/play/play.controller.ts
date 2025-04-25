@@ -9,10 +9,10 @@ export class PlayController {
   @Post('')
   @UseGuards(GuestGuard)
   async play(@Req() req, @Body() body) {
-    console.log(req.user);
+    const isGuest = req.user.is_guest;
+    console.log(isGuest);
     const userIdx = req.user.idx;
-    const { streamerId, password } = body;
-    // return this.playService.play(userIdx, streamerId, password);
-    return;
+    const { stream_id, password } = body.data;
+    return await this.playService.play(userIdx, stream_id, isGuest, password);
   }
 }
