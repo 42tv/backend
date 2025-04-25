@@ -149,6 +149,33 @@ export class UserRepository {
   }
 
   /**
+   * 선택적 relation을 포함한 User 가져오기 UserId로
+   * @param user_idx
+   * @param includeOptions
+   * @param tx
+   * @returns
+   */
+  async getUserByUserIdWithRelations(
+    user_id: string,
+    includeOptions: UserIncludeOptions,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.findUnique({
+      where: {
+        user_id: user_id,
+      },
+      include: {
+        ...(includeOptions.user_detail && { user_detail: true }),
+        ...(includeOptions.channel && { channel: true }),
+        ...(includeOptions.braodcast_setting && { broadcastSetting: true }),
+        ...(includeOptions.ivs_channel && { ivs: true }),
+        ...(includeOptions.coin && { coin: true }),
+      },
+    });
+  }
+
+  /**
    * User 생성
    * @param user_id
    * @param hash

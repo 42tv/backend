@@ -67,6 +67,7 @@ export class UserService {
       oauth_id,
     );
   }
+
   /**
    * user_idx로 유저 찾기
    * @param user_idx
@@ -79,6 +80,21 @@ export class UserService {
   ) {
     return await this.userRepository.getUserWithRelations(
       user_idx,
+      includeOptions,
+    );
+  }
+  /**
+   * user_id로 유저 찾기
+   * @param user_idx
+   * @param includeOptions
+   * @returns
+   */
+  async getUserByUserIdWithRelations(
+    user_id: string,
+    includeOptions: UserIncludeOptions = {},
+  ) {
+    return await this.userRepository.getUserByUserIdWithRelations(
+      user_id,
       includeOptions,
     );
   }
