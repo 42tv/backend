@@ -184,4 +184,10 @@ export class UserController {
       message: '변경 성공',
     };
   }
+
+  @Post('bookmark')
+  @UseGuards(MemberGuard)
+  async addBookmark(@Req() req, @Body('user_id') user_id: string) {
+    return await this.userService.addBookmark(req.user.idx, user_id);
+  }
 }

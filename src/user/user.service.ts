@@ -3,6 +3,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -418,5 +419,21 @@ export class UserService {
       console.error('프로필 이미지 업로드 실패:', error);
       throw new BadRequestException('프로필 이미지 업로드에 실패했습니다');
     }
+  }
+
+  async addBookmark(user_idx: number, bookmarkedUserId: string) {
+    const user = await this.userRepository.findByUserIdx(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+    const bookmarkedUser =
+      await this.userRepository.findByUserId(bookmarkedUserId);
+    if (!bookmarkedUser) {
+      throw new NotFoundException('존재하지 않는 유저입니다');
+    }
+    await this.userRepository.addBookmark(user.idx, bookmarkedUser.idx);
+    return {
+      message: '북마크 추가 완료',
+    };
   }
 }

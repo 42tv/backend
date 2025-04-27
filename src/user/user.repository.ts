@@ -18,7 +18,6 @@ export class UserRepository {
       where: {
         user_id: user_id,
       },
-      include: {},
     });
     return user;
   }
@@ -235,6 +234,54 @@ export class UserRepository {
       },
       data: {
         profile_img: profile_img_url,
+      },
+    });
+  }
+
+  /**
+   * DB에 북마크 추가
+   * @param user_idx
+   * @param bookmark_idx
+   * @param tx
+   * @returns
+   */
+  async addBookmark(user_idx, bookmark_idx, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.bookmark.create({
+      data: {
+        bookmarker: {
+          connect: {
+            idx: user_idx,
+          },
+        },
+        bookmarked: {
+          connect: {
+            idx: bookmark_idx,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * DB에서 북마크 삭제
+   * @param user_idx 북마크 한 유저 idx
+   * @param deleted_idx 북마크 삭제할 유저 idx
+   * @param tx
+   * @returns
+   */
+  async deleteBookmark(
+    user_idx: number,
+    deleted_idx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.bookmark.delete({
+      where: {
+        bookmarker_idx_bookmarked_idx: {
+          bookmarker_idx: user_idx,
+          bookmarked_idx: deleted_idx,
+        },
       },
     });
   }

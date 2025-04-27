@@ -226,6 +226,7 @@ model Fan {
   id                  Int      @id @default(autoincrement())
 
   total_donation      Int      @default(0) // 팬이 보낸 총 선물 수
+  hidden              Boolean  @default(false) // 팬 등급 숨김 여부
   created_at          DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at          DateTime @updatedAt
   
@@ -275,6 +276,7 @@ model PostBlockedUsers {
 // 즐겨찾기 테이블 - 사용자 간 즐겨찾기 관계 관리
 model Bookmark {
   id              Int      @id @default(autoincrement())
+  hidden          Boolean  @default(false) // 즐겨찾기 숨김 여부
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
 
   // Relations
