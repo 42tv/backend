@@ -3,6 +3,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -418,5 +419,90 @@ export class UserService {
       console.error('프로필 이미지 업로드 실패:', error);
       throw new BadRequestException('프로필 이미지 업로드에 실패했습니다');
     }
+  }
+
+  /**
+   * 자신이 추가한 Streamer_idx의 북마크 가져오기
+   */
+  async getBookmarkByStreamerIdx(user_idx: number, streamer_idx: number) {
+    const isBookmarked = await this.userRepository.getBookmarkByStreamerIdx(
+      user_idx,
+      streamer_idx,
+    );
+    return {
+      is_bookmarked: isBookmarked,
+    };
+  }
+
+  /**
+   * 자신의 북마크 리스트 가져오기
+   * @param user_idx
+   * @returns
+   */
+  async getBookmarks(user_idx: number) {
+    const user = await this.userRepository.findByUserIdx(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+    const bookmarks = await this.userRepository.getBookmarks(user.idx);
+    const transformedBookmarks = bookmarks.map((bookmark) => {
+      const { idx, ...rest } = bookmark.bookmarked || {};
+      return {
+        id: bookmark.id,
+        hidden: bookmark.hidden,
+        user_idx: idx, // idx를 user_idx로 리네이밍
+        ...rest, // 나머지 속성 추가
+      };
+    });
+
+    return {
+      lists: transformedBookmarks,
+      message: '북마크 리스트 조회 완료',
+    };
+  }
+
+  /**
+   * 북마크 추가
+   * @param user_idx
+   * @param bookmarkedUserId
+   * @returns
+   */
+  async addBookmark(user_idx: number, bookmarkedUserId: string) {
+    const user = await this.userRepository.findByUserIdx(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+    const bookmarkedUser =
+      await this.userRepository.findByUserId(bookmarkedUserId);
+    if (!bookmarkedUser) {
+      throw new NotFoundException('존재하지 않는 유저입니다');
+    }
+    await this.userRepository.addBookmark(user.idx, bookmarkedUser.idx);
+    return {
+      message: '북마크 추가 완료',
+    };
+  }
+
+  /**
+   * 북마크 삭제
+   * @param user_idx 북마크를 삭제하려는 유저의 idx
+   * @param deleted_user_id 북마크에서 삭제될 유저의 user_id
+   * @returns
+   */
+  async deleteBookmark(user_idx: number, deleted_user_id: string) {
+    const user = await this.userRepository.findByUserIdx(user_idx);
+    if (!user) {
+      // 실제로는 Guard에서 처리되지만 방어 로직
+      throw new BadRequestException('요청한 유저가 존재하지 않습니다.');
+    }
+    const deletedUser = await this.userRepository.findByUserId(deleted_user_id);
+    if (!deletedUser) {
+      throw new NotFoundException('삭제할 유저가 존재하지 않습니다.');
+    }
+
+    await this.userRepository.deleteBookmark(user.idx, deletedUser.idx);
+    return {
+      message: '북마크 삭제 완료',
+    };
   }
 }

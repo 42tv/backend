@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Patch,
   Post,
   Put,
@@ -183,5 +185,24 @@ export class UserController {
     return {
       message: '변경 성공',
     };
+  }
+
+  @Get('bookmark')
+  @UseGuards(MemberGuard)
+  async getBookmark(@Req() req) {
+    const bookmarks = await this.userService.getBookmarks(req.user.idx);
+    return bookmarks;
+  }
+
+  @Post('bookmark')
+  @UseGuards(MemberGuard)
+  async addBookmark(@Req() req, @Body('user_id') user_id: string) {
+    return await this.userService.addBookmark(req.user.idx, user_id);
+  }
+
+  @Delete('bookmark/:user_id')
+  @UseGuards(MemberGuard)
+  async deleteBookmark(@Req() req, @Param('user_id') deleted_user_id: string) {
+    return await this.userService.deleteBookmark(req.user.idx, deleted_user_id);
   }
 }

@@ -50,6 +50,10 @@ model User {
   
   // Stream viewer relation
   viewingSessions StreamViewer[] @relation("StreamViewers")
+
+  // Bookmark relations
+  bookmarksMade  Bookmark[] @relation("UserBookmarksMade") // 내가 즐겨찾기 한 유저 목록
+  bookmarkedBy   Bookmark[] @relation("UserBookmarkedBy") // 나를 즐겨찾기 한 유저 목록
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -222,6 +226,7 @@ model Fan {
   id                  Int      @id @default(autoincrement())
 
   total_donation      Int      @default(0) // 팬이 보낸 총 선물 수
+  hidden              Boolean  @default(false) // 팬 등급 숨김 여부
   created_at          DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at          DateTime @updatedAt
   
@@ -266,4 +271,20 @@ model PostBlockedUsers {
   
   // Ensure a user can only block another user once
   @@unique([blocker_idx, blocked_idx])
+}
+
+// 즐겨찾기 테이블 - 사용자 간 즐겨찾기 관계 관리
+model Bookmark {
+  id              Int      @id @default(autoincrement())
+  hidden          Boolean  @default(false) // 즐겨찾기 숨김 여부
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // Relations
+  bookmarker_idx  Int      // 즐겨찾기 한 사용자
+  bookmarked_idx  Int      // 즐겨찾기 된 사용자
+  bookmarker      User     @relation("UserBookmarksMade", fields: [bookmarker_idx], references: [idx], onDelete: Cascade)
+  bookmarked      User     @relation("UserBookmarkedBy", fields: [bookmarked_idx], references: [idx], onDelete: Cascade)
+
+  // Ensure a user can only bookmark another user once
+  @@unique([bookmarker_idx, bookmarked_idx])
 }
