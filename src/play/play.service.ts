@@ -20,6 +20,10 @@ export class PlayService {
     if (!streamer) {
       throw new BadRequestException('존재하지 않는 스트리머입니다.');
     }
+    const bookmark = await this.userService.getBookmarkByStreamerIdx(
+      userIdx,
+      streamer.idx,
+    );
     if (isGuest) {
       if (
         streamer.broadcastSetting.is_adult ||
@@ -30,6 +34,7 @@ export class PlayService {
       }
       return {
         playback_url: streamer.ivs.playback_url,
+        is_bookmarked: false,
       };
     }
 
@@ -41,6 +46,7 @@ export class PlayService {
     if (user.idx == streamer.idx) {
       return {
         playback_url: streamer.ivs.playback_url,
+        is_bookmarked: false,
       };
     }
 
@@ -55,6 +61,9 @@ export class PlayService {
         throw new BadRequestException('비밀번호가 틀렸습니다');
       }
     }
-    return {};
+    return {
+      playback_url: streamer.ivs.playback_url,
+      is_bookmarked: bookmark ? true : false,
+    };
   }
 }

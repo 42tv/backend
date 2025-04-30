@@ -239,6 +239,56 @@ export class UserRepository {
   }
 
   /**
+   * 북마크 가져오기
+   * @param user_idx 요청자
+   * @param stramer_idx 대상
+   * @param tx
+   * @returns
+   */
+  async getBookmarkByStreamerIdx(
+    user_idx,
+    stramer_idx,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.bookmark.findUnique({
+      where: {
+        bookmarker_idx_bookmarked_idx: {
+          bookmarker_idx: user_idx,
+          bookmarked_idx: stramer_idx,
+        },
+      },
+    });
+  }
+
+  /**
+   * User의 북마크 리스트 가져오기
+   * @param user_idx
+   * @param tx
+   * @returns
+   */
+  async getBookmarks(user_idx, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.bookmark.findMany({
+      where: {
+        bookmarker: {
+          idx: user_idx,
+        },
+      },
+      include: {
+        bookmarked: {
+          select: {
+            idx: true,
+            user_id: true,
+            profile_img: true,
+            nickname: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * DB에 북마크 추가
    * @param user_idx
    * @param bookmark_idx
