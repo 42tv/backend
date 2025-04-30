@@ -205,4 +205,12 @@ export class UserController {
   async deleteBookmark(@Req() req, @Param('user_id') deleted_user_id: string) {
     return await this.userService.deleteBookmark(req.user.idx, deleted_user_id);
   }
+
+  @Delete('bookmarks')
+  @UseGuards(MemberGuard)
+  async deleteBookmakrs(@Req() req, @Body('ids') ids: number[]) {
+    console.log(req.user.idx, ids);
+    await this.userService.deleteBookmarks(req.user.idx, ids);
+    return '';
+  }
 }
