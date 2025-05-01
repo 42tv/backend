@@ -505,4 +505,23 @@ export class UserService {
       message: '북마크 삭제 완료',
     };
   }
+
+  /**
+   * 북마크 여러개 삭제
+   */
+  async deleteBookmarks(user_idx: number, ids: number[]) {
+    const user = await this.userRepository.findByUserIdx(user_idx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다');
+    }
+    try {
+      await this.userRepository.deleteBookmarks(user.idx, ids);
+    } catch (e) {
+      throw new BadRequestException('유효하지 않은 북마크 삭제요청입니다');
+    }
+
+    return {
+      message: '북마크 삭제 완료',
+    };
+  }
 }

@@ -335,4 +335,27 @@ export class UserRepository {
       },
     });
   }
+
+  /**
+   * 북마크 여러개 삭제
+   * @param user_idx
+   * @param deleted_idx
+   * @param tx
+   * @returns
+   */
+  async deleteBookmarks(
+    user_idx: number,
+    deleted_idx: number[],
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.bookmark.deleteMany({
+      where: {
+        bookmarker_idx: user_idx,
+        id: {
+          in: deleted_idx,
+        },
+      },
+    });
+  }
 }
