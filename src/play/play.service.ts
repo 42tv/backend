@@ -24,6 +24,7 @@ export class PlayService {
       userIdx,
       streamer.idx,
     );
+    console.log(bookmark);
     if (isGuest) {
       if (
         streamer.broadcastSetting.is_adult ||
@@ -50,7 +51,7 @@ export class PlayService {
       return {
         playback_url: streamer.ivs.playback_url,
         title: streamer.broadcastSetting.title,
-        is_bookmarked: false,
+        is_bookmarked: bookmark.is_bookmarked ? true : false,
         profile_img: streamer.profile_img,
         nickname: streamer.nickname,
       };
@@ -69,7 +70,7 @@ export class PlayService {
     }
     return {
       playback_url: streamer.ivs.playback_url,
-      is_bookmarked: bookmark ? true : false,
+      is_bookmarked: bookmark.is_bookmarked ? true : false,
       title: streamer.broadcastSetting.title,
       profile_img: streamer.profile_img,
       nickname: streamer.nickname,
