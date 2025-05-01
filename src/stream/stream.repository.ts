@@ -71,6 +71,10 @@ export class StreamRepository {
     });
   }
 
+  /**
+   *
+   * @returns 라이브 리스트 리턴
+   */
   async getLiveList() {
     const streams = await this.prisma.stream.findMany({
       select: {
@@ -79,7 +83,6 @@ export class StreamRepository {
         // request_id: true,
         // stream_id: true,
         start_time: true,
-        title: true,
         play_cnt: true,
         like_cnt: true,
         user: {
@@ -88,6 +91,15 @@ export class StreamRepository {
             user_id: true,
             nickname: true,
             profile_img: true,
+            broadcastSetting: {
+              select: {
+                is_adult: true,
+                is_fan: true,
+                is_pw: true,
+                title: true,
+                fan_level: true,
+              },
+            },
           },
         },
         _count: {

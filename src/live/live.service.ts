@@ -6,6 +6,7 @@ export class LiveService {
   constructor(private readonly streamService: StreamService) {}
 
   async getLiveList() {
-    return await this.streamService.getLiveList();
+    const lives = await this.streamService.getLiveList();
+    return lives;
   }
 }

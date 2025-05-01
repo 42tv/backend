@@ -11,22 +11,22 @@ datasource db {
 
 // 회원 테이블
 model User {
-  idx               Int         @id @default(autoincrement())
-  user_id           String      @unique
-  password          String?
-  nickname          String      @unique
-  profile_img        String      @default("")
-  oauth_provider    String?
-  oauth_provider_id String?
-  created_at         DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  updated_at         DateTime    @updatedAt()
+  idx                 Int         @id @default(autoincrement())
+  user_id             String      @unique
+  password            String?
+  nickname            String      @unique
+  profile_img         String      @default("")
+  oauth_provider      String?
+  oauth_provider_id   String?
+  created_at          DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at          DateTime    @updatedAt()
   
-  userDetail      UserDetail?
-  channel         Channel?
-  ivs             IVSChannel?
-  broadcastSetting BroadCastSetting?
-  UserTerms       UserTerms[]
-  coin            Coin?
+  userDetail          UserDetail?
+  channel             Channel?
+  ivs                 IVSChannel?
+  broadcastSetting    BroadcastSetting?
+  UserTerms           UserTerms[]
+  coin                Coin?
   
   streams        Stream? @relation("StreamData")
   // Gift relations
@@ -111,7 +111,7 @@ model Channel {
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 }
 
-model BroadCastSetting {
+model BroadcastSetting {
   user_idx          Int      @id
   title             String
   is_adult          Boolean  @default(false)
@@ -186,9 +186,9 @@ model Posts {
 
   // Relations
   sender_idx      Int      // 보낸 사용자
-  recipient_idx   Int      // 받는 사용자
+  receiver_idx   Int      // 받는 사용자
   sender     User   @relation("SentPosts", fields: [sender_idx], references: [idx], onDelete: Cascade)
-  recipient  User   @relation("ReceivedPosts", fields: [recipient_idx], references: [idx], onDelete: Cascade)
+  receiver  User   @relation("ReceivedPosts", fields: [receiver_idx], references: [idx], onDelete: Cascade)
 }
 
 // 코인 정보 테이블 - 사용자별 코인 잔액 관리

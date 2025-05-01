@@ -34,7 +34,10 @@ export class PlayService {
       }
       return {
         playback_url: streamer.ivs.playback_url,
+        title: streamer.broadcastSetting.title,
         is_bookmarked: false,
+        profile_img: streamer.profile_img,
+        nickname: streamer.nickname,
       };
     }
 
@@ -46,7 +49,10 @@ export class PlayService {
     if (user.idx == streamer.idx) {
       return {
         playback_url: streamer.ivs.playback_url,
+        title: streamer.broadcastSetting.title,
         is_bookmarked: false,
+        profile_img: streamer.profile_img,
+        nickname: streamer.nickname,
       };
     }
 
@@ -64,6 +70,9 @@ export class PlayService {
     return {
       playback_url: streamer.ivs.playback_url,
       is_bookmarked: bookmark ? true : false,
+      title: streamer.broadcastSetting.title,
+      profile_img: streamer.profile_img,
+      nickname: streamer.nickname,
     };
   }
 }
