@@ -20,11 +20,6 @@ export class PlayService {
     if (!streamer) {
       throw new BadRequestException('존재하지 않는 스트리머입니다.');
     }
-    const bookmark = await this.userService.getBookmarkByStreamerIdx(
-      userIdx,
-      streamer.idx,
-    );
-    console.log(bookmark);
     if (isGuest) {
       if (
         streamer.broadcastSetting.is_adult ||
@@ -41,13 +36,16 @@ export class PlayService {
         nickname: streamer.nickname,
       };
     }
-
+    const bookmark = await this.userService.getBookmarkByStreamerIdx(
+      userIdx,
+      streamer.idx,
+    );
     const user = await this.userService.findByUserIdx(userIdx);
     if (!user) {
       throw new BadRequestException('탈퇴한 유저입니다.');
     }
 
-    if (user.idx == streamer.idx) {
+    if (user.idx === streamer.idx) {
       return {
         playback_url: streamer.ivs.playback_url,
         title: streamer.broadcastSetting.title,
