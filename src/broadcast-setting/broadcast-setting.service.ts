@@ -18,7 +18,7 @@ export class BroadcastSettingService {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    await prismaClient.broadCastSetting.create({
+    await prismaClient.broadcastSetting.create({
       data: {
         User: {
           connect: {
@@ -76,7 +76,7 @@ export class BroadcastSettingService {
    */
   async getBroadcastSetting(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.broadCastSetting.findUnique({
+    return await prismaClient.broadcastSetting.findUnique({
       where: {
         user_idx: user_idx,
       },

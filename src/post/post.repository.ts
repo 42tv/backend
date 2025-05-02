@@ -29,7 +29,7 @@ export class PostRepository {
             idx: sender_idx,
           },
         },
-        recipient: {
+        receiver: {
           connect: {
             idx: receiver_idx,
           },
@@ -43,11 +43,11 @@ export class PostRepository {
    * @param recipient_idx
    * @returns
    */
-  async getPosts(recipient_idx: number, tx?: Prisma.TransactionClient) {
+  async getPosts(receiver_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.posts.findMany({
       where: {
-        recipient_idx: recipient_idx,
+        receiver_idx: receiver_idx,
       },
       orderBy: {
         sent_at: 'desc',
@@ -64,14 +64,14 @@ export class PostRepository {
    * @returns
    */
   async getReceivePostsByNickname(
-    recipient_idx: number,
+    receiver_idx: number,
     nickname: string,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.posts.findMany({
       where: {
-        recipient_idx: recipient_idx,
+        receiver_idx: receiver_idx,
         sender: {
           nickname: nickname,
         },
@@ -118,7 +118,7 @@ export class PostRepository {
     return await prismaClient.posts.findMany({
       where: {
         sender_idx: sender_idx,
-        recipient: {
+        receiver: {
           nickname: nickname,
         },
       },
@@ -137,14 +137,14 @@ export class PostRepository {
    * @returns
    */
   async readPosts(
-    recipient_idx: number,
+    receiver_idx: number,
     postId: number,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.posts.update({
       where: {
-        recipient_idx: recipient_idx,
+        receiver_idx: receiver_idx,
         id: postId,
       },
       data: {
@@ -162,14 +162,14 @@ export class PostRepository {
    * @returns
    */
   async deletePost(
-    recipient_idx: number,
+    receiver_idx: number,
     postId: number,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.posts.delete({
       where: {
-        recipient_idx: recipient_idx,
+        receiver_idx: receiver_idx,
         id: postId,
       },
     });
@@ -183,14 +183,14 @@ export class PostRepository {
    * @returns
    */
   async deletePosts(
-    recipient_idx: number,
+    receiver_idx: number,
     postIds: number[],
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.posts.deleteMany({
       where: {
-        recipient_idx: recipient_idx,
+        receiver_idx: receiver_idx,
         id: {
           in: postIds,
         },
