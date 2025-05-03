@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import {
   IvsClient,
@@ -12,6 +13,7 @@ import {
   DeleteChannelCommand,
   DeleteStreamKeyCommand,
   GetStreamCommand,
+  ListChannelsCommand,
 } from '@aws-sdk/client-ivs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -26,6 +28,7 @@ import { timeFormatter } from 'src/utils/utils';
 @Injectable()
 export class IvsService {
   private readonly client: IvsClient;
+  private readonly logger = new Logger(IvsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -337,5 +340,52 @@ export class IvsService {
     }
 
     return ivs;
+  }
+
+  /**
+   * AWS IVS 계정의 모든 채널을 가져와 현재 사용자의 채널이 아닌 것을 삭제합니다.
+   * @param user 현재 사용자 정보
+   */
+  async syncAndDeleteOrphanedChannels() {
+    const channelsToDelete = [];
+
+    try {
+      const command = new ListChannelsCommand({});
+      const response = await this.client.send(command);
+      const allChannels = response.channels || [];
+
+      this.logger.log(`Found ${allChannels.length} channels in AWS IVS.`);
+
+      const userIvs = await this.prisma.iVSChannel.findMany({});
+
+      for (const channel of allChannels) {
+        for (const userChannel of userIvs) {
+          if (channel.arn != userChannel.arn) {
+            channelsToDelete.push(channel.arn);
+            break;
+          }
+        }
+      }
+
+      // 삭제 실행
+      for (const arn of channelsToDelete) {
+        try {
+          await this.requestDeleteIvs(arn);
+          console.log(`Successfully deleted channel: ${arn}`);
+        } catch (deleteError) {
+          console.log(`Failed to delete channel ${arn}:`, deleteError);
+        }
+      }
+
+      return {
+        message: `Sync complete. Deleted ${channelsToDelete.length} orphaned channels.`,
+        deletedArns: channelsToDelete,
+      };
+    } catch (error) {
+      this.logger.error('Error listing or processing channels:', error);
+      throw new InternalServerErrorException(
+        'Failed to sync and delete orphaned channels.',
+      );
+    }
   }
 }

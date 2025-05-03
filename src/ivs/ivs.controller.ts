@@ -5,6 +5,7 @@ import {
   Put,
   UseGuards,
   Body,
+  Delete,
 } from '@nestjs/common';
 import { IvsService } from './ivs.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
@@ -82,5 +83,10 @@ export class IvsController {
     return {
       message: 'success',
     };
+  }
+
+  @Delete('sync-channels')
+  async syncChannels() {
+    return await this.ivsService.syncAndDeleteOrphanedChannels();
   }
 }
