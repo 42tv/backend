@@ -1,13 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class PlayService {
-  constructor(
-    private readonly userService: UserService,
-    private readonly braodcastSettingService: BroadcastSettingService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   async play(userIdx, streamerId, isGuest, password) {
     const streamer = await this.userService.getUserByUserIdWithRelations(
