@@ -1,9 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class PlayService {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly streamService: StreamService,
+  ) {}
 
   async play(userIdx, streamerId, isGuest, password) {
     const streamer = await this.userService.getUserByUserIdWithRelations(
@@ -15,6 +19,10 @@ export class PlayService {
     );
     if (!streamer) {
       throw new BadRequestException('존재하지 않는 스트리머입니다.');
+    }
+    const stream = await this.streamService.getStreamByUserIdx(streamer.idx);
+    if (!stream) {
+      throw new BadRequestException('방송중인 스트리머가 아닙니다.');
     }
     if (isGuest) {
       if (
@@ -30,6 +38,9 @@ export class PlayService {
         is_bookmarked: false,
         profile_img: streamer.profile_img,
         nickname: streamer.nickname,
+        play_cnt: stream.play_cnt,
+        like_cnt: stream.like_cnt,
+        start_time: stream.start_time,
       };
     }
     const bookmark = await this.userService.getBookmarkByStreamerIdx(
@@ -48,6 +59,9 @@ export class PlayService {
         is_bookmarked: bookmark.is_bookmarked ? true : false,
         profile_img: streamer.profile_img,
         nickname: streamer.nickname,
+        play_cnt: stream.play_cnt,
+        like_cnt: stream.like_cnt,
+        start_time: stream.start_time,
       };
     }
 
@@ -68,6 +82,9 @@ export class PlayService {
       title: streamer.broadcastSetting.title,
       profile_img: streamer.profile_img,
       nickname: streamer.nickname,
+      play_cnt: stream.play_cnt,
+      like_cnt: stream.like_cnt,
+      start_time: stream.start_time,
     };
   }
 }
