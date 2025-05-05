@@ -7,7 +7,6 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
-  WsException,
   // ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
@@ -20,7 +19,7 @@ import { WebSocketDto } from './dto/ws.entity';
   cors: {
     origin: '*',
   },
-  namespace: 'dashboard',
+  namespace: 'chat',
 })
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
@@ -45,7 +44,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return data;
   }
 
-  @UseGuards(WsGuard)
+  // @UseGuards(WsGuard)
   async handleConnection(client: Socket) {
     console.log(`Connected WS : ${client.id}`);
     // try {
