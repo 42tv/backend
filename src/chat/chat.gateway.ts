@@ -1,4 +1,4 @@
-import { Inject, UseGuards, forwardRef } from '@nestjs/common';
+import { Inject, forwardRef } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -7,13 +7,22 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
-  // ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/user/user.service';
-import { WsGuard } from 'src/auth/guard/ws-guard';
 import { WebSocketDto } from './dto/ws.entity';
+
+interface JwtPayload {
+  streamer_idx: number;
+  streamer_id: string;
+  streamer_nickname: string;
+  type: string;
+}
+
+interface AuthenticatedSocket extends Socket {
+  user: JwtPayload;
+}
 
 @WebSocketGateway({
   cors: {
@@ -32,21 +41,42 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
   wsClients = new Map<string, WebSocketDto>();
 
-  async SocketConnect() {}
-
-  @UseGuards(WsGuard)
-  @SubscribeMessage('regist-user_id')
-  getAllDashBoardUser(
-    @MessageBody() data: string,
-    @ConnectedSocket() client: any,
-  ): string {
-    this.wsClients.get(client.user.user_id);
-    return data;
+  /**
+   * client.user 에 jwt valdiate해서 넣어줌
+   * @param server
+   */
+  afterInit(server: Server) {
+    server.use(async (socket: Socket, next) => {
+      try {
+        const authHeader = socket.handshake.auth.token; // "Bearer <token>"
+        const token = authHeader.split(' ')[1];
+        const payload: JwtPayload = await this.authService.validate(token);
+        // TypeScript 용으로 socket에 프로퍼티 추가
+        (socket as any).user = payload;
+        next();
+      } catch (err) {
+        next(new Error('인증 실패'));
+      }
+    });
   }
 
   // @UseGuards(WsGuard)
-  async handleConnection(client: Socket) {
+  // @SubscribeMessage('regist-user_id')
+  // getAllDashBoardUser(
+  //   @MessageBody() data: string,
+  //   @ConnectedSocket() client: any,
+  // ): string {
+  //   this.wsClients.get(client.user.user_id);
+  //   return data;
+  // }
+
+  async handleConnection(client: AuthenticatedSocket) {
     console.log(`Connected WS : ${client.id}`);
+    console.log(client.user);
+    // console.log(client.handshake.auth);
+    // const token = client.handshake.auth.token.split(' ')[1];
+    // const validated_token = this.authService.validate(token);
+    // console.log(validated_token);
     // try {
     //   const jwt = client.handshake.auth.token.split(' ')[1];
     //   const user_id = this.authService.decode(jwt)['user_id'];

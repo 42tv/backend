@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { AuthService } from 'src/auth/auth.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
 
@@ -7,6 +8,7 @@ export class PlayService {
   constructor(
     private readonly userService: UserService,
     private readonly streamService: StreamService,
+    private readonly authService: AuthService,
   ) {}
 
   async play(userIdx, streamerId, isGuest, password) {
@@ -32,6 +34,12 @@ export class PlayService {
       ) {
         throw new BadRequestException('게스트는 시청할 수 없습니다');
       }
+      const playToken = this.authService.generatePlayToken({
+        streamer_idx: streamer.idx,
+        streamer_id: streamer.user_id,
+        streamer_nickname: streamer.nickname,
+        type: 'guest',
+      });
       return {
         playback_url: streamer.ivs.playback_url,
         title: streamer.broadcastSetting.title,
@@ -41,6 +49,7 @@ export class PlayService {
         play_cnt: stream.play_cnt,
         like_cnt: stream.like_cnt,
         start_time: stream.start_time,
+        play_token: playToken.token,
       };
     }
     const bookmark = await this.userService.getBookmarkByStreamerIdx(
@@ -53,6 +62,13 @@ export class PlayService {
     }
 
     if (user.idx === streamer.idx) {
+      const playToken = this.authService.generatePlayToken({
+        streamer_idx: streamer.idx,
+        streamer_id: streamer.user_id,
+        streamer_nickname: streamer.nickname,
+        type: 'owner',
+        user_idx: user.idx,
+      });
       return {
         playback_url: streamer.ivs.playback_url,
         title: streamer.broadcastSetting.title,
@@ -62,6 +78,7 @@ export class PlayService {
         play_cnt: stream.play_cnt,
         like_cnt: stream.like_cnt,
         start_time: stream.start_time,
+        play_token: playToken.token,
       };
     }
 
@@ -76,6 +93,12 @@ export class PlayService {
         throw new BadRequestException('비밀번호가 틀렸습니다');
       }
     }
+    const playToken = this.authService.generatePlayToken({
+      streamer_idx: streamer.idx,
+      streamer_id: streamer.user_id,
+      streamer_nickname: streamer.nickname,
+      type: 'member',
+    });
     return {
       playback_url: streamer.ivs.playback_url,
       is_bookmarked: bookmark.is_bookmarked ? true : false,
@@ -85,6 +108,7 @@ export class PlayService {
       play_cnt: stream.play_cnt,
       like_cnt: stream.like_cnt,
       start_time: stream.start_time,
+      play_token: playToken.token,
     };
   }
 }
