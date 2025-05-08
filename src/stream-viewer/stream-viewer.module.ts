@@ -5,6 +5,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 @Module({
   imports: [PrismaModule],
   providers: [StreamViewerService],
-  exports: [StreamViewerService],
+  exports: [StreamViewerService], // Added comma here
 })
 export class StreamViewerModule {}
