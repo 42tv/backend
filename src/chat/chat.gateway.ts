@@ -1,23 +1,24 @@
 import { Inject, forwardRef } from '@nestjs/common';
 import {
-  ConnectedSocket,
-  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/user/user.service';
-import { WebSocketDto } from './dto/ws.entity';
+import { StreamViewerService } from 'src/stream-viewer/stream-viewer.service';
 
 interface JwtPayload {
-  streamer_idx: number;
-  streamer_id: string;
-  streamer_nickname: string;
+  broadcaster_idx: number;
+  broadcaster_id: string;
+  broadcaster_nickname: string;
   type: string;
+  user_idx: number;
+  stream_idx: number;
+  stream_id: string;
+  guest_uuid: string;
 }
 
 interface AuthenticatedSocket extends Socket {
@@ -35,11 +36,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly authService: AuthService,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
+    private readonly streamViewerService: StreamViewerService,
   ) {}
 
   @WebSocketServer()
   server: Server;
-  wsClients = new Map<string, WebSocketDto>();
+  private chatRooms = new Map<string, Map<string, AuthenticatedSocket>>();
 
   /**
    * client.user 에 jwt valdiate해서 넣어줌
@@ -60,74 +62,134 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // @UseGuards(WsGuard)
-  // @SubscribeMessage('regist-user_id')
-  // getAllDashBoardUser(
-  //   @MessageBody() data: string,
-  //   @ConnectedSocket() client: any,
-  // ): string {
-  //   this.wsClients.get(client.user.user_id);
-  //   return data;
-  // }
+  /**
+   * room에 메세지 보내기
+   * @param broadcaster_idx 스트리머 idx
+   * @param eventName 메세지 이벤트 이름
+   * @param data 메세지 데이터
+   */
+  async sendMessageToRoom(
+    broadcaster_idx: number,
+    eventName: string,
+    data: any,
+  ) {
+    this.server.to(broadcaster_idx.toString()).emit(eventName, data);
+  }
 
+  /**
+   * 소켓 연결시
+   * @param client
+   * @returns
+   */
   async handleConnection(client: AuthenticatedSocket) {
-    console.log(`Connected WS : ${client.id}`);
-    console.log(client.user);
-    // console.log(client.handshake.auth);
-    // const token = client.handshake.auth.token.split(' ')[1];
-    // const validated_token = this.authService.validate(token);
-    // console.log(validated_token);
-    // try {
-    //   const jwt = client.handshake.auth.token.split(' ')[1];
-    //   const user_id = this.authService.decode(jwt)['user_id'];
-    //   const user = await this.userService.findByUserId(user_id);
-    //   if (!user) throw new WsException('존재하지 않는 아이디입니다.');
-    //   const bj = await this.bjService.findById(user.bj_id);
-    //   if (!bj) throw new WsException('존재하지 않는 BJ/매니저 입니다.');
-    //   const tmp = new WebSocketDto(client.id, client, bj.panda_id);
-    //   this.wsClients.set(client.id, tmp);
-    //   console.log(Array.from(this.wsClients.values()).length);
-    // } catch (e) {
-    //   console.log(`Disconnected WS : ${client.id}`);
-    // }
+    // jwt없이 연결하면 뭐 위에서 걸러지겟지만 한번 더 검사
+    if (!client.user) {
+      console.log('No user found in socket connection');
+      client.disconnect();
+      return;
+    }
+
+    // 구조분해 할당
+    const { broadcaster_id, stream_idx, type, user_idx, guest_uuid } =
+      client.user;
+
+    // broadcaster_id의 방을 가져옴
+    const existingRoom = this.chatRooms.get(broadcaster_id);
+    if (existingRoom) {
+      if (type == 'guest') {
+        const existingGuest = existingRoom.get(guest_uuid);
+        if (existingGuest) {
+          console.log(
+            `Guest(${guest_uuid}) is already in room ${broadcaster_id}`,
+          );
+          return;
+        }
+      } else if (type == 'member') {
+        const existingMember = existingRoom.get(user_idx.toString());
+        if (existingMember) {
+          console.log(`User ${user_idx} is already in room ${broadcaster_id}`);
+          return;
+        }
+      }
+    }
+
+    // Join the room based on stream_idx
+    client.join(broadcaster_id);
+    // Add user to chatRooms map
+    if (!this.chatRooms.has(broadcaster_id)) {
+      this.chatRooms.set(
+        broadcaster_id,
+        new Map<string, AuthenticatedSocket>(),
+      );
+    }
+
+    if (type == 'guest') {
+      console.log(`Guest(${guest_uuid}) user connected ${broadcaster_id}`);
+      this.chatRooms.get(broadcaster_id).set(guest_uuid, client);
+      await this.streamViewerService.addStreamViewer(
+        stream_idx,
+        undefined,
+        guest_uuid,
+      );
+    } else if (type == 'member') {
+      console.log(`Member(${user_idx}) user connected ${broadcaster_id}`);
+      this.chatRooms.get(broadcaster_id).set(user_idx.toString(), client);
+      await this.streamViewerService.addStreamViewer(stream_idx, user_idx);
+    }
   }
 
-  async handleDisconnect(client: Socket) {
-    console.log(`Disconnected WS : ${client.id}`);
-    this.wsClients.delete(client.id);
-    console.log(Array.from(this.wsClients.values()).length);
-  }
+  /**
+   * 소케 연결 종료시
+   * @param client
+   * @returns
+   */
+  async handleDisconnect(client: AuthenticatedSocket) {
+    if (!client.user) {
+      console.log('No user found in socket disconnection');
+      return;
+    }
 
-  getClientClassByPandaId(panda_id: string) {
-    // const clientData = Array.from(this.wsClients.values()).find(
-    //   (client) => client.panda_id == panda_id,
-    // );
-    // if (clientData) {
-    //   return clientData;
-    // }
-    // return null;
-  }
+    const { broadcaster_id, type, stream_idx, user_idx, guest_uuid } =
+      client.user;
 
-  async sendRoomJoin(panda_id: string, nicknames: any[]) {
-    // // console.log(nicknames);
-    // const client: WebSocketDto = this.getClientClassByPandaId(panda_id);
-    // if (!client) return;
-    // const data = await this.roomService.getHartData(panda_id, nicknames);
-    // // console.log(data.length);
-    // console.log(client.socket.client.conn.remoteAddress);
-    // client.socket.emit('room-join', data);
-  }
+    // Leave the room
+    client.leave(stream_idx.toString());
 
-  async sendRoomLeave(panda_id: string, nicknames: string[]) {
-    // const client: WebSocketDto = this.getClientClassByPandaId(panda_id);
-    // if (!client) return;
-    // console.log(`socket `, nicknames);
-    // client.socket.emit('room-leave', nicknames);
-  }
-
-  broadCastHartEvent(data: any) {
-    this.wsClients.forEach((client) => {
-      client.socket.emit('hart-event', data);
-    });
+    // Remove user from chatRooms map
+    if (this.chatRooms.has(broadcaster_id)) {
+      if (type === 'guest') {
+        console.log(`Guest(${guest_uuid}) user disconnected ${broadcaster_id}`);
+        this.chatRooms.get(broadcaster_id).delete(guest_uuid);
+        if (this.chatRooms.get(broadcaster_id).size === 0) {
+          console.log(
+            `Room ${broadcaster_id} is empty, removing from chatRooms`,
+          );
+          this.chatRooms.delete(broadcaster_id);
+        } else {
+          console.log(
+            `room ${broadcaster_id} size ${this.chatRooms.get(broadcaster_id).size}`,
+          );
+        }
+        await this.streamViewerService.deleteStreamViewer(
+          stream_idx,
+          undefined,
+          guest_uuid,
+        );
+      } else if (type === 'member') {
+        console.log(`Member(${user_idx}) user disconnected ${broadcaster_id}`);
+        this.chatRooms.get(broadcaster_id).delete(user_idx.toString());
+        if (this.chatRooms.get(broadcaster_id).size === 0) {
+          console.log(
+            `Room ${broadcaster_id} is empty, removing from chatRooms`,
+          );
+          this.chatRooms.delete(broadcaster_id);
+        } else {
+          console.log(
+            `room ${broadcaster_id} size ${this.chatRooms.get(broadcaster_id).size}`,
+          );
+        }
+        await this.streamViewerService.deleteStreamViewer(stream_idx, user_idx);
+      }
+    }
   }
 }
