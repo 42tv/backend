@@ -168,12 +168,20 @@ model Stream {
 // 시청자 정보 테이블 - 스트림 시청 정보 관리
 model StreamViewer {
   id              Int      @id @default(autoincrement())
+  is_guest        Boolean  @default(false) // 게스트 여부, 기본값 false
+  guest_id        String?  // 게스트 ID (예: 세션 ID), 게스트일 경우에만 값 존재
+
   // Relations
   stream_id       Int      // 시청 중인 스트림 ID
-  viewer_idx      Int      // 시청자 ID
+  viewer_idx      Int?     // 시청자 User ID (로그인 사용자), 게스트일 경우 null
   stream          Stream   @relation(fields: [stream_id], references: [id], onDelete: Cascade)
-  viewer          User     @relation("StreamViewers", fields: [viewer_idx], references: [idx], onDelete: Cascade)
-  @@unique([stream_id, viewer_idx]) // 한 사용자는 스트림당 하나의 시청 세션만 가질 수 있음
+  viewer          User?    @relation("StreamViewers", fields: [viewer_idx], references: [idx], onDelete: Cascade) // User? 로 변경
+
+  // 제약 조건:
+  // 1. 로그인 유저: 한 스트림에 같은 유저 중복 시청 방지 (viewer_idx가 null이 아닐 때)
+  // 2. 게스트 유저: 한 스트림에 같은 게스트 ID 중복 시청 방지 (guest_id가 null이 아닐 때)
+  @@unique([stream_id, viewer_idx], name: "UniqueUserView")
+  @@unique([stream_id, guest_id], name: "UniqueGuestView")
 }
 
 // 쪽지 테이블 (유저간 메시지)

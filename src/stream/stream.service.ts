@@ -32,11 +32,6 @@ export class StreamService {
     stream_id: string,
     start_time: string,
     title: string,
-    is_adult: boolean,
-    is_private: boolean,
-    is_fan: boolean,
-    password: string,
-    fan_level: number,
     tx?: Prisma.TransactionClient,
   ) {
     return await this.streamRepository.createStream(
@@ -46,11 +41,6 @@ export class StreamService {
       stream_id,
       start_time,
       title,
-      is_adult,
-      is_private,
-      is_fan,
-      password,
-      fan_level,
       tx,
     );
   }
