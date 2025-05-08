@@ -22,6 +22,7 @@ import { AwsModule } from './aws/aws.module';
 import { LiveController } from './live/live.controller';
 import { LiveModule } from './live/live.module';
 import { PlayModule } from './play/play.module';
+import { StreamViewerModule } from './stream-viewer/stream-viewer.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { PlayModule } from './play/play.module';
     AwsModule,
     LiveModule,
     PlayModule,
+    StreamViewerModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],
