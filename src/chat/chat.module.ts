@@ -4,9 +4,10 @@ import { ChatService } from './chat.service';
 import { UserModule } from 'src/user/user.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { EventsGateway } from './chat.gateway';
+import { StreamViewerModule } from 'src/stream-viewer/stream-viewer.module';
 
 @Module({
-  imports: [UserModule, AuthModule],
+  imports: [UserModule, AuthModule, StreamViewerModule],
   controllers: [ChatController],
   providers: [ChatService, EventsGateway],
   exports: [EventsGateway],

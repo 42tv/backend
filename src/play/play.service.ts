@@ -12,40 +12,42 @@ export class PlayService {
   ) {}
 
   async play(userIdx, streamerId, isGuest, password) {
-    const streamer = await this.userService.getUserByUserIdWithRelations(
+    const braodcaster = await this.userService.getUserByUserIdWithRelations(
       streamerId,
       {
         ivs_channel: true,
         braodcast_setting: true,
       },
     );
-    if (!streamer) {
+    if (!braodcaster) {
       throw new BadRequestException('존재하지 않는 스트리머입니다.');
     }
-    const stream = await this.streamService.getStreamByUserIdx(streamer.idx);
+    const stream = await this.streamService.getStreamByUserIdx(braodcaster.idx);
     if (!stream) {
       throw new BadRequestException('방송중인 스트리머가 아닙니다.');
     }
     if (isGuest) {
       if (
-        streamer.broadcastSetting.is_adult ||
-        streamer.broadcastSetting.is_fan ||
-        streamer.broadcastSetting.is_pw
+        braodcaster.broadcastSetting.is_adult ||
+        braodcaster.broadcastSetting.is_fan ||
+        braodcaster.broadcastSetting.is_pw
       ) {
         throw new BadRequestException('게스트는 시청할 수 없습니다');
       }
       const playToken = this.authService.generatePlayToken({
-        streamer_idx: streamer.idx,
-        streamer_id: streamer.user_id,
-        streamer_nickname: streamer.nickname,
+        braodcaster_idx: braodcaster.idx,
+        braodcaster_id: braodcaster.user_id,
+        braodcaster_nickname: braodcaster.nickname,
         type: 'guest',
+        stream_idx: stream.id,
+        stream_id: stream.stream_id,
       });
       return {
-        playback_url: streamer.ivs.playback_url,
-        title: streamer.broadcastSetting.title,
+        playback_url: braodcaster.ivs.playback_url,
+        title: braodcaster.broadcastSetting.title,
         is_bookmarked: false,
-        profile_img: streamer.profile_img,
-        nickname: streamer.nickname,
+        profile_img: braodcaster.profile_img,
+        nickname: braodcaster.nickname,
         play_cnt: stream.play_cnt,
         like_cnt: stream.like_cnt,
         start_time: stream.start_time,
@@ -54,27 +56,29 @@ export class PlayService {
     }
     const bookmark = await this.userService.getBookmarkByStreamerIdx(
       userIdx,
-      streamer.idx,
+      braodcaster.idx,
     );
     const user = await this.userService.findByUserIdx(userIdx);
     if (!user) {
       throw new BadRequestException('탈퇴한 유저입니다.');
     }
 
-    if (user.idx === streamer.idx) {
+    if (user.idx === braodcaster.idx) {
       const playToken = this.authService.generatePlayToken({
-        streamer_idx: streamer.idx,
-        streamer_id: streamer.user_id,
-        streamer_nickname: streamer.nickname,
+        braodcaster_idx: braodcaster.idx,
+        braodcaster_id: braodcaster.user_id,
+        braodcaster_nickname: braodcaster.nickname,
         type: 'owner',
         user_idx: user.idx,
+        stream_idx: stream.id,
+        stream_id: stream.stream_id,
       });
       return {
-        playback_url: streamer.ivs.playback_url,
-        title: streamer.broadcastSetting.title,
+        playback_url: braodcaster.ivs.playback_url,
+        title: braodcaster.broadcastSetting.title,
         is_bookmarked: bookmark.is_bookmarked ? true : false,
-        profile_img: streamer.profile_img,
-        nickname: streamer.nickname,
+        profile_img: braodcaster.profile_img,
+        nickname: braodcaster.nickname,
         play_cnt: stream.play_cnt,
         like_cnt: stream.like_cnt,
         start_time: stream.start_time,
@@ -82,29 +86,31 @@ export class PlayService {
       };
     }
 
-    if (streamer.broadcastSetting.is_adult) {
+    if (braodcaster.broadcastSetting.is_adult) {
       //성인 여부 검사 로직
     }
-    if (streamer.broadcastSetting.is_fan) {
+    if (braodcaster.broadcastSetting.is_fan) {
       // 팬 여부 검사 로직
     }
-    if (streamer.broadcastSetting.is_pw) {
-      if (password != streamer.broadcastSetting.password) {
+    if (braodcaster.broadcastSetting.is_pw) {
+      if (password != braodcaster.broadcastSetting.password) {
         throw new BadRequestException('비밀번호가 틀렸습니다');
       }
     }
     const playToken = this.authService.generatePlayToken({
-      streamer_idx: streamer.idx,
-      streamer_id: streamer.user_id,
-      streamer_nickname: streamer.nickname,
+      braodcaster_idx: braodcaster.idx,
+      braodcaster_id: braodcaster.user_id,
+      braodcaster_nickname: braodcaster.nickname,
       type: 'member',
+      stream_idx: stream.id,
+      stream_id: stream.stream_id,
     });
     return {
-      playback_url: streamer.ivs.playback_url,
+      playback_url: braodcaster.ivs.playback_url,
       is_bookmarked: bookmark.is_bookmarked ? true : false,
-      title: streamer.broadcastSetting.title,
-      profile_img: streamer.profile_img,
-      nickname: streamer.nickname,
+      title: braodcaster.broadcastSetting.title,
+      profile_img: braodcaster.profile_img,
+      nickname: braodcaster.nickname,
       play_cnt: stream.play_cnt,
       like_cnt: stream.like_cnt,
       start_time: stream.start_time,
