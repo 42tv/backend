@@ -6,8 +6,6 @@ import {
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { ChannelService } from 'src/channel/channel.service';
-import { RedisService } from 'src/redis/redis.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -15,8 +13,6 @@ export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
-    private channelService: ChannelService,
-    private redisService: RedisService,
   ) {}
 
   async validateUser(username: string, pw: string): Promise<any> {
