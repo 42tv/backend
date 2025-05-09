@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { RedisService } from './redis.service';
 
 import { MessagePattern } from '@nestjs/microservices';
@@ -7,13 +7,15 @@ import { MessagePattern } from '@nestjs/microservices';
 export class RedisController {
   constructor(private readonly redisService: RedisService) {}
 
-  @Get('test')
-  async test() {
-    return 'Published!';
-  }
+  @MessagePattern('chatting')
+  async testMessage(message: any) {
+    const savedMessage = { ...message };
+    console.log(savedMessage);
+    await this.redisService.sendChatToRoom(
+      savedMessage.broadcaster_id,
+      message,
+    );
 
-  @MessagePattern('test')
-  async testMessage(message: string) {
-    console.log('message', message);
+    // console.log('message', JSON.stringify(message, null, 2));
   }
 }

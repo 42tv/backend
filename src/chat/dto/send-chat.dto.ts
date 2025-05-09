@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class SendChatDto {
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  broadcaster_idx: number;
+  broadcaster_id: string;
 
   @IsString()
   @IsNotEmpty()
