@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ChannelService } from 'src/channel/channel.service';
 import { RedisService } from 'src/redis/redis.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -84,7 +85,7 @@ export class AuthService {
    * @returns 게스트 토큰
    */
   generateGuestToken() {
-    const payload = { is_guest: true, guest_id: `guest_${Date.now()}` }; // Example guest payload
+    const payload = { is_guest: true, guest_id: `${uuidv4()}` }; // Example guest payload
     return this.generateToken(payload);
   }
 

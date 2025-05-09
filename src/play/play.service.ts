@@ -2,7 +2,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class PlayService {
@@ -12,7 +11,7 @@ export class PlayService {
     private readonly authService: AuthService,
   ) {}
 
-  async play(userIdx, streamerId, isGuest, password) {
+  async play(userIdx, streamerId, isGuest, guestId, password) {
     const broadcaster = await this.userService.getUserByUserIdWithRelations(
       streamerId,
       {
@@ -42,7 +41,7 @@ export class PlayService {
         type: 'guest',
         stream_idx: stream.id,
         stream_id: stream.stream_id,
-        guest_uuid: uuidv4(),
+        guest_uuid: guestId,
       });
       return {
         playback_url: broadcaster.ivs.playback_url,
