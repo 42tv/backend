@@ -6,6 +6,7 @@ import { ChatModule } from 'src/chat/chat.module';
 
 // 실행할때마다 IP 맞게 바꾸어줘야함
 const ip = process.env.REDIS_IP;
+// const ip = 'aaa';
 @Module({
   imports: [
     RedisModule.forRoot({

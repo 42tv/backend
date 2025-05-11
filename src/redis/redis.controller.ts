@@ -7,15 +7,15 @@ import { MessagePattern } from '@nestjs/microservices';
 export class RedisController {
   constructor(private readonly redisService: RedisService) {}
 
-  @MessagePattern('chatting')
-  async testMessage(message: any) {
-    const savedMessage = { ...message };
-    console.log(savedMessage);
-    await this.redisService.sendChatToRoom(
-      savedMessage.broadcaster_id,
-      message,
-    );
+  // @MessagePattern('chatting')
+  // async testMessage(message: any) {
+  //   const savedMessage = { ...message };
+  //   console.log(savedMessage);
+  //   await this.redisService.sendChatToRoom(
+  //     savedMessage.broadcaster_id,
+  //     message,
+  //   );
 
-    // console.log('message', JSON.stringify(message, null, 2));
-  }
+  //   // console.log('message', JSON.stringify(message, null, 2));
+  // }
 }

@@ -64,16 +64,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /**
    * room에 메세지 보내기
-   * @param broadcaster_idx 스트리머 idx
+   * @param broadcasterId 스트리머 idx
    * @param eventName 메세지 이벤트 이름
    * @param data 메세지 데이터
    */
-  async sendMessageToRoom(
-    broadcaster_idx: number,
-    eventName: string,
-    data: any,
-  ) {
-    this.server.to(broadcaster_idx.toString()).emit(eventName, data);
+  async sendMessageToRoom(broadcasterId: string, eventName: string, data: any) {
+    this.server.to(broadcasterId).emit(eventName, data);
   }
 
   /**
@@ -92,7 +88,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 구조분해 할당
     const { broadcaster_id, stream_idx, type, user_idx, guest_uuid } =
       client.user;
-
+    console.log(broadcaster_id, stream_idx, type, user_idx, guest_uuid);
     // broadcaster_id의 방을 가져옴
     const existingRoom = this.chatRooms.get(broadcaster_id);
     if (existingRoom) {
@@ -104,7 +100,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           );
           return;
         }
-      } else if (type == 'member') {
+      } else if (type == 'member' || type == 'owner') {
         const existingMember = existingRoom.get(user_idx.toString());
         if (existingMember) {
           console.log(`User ${user_idx} is already in room ${broadcaster_id}`);
@@ -113,28 +109,52 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    // Join the room based on stream_idx
-    client.join(broadcaster_id);
-    // Add user to chatRooms map
-    if (!this.chatRooms.has(broadcaster_id)) {
-      this.chatRooms.set(
-        broadcaster_id,
-        new Map<string, AuthenticatedSocket>(),
-      );
-    }
-
-    if (type == 'guest') {
-      console.log(`Guest(${guest_uuid}) user connected ${broadcaster_id}`);
-      this.chatRooms.get(broadcaster_id).set(guest_uuid, client);
-      await this.streamViewerService.addStreamViewer(
-        stream_idx,
-        undefined,
-        guest_uuid,
-      );
-    } else if (type == 'member') {
-      console.log(`Member(${user_idx}) user connected ${broadcaster_id}`);
-      this.chatRooms.get(broadcaster_id).set(user_idx.toString(), client);
-      await this.streamViewerService.addStreamViewer(stream_idx, user_idx);
+    try {
+      if (type == 'guest') {
+        console.log(`Guest(${guest_uuid}) user connected ${broadcaster_id}`);
+        await this.streamViewerService.addStreamViewer(
+          stream_idx,
+          undefined,
+          guest_uuid,
+        );
+        // Join the room based on stream_idx
+        client.join(broadcaster_id);
+        // Add user to chatRooms map
+        if (!this.chatRooms.has(broadcaster_id)) {
+          this.chatRooms.set(
+            broadcaster_id,
+            new Map<string, AuthenticatedSocket>(),
+          );
+        }
+        this.chatRooms.get(broadcaster_id).set(guest_uuid, client);
+      } else if (type == 'member' || type == 'owner') {
+        console.log(`Member(${user_idx}) user connected ${broadcaster_id}`);
+        await this.streamViewerService.addStreamViewer(stream_idx, user_idx);
+        // Join the room based on stream_idx
+        client.join(broadcaster_id);
+        // Add user to chatRooms map
+        console.log(`has `, this.chatRooms.has(broadcaster_id));
+        if (!this.chatRooms.has(broadcaster_id)) {
+          this.chatRooms.set(
+            broadcaster_id,
+            new Map<string, AuthenticatedSocket>(),
+          );
+        }
+        console.log(
+          `this.chatRooms.get(broadcaster_id)`,
+          this.chatRooms.get(broadcaster_id),
+        );
+        console.log(broadcaster_id, typeof broadcaster_id);
+        this.chatRooms.get(broadcaster_id).set(user_idx.toString(), client);
+        console.log(
+          `this.chatRooms.get(broadcaster_id)`,
+          this.chatRooms.keys(),
+        );
+      }
+    } catch (e) {
+      console.log(e);
+      client.disconnect();
+      return;
     }
   }
 
@@ -153,7 +173,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.user;
 
     // Leave the room
-    client.leave(stream_idx.toString());
+    client.leave(broadcaster_id);
 
     // Remove user from chatRooms map
     if (this.chatRooms.has(broadcaster_id)) {
@@ -175,7 +195,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           undefined,
           guest_uuid,
         );
-      } else if (type === 'member') {
+      } else if (type === 'member' || type == 'owner') {
         console.log(`Member(${user_idx}) user disconnected ${broadcaster_id}`);
         this.chatRooms.get(broadcaster_id).delete(user_idx.toString());
         if (this.chatRooms.get(broadcaster_id).size === 0) {
