@@ -7,7 +7,7 @@ export class StreamViewerService {
 
   async addStreamViewer(streamId: number, userIdx?: number, guestId?: string) {
     if (userIdx) {
-      return this.prisma.streamViewer.create({
+      return await this.prisma.streamViewer.create({
         data: {
           is_guest: false,
           stream: {
@@ -23,7 +23,7 @@ export class StreamViewerService {
         },
       });
     } else if (guestId) {
-      return this.prisma.streamViewer.create({
+      return await this.prisma.streamViewer.create({
         data: {
           stream: {
             connect: {
@@ -45,14 +45,14 @@ export class StreamViewerService {
     guestId?: string,
   ) {
     if (userIdx) {
-      return this.prisma.streamViewer.deleteMany({
+      return await this.prisma.streamViewer.deleteMany({
         where: {
           stream_id: streamId,
           viewer_idx: userIdx,
         },
       });
     } else if (guestId) {
-      return this.prisma.streamViewer.deleteMany({
+      return await this.prisma.streamViewer.deleteMany({
         where: {
           stream_id: streamId,
           guest_id: guestId,
