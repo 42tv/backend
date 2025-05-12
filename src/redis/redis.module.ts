@@ -1,7 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { RedisController } from './redis.controller';
 import { ChatModule } from 'src/chat/chat.module';
 
 // 실행할때마다 IP 맞게 바꾸어줘야함
@@ -16,7 +15,7 @@ const ip = process.env.REDIS_IP;
     forwardRef(() => ChatModule), // Circular dependency 해결을 위해 forwardRef 사용
   ],
   providers: [RedisService],
-  controllers: [RedisController],
+  controllers: [],
   exports: [RedisService],
 })
 export class ChattingRedisModule {}
