@@ -89,71 +89,40 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { broadcaster_id, stream_idx, type, user_idx, guest_uuid } =
       client.user;
     console.log(broadcaster_id, stream_idx, type, user_idx, guest_uuid);
-    // broadcaster_id의 방을 가져옴
-    const existingRoom = this.chatRooms.get(broadcaster_id);
-    if (existingRoom) {
-      if (type == 'guest') {
-        const existingGuest = existingRoom.get(guest_uuid);
-        if (existingGuest) {
-          console.log(
-            `Guest(${guest_uuid}) is already in room ${broadcaster_id}`,
-          );
-          return;
-        }
-      } else if (type == 'member' || type == 'owner') {
-        const existingMember = existingRoom.get(user_idx.toString());
-        if (existingMember) {
-          console.log(`User ${user_idx} is already in room ${broadcaster_id}`);
-          return;
-        }
-      }
+
+    // Ensure room map exists and prevent duplicate connections
+    if (!this.chatRooms.has(broadcaster_id)) {
+      this.chatRooms.set(broadcaster_id, new Map<string, AuthenticatedSocket>());
     }
+    const roomMap = this.chatRooms.get(broadcaster_id);
+    const userKey = type === 'guest' ? guest_uuid : user_idx.toString();
+    if (roomMap.has(userKey)) {
+      console.log(
+        `${type === 'guest' ? 'Guest' : 'User'}(${userKey}) is already in room ${broadcaster_id}`
+      );
+      return;
+    }
+    // Preemptively reserve spot and join room
+    roomMap.set(userKey, client);
+    client.join(broadcaster_id);
 
     try {
-      if (type == 'guest') {
+      if (type === 'guest') {
         console.log(`Guest(${guest_uuid}) user connected ${broadcaster_id}`);
         await this.streamViewerService.addStreamViewer(
           stream_idx,
           undefined,
           guest_uuid,
         );
-        // Join the room based on stream_idx
-        client.join(broadcaster_id);
-        // Add user to chatRooms map
-        if (!this.chatRooms.has(broadcaster_id)) {
-          this.chatRooms.set(
-            broadcaster_id,
-            new Map<string, AuthenticatedSocket>(),
-          );
-        }
-        this.chatRooms.get(broadcaster_id).set(guest_uuid, client);
-      } else if (type == 'member' || type == 'owner') {
+      } else {
         console.log(`Member(${user_idx}) user connected ${broadcaster_id}`);
         await this.streamViewerService.addStreamViewer(stream_idx, user_idx);
-        // Join the room based on stream_idx
-        client.join(broadcaster_id);
-        // Add user to chatRooms map
-        console.log(`has `, this.chatRooms.has(broadcaster_id));
-        if (!this.chatRooms.has(broadcaster_id)) {
-          this.chatRooms.set(
-            broadcaster_id,
-            new Map<string, AuthenticatedSocket>(),
-          );
-        }
-        console.log(
-          `this.chatRooms.get(broadcaster_id)`,
-          this.chatRooms.get(broadcaster_id),
-        );
-        console.log(broadcaster_id, typeof broadcaster_id);
-        this.chatRooms.get(broadcaster_id).set(user_idx.toString(), client);
-        console.log(
-          `this.chatRooms.get(broadcaster_id)`,
-          this.chatRooms.keys(),
-        );
       }
     } catch (e) {
-      console.log(e);
-      client.disconnect();
+      console.error(e);
+      // Cleanup reservation on error
+      roomMap.delete(userKey);
+      console.log(roomMap);
       return;
     }
   }
