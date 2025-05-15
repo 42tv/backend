@@ -20,7 +20,7 @@ export class ChatService {
     const user = await this.userService.getUserWithRelations(userIdx, {});
     await this.redisService.publicshMessage('chatting', {
       broadcaster_id: broadcasterId,
-      id: user.user_id,
+      chatter_idx: user.idx,
       nickname: user.nickname,
       message: message,
     });

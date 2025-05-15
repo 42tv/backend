@@ -51,13 +51,24 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     server.use(async (socket: Socket, next) => {
       try {
         const authHeader = socket.handshake.auth.token; // "Bearer <token>"
+        if (!authHeader) {
+          return next(new Error('인증 헤더가 없습니다.'));
+        }
         const token = authHeader.split(' ')[1];
+        if (!token) {
+          return next(new Error('토큰이 없습니다.'));
+        }
         const payload: JwtPayload = await this.authService.validate(token);
         // TypeScript 용으로 socket에 프로퍼티 추가
         (socket as any).user = payload;
         next();
       } catch (err) {
-        next(new Error('인증 실패'));
+        // authService.validate에서 발생한 오류 또는 기타 오류 처리
+        if (err instanceof Error && err.message === '이미 시청중인 방송입니다') {
+          next(err);
+        } else {
+          next(new Error('인증 실패'));
+        }
       }
     });
   }
@@ -69,6 +80,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param data 메세지 데이터
    */
   async sendMessageToRoom(broadcasterId: string, eventName: string, data: any) {
+    console.log(broadcasterId, eventName, data);
     this.server.to(broadcasterId).emit(eventName, data);
   }
 
@@ -78,12 +90,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @returns
    */
   async handleConnection(client: AuthenticatedSocket) {
-    // jwt없이 연결하면 뭐 위에서 걸러지겟지만 한번 더 검사
-    if (!client.user) {
-      console.log('No user found in socket connection');
-      client.disconnect();
-      return;
-    }
 
     // 구조분해 할당
     const { broadcaster_id, stream_idx, type, user_idx, guest_uuid } =
@@ -96,34 +102,39 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     const roomMap = this.chatRooms.get(broadcaster_id);
     const userKey = type === 'guest' ? guest_uuid : user_idx.toString();
-    if (roomMap.has(userKey)) {
-      console.log(
-        `${type === 'guest' ? 'Guest' : 'User'}(${userKey}) is already in room ${broadcaster_id}`
-      );
-      return;
-    }
-    // Preemptively reserve spot and join room
-    roomMap.set(userKey, client);
-    client.join(broadcaster_id);
 
-    try {
+    // 이미 연결된 웹소켓인 경우 기존 소켓을 제거함
+    let isDuplicate = false;
+    if (roomMap.has(userKey)) {
+      // room에서 제거 
+      const existedClient = roomMap.get(userKey);
+      console.log(`Duplicate user(${existedClient.id}) leaved ${broadcaster_id}`);
+      existedClient.leave(broadcaster_id);
+      roomMap.delete(userKey);
+      // 기존 연결된 애라면 DB를 바꿀 필요가 없음. Boolean 값으로 처리
+      isDuplicate = true;
+    }
+    
+    console.log(`Duplicate user(${client.id}) joined ${broadcaster_id}`);
+    client.join(broadcaster_id);
+    roomMap.set(userKey, client);
+
+    // 기존에 있던 유저(웹소켓)이 아니라면 Map에 추가 및 DB에 추가
+    if (!isDuplicate) {
+      console.log(`isDuplicate: ${isDuplicate}`);
+      console.log(`add client ${client.id} to room ${broadcaster_id}`);
+      
       if (type === 'guest') {
         console.log(`Guest(${guest_uuid}) user connected ${broadcaster_id}`);
-        await this.streamViewerService.addStreamViewer(
-          stream_idx,
-          undefined,
-          guest_uuid,
-        );
+        // await this.streamViewerService.addStreamViewer(
+        //   stream_idx,
+        //   undefined,
+        //   guest_uuid,
+        // );
       } else {
         console.log(`Member(${user_idx}) user connected ${broadcaster_id}`);
-        await this.streamViewerService.addStreamViewer(stream_idx, user_idx);
+        // await this.streamViewerService.addStreamViewer(stream_idx, user_idx);
       }
-    } catch (e) {
-      console.error(e);
-      // Cleanup reservation on error
-      roomMap.delete(userKey);
-      console.log(roomMap);
-      return;
     }
   }
 
@@ -133,52 +144,42 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @returns
    */
   async handleDisconnect(client: AuthenticatedSocket) {
-    if (!client.user) {
-      console.log('No user found in socket disconnection');
+    const { broadcaster_id, stream_idx, type, user_idx, guest_uuid } =
+      client.user;
+
+    if (!this.chatRooms.has(broadcaster_id)) {
+      console.error(`Room not found for broadcaster: ${broadcaster_id}`);
       return;
     }
 
-    const { broadcaster_id, type, stream_idx, user_idx, guest_uuid } =
-      client.user;
+    const roomMap = this.chatRooms.get(broadcaster_id);
+    const userKey = type === 'guest' ? guest_uuid : user_idx.toString();
 
-    // Leave the room
-    client.leave(broadcaster_id);
+    if (roomMap.has(userKey)) {
+      roomMap.delete(userKey);
+      client.leave(broadcaster_id); // 클라이언트를 Socket.IO 룸에서 명시적으로 제거
 
-    // Remove user from chatRooms map
-    if (this.chatRooms.has(broadcaster_id)) {
       if (type === 'guest') {
-        console.log(`Guest(${guest_uuid}) user disconnected ${broadcaster_id}`);
-        this.chatRooms.get(broadcaster_id).delete(guest_uuid);
-        if (this.chatRooms.get(broadcaster_id).size === 0) {
-          console.log(
-            `Room ${broadcaster_id} is empty, removing from chatRooms`,
-          );
-          this.chatRooms.delete(broadcaster_id);
-        } else {
-          console.log(
-            `room ${broadcaster_id} size ${this.chatRooms.get(broadcaster_id).size}`,
-          );
-        }
-        await this.streamViewerService.deleteStreamViewer(
-          stream_idx,
-          undefined,
-          guest_uuid,
-        );
-      } else if (type === 'member' || type == 'owner') {
-        console.log(`Member(${user_idx}) user disconnected ${broadcaster_id}`);
-        this.chatRooms.get(broadcaster_id).delete(user_idx.toString());
-        if (this.chatRooms.get(broadcaster_id).size === 0) {
-          console.log(
-            `Room ${broadcaster_id} is empty, removing from chatRooms`,
-          );
-          this.chatRooms.delete(broadcaster_id);
-        } else {
-          console.log(
-            `room ${broadcaster_id} size ${this.chatRooms.get(broadcaster_id).size}`,
-          );
-        }
-        await this.streamViewerService.deleteStreamViewer(stream_idx, user_idx);
+        console.log(`Guest(${guest_uuid}) user disconnected from ${broadcaster_id}`);
+        // await this.streamViewerService.deleteStreamViewer(
+        //   stream_idx,
+        //   undefined,
+        //   guest_uuid,
+        // );
+      } else {
+        console.log(`Member(${user_idx}) user disconnected from ${broadcaster_id}`);
+        // await this.streamViewerService.deleteStreamViewer(stream_idx, user_idx);
       }
+    } else {
+      console.warn(
+        `User key ${userKey} not found in room ${broadcaster_id} upon disconnect.`,
+      );
+    }
+
+    // 방이 비었으면 맵에서 제거 (선택적)
+    if (roomMap.size === 0) {
+      this.chatRooms.delete(broadcaster_id);
+      console.log(`Room ${broadcaster_id} is now empty and has been removed.`);
     }
   }
 }
