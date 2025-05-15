@@ -21,8 +21,8 @@ export class ChatService {
     await this.redisService.publicshMessage('chatting', {
       broadcaster_id: broadcasterId,
       chatter_idx: user.idx,
-      nickname: user.nickname,
-      message: message,
+      chatter_nickname: user.nickname,
+      chatter_message: message,
     });
     return {
       message: '성공적으로 채팅을 전송하였습니다.',

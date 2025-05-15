@@ -103,6 +103,7 @@ export class PlayService {
       broadcaster_id: broadcaster.user_id,
       broadcaster_nickname: broadcaster.nickname,
       type: 'member',
+      user_idx: user.idx,
       stream_idx: stream.id,
       stream_id: stream.stream_id,
     });
