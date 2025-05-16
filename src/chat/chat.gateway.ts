@@ -9,6 +9,7 @@ import { Server, Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/user/user.service';
 import { StreamViewerService } from 'src/stream-viewer/stream-viewer.service';
+import { RedisService } from 'src/redis/redis.service';
 
 interface JwtPayload {
   broadcaster_idx: number;
@@ -37,6 +38,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     private readonly streamViewerService: StreamViewerService,
+    @Inject(forwardRef(() => RedisService))
+    private readonly redisService: RedisService
   ) {}
 
   @WebSocketServer()
