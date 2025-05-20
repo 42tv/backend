@@ -18,7 +18,7 @@ export class ChatService {
   ) {
     // Emit the message to the WebSocket
     const user = await this.userService.getUserWithRelations(userIdx, {});
-    await this.redisService.publicshMessage('chatting', {
+    await this.redisService.publishMessage('chatting', {
       broadcaster_id: broadcasterId,
       chatter_idx: user.idx,
       chatter_nickname: user.nickname,
