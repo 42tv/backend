@@ -15,20 +15,17 @@ export class RedisService {
     @Inject(forwardRef(() => EventsGateway))
     private readonly eventsGateway: EventsGateway, // Circular dependency 해결을 위해 forwardRef 사용
   ) {
-    this.publisher = new Redis({
-      host: process.env.REDIS_IP,
-      port: parseInt(process.env.REDIS_PORT, 10) || 6379,
-    });
     this.subscriber = new Redis({
       host: process.env.REDIS_IP,
       port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+      password: process.env.REDIS_PASSWORD,
     });
   }
 
   async onModuleInit() {
     // 서버 ID 발급받기
-    this.serverId = await this.incr('server_id_counter');
-    console.log(`Server initialized with ID: ${this.serverId}`);
+    this.serverId = await this.incr('server_id_counter') - 1;
+    console.log(`Server ID: ${this.serverId}`);
     
     await this.subscriber.subscribe('chatting', (err, count) => {
       if (err) {
@@ -59,6 +56,13 @@ export class RedisService {
     await this.eventsGateway.sendMessageToRoom(broadcastId, 'chat', data);
   }
 
+  async registSocketId(
+    socketId: string,
+    userId: string,
+  ) {
+
+  }
+
   /**
    * Redis에 키-값 쌍을 저장합니다.
    * @param key 저장할 키
@@ -66,7 +70,7 @@ export class RedisService {
    * @param ttl 만료 시간(초), 옵션
    * @returns 작업 성공 여부 (OK)
    */
-  async set(key: string, value: string, ttl?: number): Promise<string> {
+  private async set(key: string, value: string, ttl?: number): Promise<string> {
     if (ttl) {
       return await this.redis.set(key, value, 'EX', ttl);
     }
@@ -78,7 +82,7 @@ export class RedisService {
    * @param key 조회할 키
    * @returns 저장된 값 또는 null (키가 존재하지 않는 경우)
    */
-  async get(key: string): Promise<string | null> {
+  private async get(key: string): Promise<string | null> {
     return await this.redis.get(key);
   }
 
@@ -87,7 +91,7 @@ export class RedisService {
    * @param key 확인할 키
    * @returns 키가 존재하면 1, 아니면 0
    */
-  async exists(key: string): Promise<number> {
+  private async exists(key: string): Promise<number> {
     return await this.redis.exists(key);
   }
 
@@ -96,7 +100,7 @@ export class RedisService {
    * @param key 삭제할 키 또는 키 배열
    * @returns 삭제된 키의 개수
    */
-  async del(key: string | string[]): Promise<number> {
+  private async del(key: string | string[]): Promise<number> {
     if (Array.isArray(key)) {
       return await this.redis.del(...key);
     }
@@ -110,7 +114,7 @@ export class RedisService {
    * @param value 필드 값
    * @returns 새 필드가 생성되면 1, 기존 필드가 업데이트되면 0
    */
-  async hset(key: string, field: string, value: string): Promise<number> {
+  private async hset(key: string, field: string, value: string): Promise<number> {
     return await this.redis.hset(key, field, value);
   }
 
@@ -120,7 +124,7 @@ export class RedisService {
    * @param field 필드 이름
    * @returns 필드 값 또는 null (키나 필드가 존재하지 않는 경우)
    */
-  async hget(key: string, field: string): Promise<string | null> {
+  private async hget(key: string, field: string): Promise<string | null> {
     return await this.redis.hget(key, field);
   }
 
@@ -129,7 +133,7 @@ export class RedisService {
    * @param key 확인할 키
    * @returns 남은 시간(초), 키가 없거나 만료 설정이 없으면 -1 또는 -2
    */
-  async ttl(key: string): Promise<number> {
+  private async ttl(key: string): Promise<number> {
     return await this.redis.ttl(key);
   }
 
@@ -139,7 +143,7 @@ export class RedisService {
    * @param seconds 만료 시간(초)
    * @returns 성공 시 1, 키가 없으면 0
    */
-  async expire(key: string, seconds: number): Promise<number> {
+  private async expire(key: string, seconds: number): Promise<number> {
     return await this.redis.expire(key, seconds);
   }
 
@@ -148,7 +152,7 @@ export class RedisService {
    * @param key 증가시킬 키
    * @returns 증가 후의 값
    */
-  async incr(key: string): Promise<number> {
+  private async incr(key: string): Promise<number> {
     return await this.redis.incr(key);
   }
 
@@ -157,7 +161,7 @@ export class RedisService {
    * 이 ID는 서버 시작 시 Redis의 INCR 명령어를 통해 발급받은 고유 ID입니다.
    * @returns 서버 ID
    */
-  getServerId(): number {
+  private getServerId(): number {
     return this.serverId;
   }
 }
