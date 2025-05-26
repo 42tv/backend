@@ -55,11 +55,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   afterInit(server: Server) {
     server.use(async (socket: Socket, next) => {
       try {
-        const authHeader = socket.handshake.auth.token; // "Bearer <token>"
+        const authHeader = socket.handshake.auth.token || socket.handshake.headers['authorization']; // "Bearer <token>"
         if (!authHeader) {
           return next(new Error('인증 헤더가 없습니다.'));
         }
         const token = authHeader.split(' ')[1];
+        console.log(token);
         if (!token) {
           return next(new Error('토큰이 없습니다.'));
         }

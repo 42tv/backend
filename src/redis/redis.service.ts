@@ -40,13 +40,13 @@ export class RedisService {
     this.subscriber.on('message', async (channel, message) => {
       const parsedMessage = JSON.parse(message);
       if (channel == `server_command:${this.serverId}`) {
+          console.log(`[Server Command] received: ${message}`);
           const convertMessage = parsedMessage as ServerCommand;
           this.eventsGateway.handleServerCommmand(
             convertMessage
           )
       }
       else if (channel.startsWith("room:")) {
-        const roomId = channel.split(':')[1];
         const convertMessage = parsedMessage as RoomEvent;
         await this.eventsGateway.sendToRoom(
             convertMessage.broadcaster_id,
