@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
-import { ServerCommand } from 'src/utils/utils';
+import { RoomEvent, ServerCommand } from 'src/utils/utils';
 
 @Injectable()
 export class RedisService {
@@ -37,20 +37,22 @@ export class RedisService {
     //     `Subscribed successfully! This client is currently subscribed to ${count} channels.`,
     //   );
     // });
-    this.subscriber.on('message', (channel, message) => {
+    this.subscriber.on('message', async (channel, message) => {
       const parsedMessage = JSON.parse(message);
-      if (channel == 'chatting') {
-        this.eventsGateway.sendMessageToRoom(
-          parsedMessage.broadcaster_id,
-          'chat',
-          parsedMessage,
-        );
-      }
-      else if (channel == `server_command:${this.serverId}`) {
+      if (channel == `server_command:${this.serverId}`) {
           const convertMessage = parsedMessage as ServerCommand;
           this.eventsGateway.handleServerCommmand(
             convertMessage
           )
+      }
+      else if (channel.startsWith("room:")) {
+        const roomId = channel.split(':')[1];
+        const convertMessage = parsedMessage as RoomEvent;
+        await this.eventsGateway.sendToRoom(
+            convertMessage.broadcaster_id,
+            convertMessage.type,
+            convertMessage
+        )
       }
     });
   }
@@ -87,11 +89,7 @@ export class RedisService {
   async publishMessage(channel: string, message: any) {
     await this.redis.publish(channel, JSON.stringify(message));
   }
-
-  async sendChatToRoom(broadcastId: string, data: any) {
-    await this.eventsGateway.sendMessageToRoom(broadcastId, 'chat', data);
-  }
-
+  
   /**
    * redis에 connection 등록, 다른 서버에 등록되어있었으면 publish 날려서 해당 서버에 삭제 요청
    * @param roomId 
@@ -127,7 +125,7 @@ export class RedisService {
     userId: string
   ): Promise<number> {
     const key = `con:${roomId}:${userId}`;
-    console.log(`Removing connection: ${key}`);
+    console.log(`Removing redis connection: ${key}`);
     return await this.del(key);
   }
 

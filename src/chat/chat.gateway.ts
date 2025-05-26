@@ -84,7 +84,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param eventName 메세지 이벤트 이름
    * @param data 메세지 데이터
    */
-  async sendMessageToRoom(broadcasterId: string, eventName: string, data: any) {
+  async sendToRoom(broadcasterId: string, eventName: string, data: any) {
     console.log(broadcasterId, eventName, data);
     this.server.to(broadcasterId).emit(eventName, data);
   }

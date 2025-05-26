@@ -45,8 +45,16 @@ export type UserIncludeOptions = {
 *  그래서 일단 DeleteCommand에 사용사례에 맞추어 정의됨됨
 */
 export interface ServerCommand {
-  command: string;
+  command: 'delete';
   prev_server_id: number;
   room_id: string;
   user_idx: string;
+}
+
+export interface RoomEvent {
+  type: 'chat';
+  broadcaster_id: string;
+  chatter_idx: number;
+  chatter_nickname: string;
+  chatter_message: string;
 }

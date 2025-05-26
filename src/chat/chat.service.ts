@@ -18,7 +18,8 @@ export class ChatService {
   ) {
     // Emit the message to the WebSocket
     const user = await this.userService.getUserWithRelations(userIdx, {});
-    await this.redisService.publishMessage('chatting', {
+    await this.redisService.publishMessage(`room:${broadcasterId}`, {
+      type: 'chat',
       broadcaster_id: broadcasterId,
       chatter_idx: user.idx,
       chatter_nickname: user.nickname,
