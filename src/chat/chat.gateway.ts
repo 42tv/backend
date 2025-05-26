@@ -188,15 +188,14 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
-   * Redis로부터 받은 Server Command를 처리한다
+   * Redis로부터 받은 Server Command를 처리한다.
+   * 다른 서버를 통해 중복처리 되었을때만 ServerCommand의 'delete'로 제거한다
    */
   async handleServerCommmand(message: ServerCommand) {
     if (message.command == 'delete') {
-      const { prev_server_id, room_id, user_idx } = message;
+      const { prev_server_id, room_id, user_id } = message;
       // 해당 채팅방에서 사용자 제거
-      await this.deleteChatRoomUser(room_id, user_idx);
-      // Redis에서 연결 정보 제거
-      await this.redisService.removeConnection(room_id, user_idx);
+      await this.deleteChatRoomUser(room_id, user_id);
     }
   }
 }

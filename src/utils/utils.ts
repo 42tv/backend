@@ -48,7 +48,7 @@ export interface ServerCommand {
   command: 'delete';
   prev_server_id: number;
   room_id: string;
-  user_idx: string;
+  user_id: string;
 }
 
 export interface RoomEvent {
