@@ -71,6 +71,7 @@ export class PlayService {
         broadcaster_nickname: broadcaster.nickname,
         type: 'owner',
         user_idx: user.idx,
+        user_id: user.user_id,
         stream_idx: stream.id,
         stream_id: stream.stream_id,
       });
@@ -104,6 +105,7 @@ export class PlayService {
       broadcaster_nickname: broadcaster.nickname,
       type: 'member',
       user_idx: user.idx,
+      user_id: user.user_id,
       stream_idx: stream.id,
       stream_id: stream.stream_id,
     });

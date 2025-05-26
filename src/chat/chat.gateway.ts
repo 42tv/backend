@@ -10,6 +10,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/user/user.service';
 import { StreamViewerService } from 'src/stream-viewer/stream-viewer.service';
 import { RedisService } from 'src/redis/redis.service';
+import { ServerCommand } from 'src/utils/utils';
 
 interface JwtPayload {
   broadcaster_idx: number;
@@ -17,6 +18,7 @@ interface JwtPayload {
   broadcaster_nickname: string;
   type: string;
   user_idx: number;
+  user_id: string;
   stream_idx: number;
   stream_id: string;
   guest_uuid: string;
@@ -94,53 +96,29 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async handleConnection(client: AuthenticatedSocket) {
     // 구조분해 할당
-    const { broadcaster_id, stream_idx, type, user_idx, guest_uuid } =
+    const { broadcaster_id, stream_idx, type, user_idx, user_id, guest_uuid } =
       client.user;
     console.log(broadcaster_id, stream_idx, type, user_idx, guest_uuid);
 
-    // Ensure room map exists and prevent duplicate connections
-    if (!this.chatRooms.has(broadcaster_id)) {
-      this.chatRooms.set(broadcaster_id, new Map<string, AuthenticatedSocket>());
-    }
-    const roomMap = this.chatRooms.get(broadcaster_id);
-    const userKey = type === 'guest' ? guest_uuid : user_idx.toString();
-
-    // 이미 연결된 웹소켓인 경우 기존 소켓을 제거함
-    let isDuplicate = false;
-    if (roomMap.has(userKey)) {
-      // room에서 제거 
-      const existedClient = roomMap.get(userKey);
-      console.log(`Duplicate user(${existedClient.id}) leaved ${broadcaster_id}`);
-      existedClient.emit('duplicate', {
-        message: '이미 시청중인 방송입니다',
-      })
-      existedClient.leave(broadcaster_id);
-      roomMap.delete(userKey);
-      // 기존 연결된 애라면 DB를 바꿀 필요가 없음. Boolean 값으로 처리
-      isDuplicate = true;
-    }
-    
-    console.log(`Duplicate user(${client.id}) joined ${broadcaster_id}`);
-    client.join(broadcaster_id);
-    roomMap.set(userKey, client);
-
-    // 기존에 있던 유저(웹소켓)이 아니라면 Map에 추가 및 DB에 추가
-    if (!isDuplicate) {
-      console.log(`isDuplicate: ${isDuplicate}`);
-      console.log(`add client ${client.id} to room ${broadcaster_id}`);
-      
-      if (type === 'guest') {
-        console.log(`Guest(${guest_uuid}) user connected ${broadcaster_id}`);
-        await this.streamViewerService.addStreamViewer(
-          stream_idx,
-          undefined,
-          guest_uuid,
-        );
-      } else if (type === 'member' || type === 'owner') {
-        console.log(`Member(${user_idx}) user connected ${broadcaster_id}`);
-        await this.streamViewerService.addStreamViewer(stream_idx, user_idx);
+    // 자기 서버에 이미 접속중이라면 클라이언트에 중복 접속금지 알림
+    if (this.chatRooms.has(broadcaster_id)) {
+      const roomMap = this.chatRooms.get(broadcaster_id);
+      if (roomMap.has(user_id)) {
+        const existingClient = roomMap.get(user_id);
+        if (existingClient) {
+          console.log(`Duplicate user(${existingClient.id}) leaved ${broadcaster_id}`);
+          existingClient.emit('duplicate_connection', {
+            message: '이미 연결된 소켓이 있습니다.',
+          });
+          existingClient.leave(broadcaster_id); // 기존 소켓을 룸에서 제거
+          roomMap.delete(user_id); // 기존 소켓 제거
+        }
       }
     }
+    // chatRoom에 사용자 추가
+    await this.addChatRoomUser(broadcaster_id, user_id, client)
+    // redis에 connection을 자신으로 덮어씌우고, 만약 다른서버에 존재한다면 해당 서버에 없애라고 pub날림
+    await this.redisService.registConnection(broadcaster_id, user_id);
   }
 
   /**
@@ -149,32 +127,76 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @returns
    */
   async handleDisconnect(client: AuthenticatedSocket) {
-    const { broadcaster_id, stream_idx, type, user_idx, guest_uuid } =
-      client.user;
+    // 구조분해 할당
+    const { broadcaster_id, user_id } = client.user;
+    console.log(`User(${user_id}) disconnected from ${broadcaster_id}`);
+    await this.deleteChatRoomUser(broadcaster_id, user_id);
+    // Redis에서 연결 정보 삭제
+    await this.redisService.removeConnection(broadcaster_id, user_id);
+  }
 
-    if (!this.chatRooms.has(broadcaster_id)) {
-      console.error(`Room not found for broadcaster: ${broadcaster_id}`);
-      return;
+  /**
+   * chatRoom에 사용자 추가
+   * 만약 chatRoom에 없다면 새로 생성하고 redis에 subscribe
+   * @param broadcasterId 
+   * @param userId 
+   * @param client 
+   */
+  async addChatRoomUser(
+    broadcasterId: string,
+    userId: string,
+    client: AuthenticatedSocket
+
+  ) {
+    if (!this.chatRooms.has(broadcasterId)) {
+      console.log(`[Create] - chatRoom[${broadcasterId}]: ${broadcasterId}`);
+      this.chatRooms.set(broadcasterId, new Map<string, AuthenticatedSocket>());
+      await this.redisService.subscribe(`room:${broadcasterId}`)
     }
+    this.chatRooms.get(broadcasterId).set(userId, client);
+    client.join(broadcasterId);
+  }
 
-    const roomMap = this.chatRooms.get(broadcaster_id);
-    const userKey = type === 'guest' ? guest_uuid : user_idx.toString();
-
-    if (roomMap.has(userKey)) {
-      roomMap.delete(userKey);
-      client.leave(broadcaster_id); // 클라이언트를 Socket.IO 룸에서 명시적으로 제거
-
-      if (type === 'guest') {
-        console.log(`Guest(${guest_uuid}) user disconnected from ${broadcaster_id}`);
-        await this.streamViewerService.deleteStreamViewer(
-          stream_idx,
-          undefined,
-          guest_uuid,
-        );
-      } else if (type === 'member' || type === 'owner') {
-        console.log(`Member(${user_idx}) user disconnected from ${broadcaster_id}`);
-        await this.streamViewerService.deleteStreamViewer(stream_idx, user_idx);
+  /**
+   * chatRoom에서 사용자 제거 후 사이즈가 0이라면 chatRoom에서 제거 후 unsubscribe
+   * @param broadcasterId 
+   * @param userId 
+   */
+  async deleteChatRoomUser(
+    broadcasterId: string,
+    userId: string,
+  ) {
+    // 해당 broadcaster_id에 대한 채팅방이 존재하는지 확인
+    if (this.chatRooms.has(broadcasterId)) {
+      const roomMap = this.chatRooms.get(broadcasterId);
+      
+      // 해당 user_id가 채팅방에 존재하는지 확인
+      if (roomMap.has(userId)) {
+        // 채팅방 떠남
+        console.log(`[Leave User] - room: ${broadcasterId}, user: ${userId}, prev_server_id: ${this.redisService.getServerId()}`);
+        roomMap.get(userId).leave(broadcasterId);
+        // 채팅방에서 사용자 제거
+        roomMap.delete(userId);
+        // 만약 채팅방에 아무도 없다면 채팅방 자체를 제거하고 Redis 구독 해제
+        if (roomMap.size === 0) {
+          console.log(`[Delete] - chatRoom[${broadcasterId}]: ${broadcasterId}`);
+          this.chatRooms.delete(broadcasterId);
+          await this.redisService.unsubscribe(`room:${broadcasterId}`);
+        }
       }
+    }
+  }
+
+  /**
+   * Redis로부터 받은 Server Command를 처리한다
+   */
+  async handleServerCommmand(message: ServerCommand) {
+    if (message.command == 'delete') {
+      const { prev_server_id, room_id, user_idx } = message;
+      // 해당 채팅방에서 사용자 제거
+      await this.deleteChatRoomUser(room_id, user_idx);
+      // Redis에서 연결 정보 제거
+      await this.redisService.removeConnection(room_id, user_idx);
     }
   }
 }

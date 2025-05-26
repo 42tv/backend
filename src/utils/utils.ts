@@ -39,3 +39,14 @@ export type UserIncludeOptions = {
   ivs_channel?: boolean;
   coin?: boolean;
 };
+
+/* 
+*  ServerCommand를 포함할 수 있는 구조체여야 하지만 현재는 확립 안되었음 
+*  그래서 일단 DeleteCommand에 사용사례에 맞추어 정의됨됨
+*/
+export interface ServerCommand {
+  command: string;
+  prev_server_id: number;
+  room_id: string;
+  user_idx: string;
+}

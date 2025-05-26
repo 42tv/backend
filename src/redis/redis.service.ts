@@ -2,12 +2,12 @@ import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
+import { ServerCommand } from 'src/utils/utils';
 
 @Injectable()
 export class RedisService {
   private serverId: number;
   
-  private publisher: Redis;
   private subscriber: Redis;
 
   constructor(
@@ -26,25 +26,61 @@ export class RedisService {
     // 서버 ID 발급받기
     this.serverId = await this.incr('server_id_counter') - 1;
     console.log(`Server ID: ${this.serverId}`);
+    await this.subscribe(`server_command:${this.serverId}`)
     
-    await this.subscriber.subscribe('chatting', (err, count) => {
-      if (err) {
-        console.error('Failed to subscribe: %s', err.message);
-        return;
-      }
-      console.log(
-        `Subscribed successfully! This client is currently subscribed to ${count} channels.`,
-      );
-    });
+    // await this.subscriber.subscribe('chatting', (err, count) => {
+    //   if (err) {
+    //     console.error('Failed to subscribe: %s', err.message);
+    //     return;
+    //   }
+    //   console.log(
+    //     `Subscribed successfully! This client is currently subscribed to ${count} channels.`,
+    //   );
+    // });
     this.subscriber.on('message', (channel, message) => {
+      const parsedMessage = JSON.parse(message);
       if (channel == 'chatting') {
-        const parsedMessage = JSON.parse(message);
         this.eventsGateway.sendMessageToRoom(
           parsedMessage.broadcaster_id,
           'chat',
           parsedMessage,
         );
       }
+      else if (channel == `server_command:${this.serverId}`) {
+          const convertMessage = parsedMessage as ServerCommand;
+          this.eventsGateway.handleServerCommmand(
+            convertMessage
+          )
+      }
+    });
+  }
+
+  async subscribe(event: string) {
+    await this.subscriber.subscribe(event, (err, count) => {
+      if (err) {
+        console.error('Failed to subscribe: %s', err.message);
+        return;
+      }
+      console.log(
+        `Subscribed successfully! subscribed to ${event} channels.`,
+      );
+    });
+  }
+
+  /**
+   * Redis 채널 구독 해제
+   * @param event 구독 해제할 이벤트(채널) 이름
+   * @returns
+   */
+  async unsubscribe(event: string) {
+    await this.subscriber.unsubscribe(event, (err, count) => {
+      if (err) {
+        console.error('Failed to unsubscribe: %s', err.message);
+        return;
+      }
+      console.log(
+        `Unsubscribed successfully! Remaining subscriptions: ${count}`,
+      );
     });
   }
 
@@ -56,11 +92,43 @@ export class RedisService {
     await this.eventsGateway.sendMessageToRoom(broadcastId, 'chat', data);
   }
 
-  async registSocketId(
-    socketId: string,
+  /**
+   * redis에 connection 등록, 다른 서버에 등록되어있었으면 publish 날려서 해당 서버에 삭제 요청
+   * @param roomId 
+   * @param userId 
+   * @returns
+   */
+  async registConnection(
+    roomId: string,
     userId: string,
   ) {
+    const key = `con:${roomId}:${userId}`;
+    const old = await this.redis.getset(key, this.serverId);
+    // 이미 키가 존재하면서, 자신의 서버가 아닐때만 
+    if (old && old != this.serverId.toString()) {
+      console.log(`Connection already exist another server: ${key} - ${this.serverId}`);
+      await this.publishMessage(`server_command:${old}`, { 
+        command: 'delete',
+        prev_server_id: old,
+        room_id: roomId,
+        user_id: userId,
+      });
+    }
+  }
 
+  /**
+   * Redis에서 연결 정보를 제거합니다.
+   * @param roomId 채팅방 ID (broadcaster_id)
+   * @param userId 사용자 ID
+   * @returns 삭제된 키의 개수
+   */
+  async removeConnection(
+    roomId: string, 
+    userId: string
+  ): Promise<number> {
+    const key = `con:${roomId}:${userId}`;
+    console.log(`Removing connection: ${key}`);
+    return await this.del(key);
   }
 
   /**
@@ -161,7 +229,7 @@ export class RedisService {
    * 이 ID는 서버 시작 시 Redis의 INCR 명령어를 통해 발급받은 고유 ID입니다.
    * @returns 서버 ID
    */
-  private getServerId(): number {
+  getServerId(): number {
     return this.serverId;
   }
 }
