@@ -19,11 +19,6 @@ export class StreamRepository {
     stream_id: string,
     start_time: string,
     title: string,
-    is_adult: boolean,
-    is_pw: boolean,
-    is_fan: boolean,
-    password: string,
-    fan_level: number,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;

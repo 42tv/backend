@@ -311,11 +311,6 @@ export class IvsService {
       ivsEvent.streamId,
       ivsEvent.time,
       broadcastSetting.title,
-      broadcastSetting.is_adult,
-      broadcastSetting.is_pw,
-      broadcastSetting.is_fan,
-      broadcastSetting.password,
-      broadcastSetting.fan_level,
     );
     // return stream;
   }

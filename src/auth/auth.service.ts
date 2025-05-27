@@ -6,16 +6,13 @@ import {
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { ChannelService } from 'src/channel/channel.service';
-import { RedisService } from 'src/redis/redis.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
-    private channelService: ChannelService,
-    private redisService: RedisService,
   ) {}
 
   async validateUser(username: string, pw: string): Promise<any> {
@@ -39,6 +36,14 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
+  generatePlayToken(payload: any) {
+    const token = this.jwtService.sign(payload, {
+      secret: process.env.JWT_PLAY_SECRET,
+      expiresIn: '60s',
+    });
+    return { token };
+  }
+
   login(user: any) {
     const payload = {
       idx: user.idx,
@@ -56,7 +61,6 @@ export class AuthService {
         secret: process.env.JWT_ACCESS_SECRET,
       });
     } catch (error) {
-      console.log('Token validation failed:', error.message);
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
@@ -77,7 +81,7 @@ export class AuthService {
    * @returns 게스트 토큰
    */
   generateGuestToken() {
-    const payload = { is_guest: true, guest_id: `guest_${Date.now()}` }; // Example guest payload
+    const payload = { is_guest: true, guest_id: `${uuidv4()}` }; // Example guest payload
     return this.generateToken(payload);
   }
 

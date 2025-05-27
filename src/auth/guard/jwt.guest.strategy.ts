@@ -22,6 +22,7 @@ export class GuestGuardStrategy extends PassportStrategy(
       userId: payload.user_id,
       nickname: payload.nickname,
       is_guest: payload.is_guest,
+      guest_id: payload.guest_id,
     };
   }
 }

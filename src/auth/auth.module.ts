@@ -7,9 +7,7 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
 import { MemberStrategy } from './guard/jwt.member.strategy';
-import { ChannelModule } from 'src/channel/channel.module';
 import { RefreshStrategy } from './guard/refresh.strategy';
-import { ChattingRedisModule } from 'src/redis/redis.module';
 import { GuestGuardStrategy } from './guard/jwt.guest.strategy';
 
 @Module({
@@ -20,8 +18,6 @@ import { GuestGuardStrategy } from './guard/jwt.guest.strategy';
       secret: jwtConstants.access_secret,
       signOptions: { expiresIn: '999d' },
     }),
-    ChattingRedisModule,
-    ChannelModule,
   ],
   controllers: [AuthController],
   providers: [
