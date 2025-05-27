@@ -109,7 +109,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (existingClient) {
           console.log(`Duplicate user(${existingClient.id}) leaved ${broadcaster_id}`);
           existingClient.emit('duplicate_connection', {
-            message: '이미 연결된 소켓이 있습니다.',
+            message: '다른 클라이언트에서 접속하였습니다',
           });
           existingClient.leave(broadcaster_id); // 기존 소켓을 룸에서 제거
           roomMap.delete(user_id); // 기존 소켓 제거
@@ -130,10 +130,17 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDisconnect(client: AuthenticatedSocket) {
     // 구조분해 할당
     const { broadcaster_id, user_id } = client.user;
-    console.log(`User(${user_id}) disconnected from ${broadcaster_id}`);
+    
+    // 자신의 서버에 연결된 유저가 나갔을때만 redis에서 key삭제
+    if (this.chatRooms.has(broadcaster_id)) {
+      if (this.chatRooms.get(broadcaster_id).has(user_id)) {
+        // Redis에서 연결 정보 삭제
+        console.log(`redis에서 연결 정보 삭제: con:${broadcaster_id}:${user_id}`);
+        await this.redisService.removeConnection(broadcaster_id, user_id);
+      }
+    }
     await this.deleteChatRoomUser(broadcaster_id, user_id);
-    // Redis에서 연결 정보 삭제
-    await this.redisService.removeConnection(broadcaster_id, user_id);
+    
   }
 
   /**
@@ -167,7 +174,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     broadcasterId: string,
     userId: string,
   ) {
-    // 해당 broadcaster_id에 대한 채팅방이 존재하는지 확인
+    // 자신의 서버에 채팅방이 존재하는지 확인
     if (this.chatRooms.has(broadcasterId)) {
       const roomMap = this.chatRooms.get(broadcasterId);
       
@@ -180,7 +187,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         roomMap.delete(userId);
         // 만약 채팅방에 아무도 없다면 채팅방 자체를 제거하고 Redis 구독 해제
         if (roomMap.size === 0) {
-          console.log(`[Delete] - chatRoom[${broadcasterId}]: ${broadcasterId}`);
+          console.log(`[Delete] - chatRoom[${broadcasterId}]:${userId}`);
           this.chatRooms.delete(broadcasterId);
           await this.redisService.unsubscribe(`room:${broadcasterId}`);
         }
@@ -193,8 +200,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * 다른 서버를 통해 중복처리 되었을때만 ServerCommand의 'delete'로 제거한다
    */
   async handleServerCommmand(message: ServerCommand) {
+    console.log(message.command == 'delete')
     if (message.command == 'delete') {
       const { prev_server_id, room_id, user_id } = message;
+      if (this.chatRooms.has(room_id)) {
+        console.log(`[ServerCommand Delete] - chatRoom[${room_id}]:${user_id}`);
+        this.chatRooms.get(room_id).get(user_id).emit('duplicate_connection', {
+          message: '다른 클라이언트에서 접속하였습니다',
+        });
+      }
       // 해당 채팅방에서 사용자 제거
       await this.deleteChatRoomUser(room_id, user_id);
     }

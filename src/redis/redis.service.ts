@@ -40,9 +40,10 @@ export class RedisService {
     this.subscriber.on('message', async (channel, message) => {
       const parsedMessage = JSON.parse(message);
       if (channel == `server_command:${this.serverId}`) {
-          console.log(`[Server Command] received: ${message}`);
           const convertMessage = parsedMessage as ServerCommand;
-          this.eventsGateway.handleServerCommmand(
+          console.log(`[Server Command] received`);
+          console.log(convertMessage);
+          await this.eventsGateway.handleServerCommmand(
             convertMessage
           )
       }
