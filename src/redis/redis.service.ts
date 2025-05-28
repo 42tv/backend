@@ -7,9 +7,8 @@ import { RoomEvent, ServerCommand } from 'src/utils/utils';
 @Injectable()
 export class RedisService {
   private serverId: number;
-  
   private subscriber: Redis;
-
+  
   constructor(
     @InjectRedis() private readonly redis: Redis,
     @Inject(forwardRef(() => EventsGateway))
@@ -25,18 +24,10 @@ export class RedisService {
   async onModuleInit() {
     // 서버 ID 발급받기
     this.serverId = await this.incr('server_id_counter') - 1;
+
     console.log(`Server ID: ${this.serverId}`);
     await this.subscribe(`server_command:${this.serverId}`)
-    
-    // await this.subscriber.subscribe('chatting', (err, count) => {
-    //   if (err) {
-    //     console.error('Failed to subscribe: %s', err.message);
-    //     return;
-    //   }
-    //   console.log(
-    //     `Subscribed successfully! This client is currently subscribed to ${count} channels.`,
-    //   );
-    // });
+
     this.subscriber.on('message', async (channel, message) => {
       const parsedMessage = JSON.parse(message);
       if (channel == `server_command:${this.serverId}`) {
@@ -130,6 +121,36 @@ export class RedisService {
     return await this.del(key);
   }
 
+  async registViewer(
+    broadcasterId: string,
+    userId: string,
+  ) {
+    const key = `viewer:${broadcasterId}`;
+    await this.hset(key, userId, "1");
+  }
+
+  async removeViewer(
+    broadcasterId: string,
+    userId: string,
+  ) {
+    const key = `viewer:${broadcasterId}`;
+    const count = await this.getHashFieldCount(key);
+    await this.hdel(key, userId);
+    if (count == 1) {
+      console.log(`[Last Viewer Deleted], deleting key: ${key}`);
+      await this.del(key);
+    }
+  }
+
+  /**
+   * Redis 해시의 필드 개수를 반환합니다.
+   * @param key 해시 키
+   * @returns 해시에 포함된 필드의 개수
+   */
+  async getHashFieldCount(key: string): Promise<number> {
+    return await this.hlen(key);
+  }
+
   /**
    * Redis에 키-값 쌍을 저장합니다.
    * @param key 저장할 키
@@ -193,6 +214,28 @@ export class RedisService {
    */
   private async hget(key: string, field: string): Promise<string | null> {
     return await this.redis.hget(key, field);
+  }
+
+  /**
+   * Redis 해시에서 하나 이상의 필드를 삭제합니다.
+   * @param key 해시 키
+   * @param fields 삭제할 필드 이름 또는 필드 이름 배열
+   * @returns 삭제된 필드 수
+   */
+  private async hdel(key: string, fields: string | string[]): Promise<number> {
+    if (Array.isArray(fields)) {
+      return await this.redis.hdel(key, ...fields);
+    }
+    return await this.redis.hdel(key, fields);
+  }
+  
+  /**
+   * Redis 해시의 필드 개수를 반환합니다.
+   * @param key 해시 키
+   * @returns 해시에 포함된 필드의 개수
+   */
+  private async hlen(key: string): Promise<number> {
+    return await this.redis.hlen(key);
   }
 
   /**
