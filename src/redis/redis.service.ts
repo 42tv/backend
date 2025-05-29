@@ -134,12 +134,21 @@ export class RedisService {
     userId: string,
   ) {
     const key = `viewer:${broadcasterId}`;
-    const count = await this.getHashFieldCount(key);
+    console.log(`[Last Viewer Deleted], deleting key: ${key}`);
     await this.hdel(key, userId);
-    if (count == 1) {
-      console.log(`[Last Viewer Deleted], deleting key: ${key}`);
-      await this.del(key);
-    }
+  }
+
+  /**
+   * 방종 종료시 hset인 viewer key를 삭제
+   * @param registedId 
+   * @returns 
+   */
+  async removeViewerKey(
+    registedId: string,
+  ) {
+    const key = `viewer:${registedId}`;
+    console.log(`[Braodcast End], deleting redis viewer key: ${key}`);
+    return await this.del(key);
   }
 
   /**

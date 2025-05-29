@@ -17,7 +17,6 @@ export class LiveService {
       lives.map(async (live) => {
         // Redis에서 시청자 수 조회
         const viewerCount = await this.redisService.getHashFieldCount(`viewer:${live.user.user_id}`);
-        console.log(viewerCount)
         // 기존 live 객체에 viewerCount 속성 추가
         return {
           ...live,

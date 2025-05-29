@@ -100,27 +100,29 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { broadcaster_id, stream_idx, type, user_idx, user_id, guest_uuid } =
       client.user;
     console.log(broadcaster_id, stream_idx, type, user_idx, guest_uuid);
+    
+    const registerId = user_id || guest_uuid;
 
     // 자기 서버에 이미 접속중이라면 클라이언트에 중복 접속금지 알림
     if (this.chatRooms.has(broadcaster_id)) {
       const roomMap = this.chatRooms.get(broadcaster_id);
-      if (roomMap.has(user_id)) {
-        const existingClient = roomMap.get(user_id);
+      if (roomMap.has(registerId)) {
+        const existingClient = roomMap.get(registerId);
         if (existingClient) {
           console.log(`Duplicate user(${existingClient.id}) leaved ${broadcaster_id}`);
           existingClient.emit('duplicate_connection', {
             message: '다른 클라이언트에서 접속하였습니다',
           });
           existingClient.leave(broadcaster_id); // 기존 소켓을 룸에서 제거
-          roomMap.delete(user_id); // 기존 소켓 제거
+          roomMap.delete(registerId); // 기존 소켓 제거
         }
       }
     }
     // chatRoom에 사용자 추가
-    await this.addChatRoomUser(broadcaster_id, user_id, client)
+    await this.addChatRoomUser(broadcaster_id, registerId, client)
     // redis에 connection을 자신으로 덮어씌우고, 만약 다른서버에 존재한다면 해당 서버에 없애라고 pub날림
-    await this.redisService.registConnection(broadcaster_id, user_id);
-    await this.redisService.registViewer(broadcaster_id, user_id);
+    await this.redisService.registConnection(broadcaster_id, registerId);
+    await this.redisService.registViewer(broadcaster_id, registerId);
   }
 
   /**
@@ -130,18 +132,20 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async handleDisconnect(client: AuthenticatedSocket) {
     // 구조분해 할당
-    const { broadcaster_id, user_id } = client.user;
+    const { broadcaster_id, stream_idx, type, user_idx, user_id, guest_uuid } =
+      client.user;
+    const registerId = user_id || guest_uuid;
     
     // 자신의 서버에 연결된 유저가 나갔을때만 redis에서 key삭제
     if (this.chatRooms.has(broadcaster_id)) {
-      if (this.chatRooms.get(broadcaster_id).has(user_id)) {
+      if (this.chatRooms.get(broadcaster_id).has(registerId)) {
         // Redis에서 연결 정보 삭제
-        console.log(`redis에서 연결 정보 삭제: con:${broadcaster_id}:${user_id}`);
-        await this.redisService.removeConnection(broadcaster_id, user_id);
-        await this.redisService.removeViewer(broadcaster_id, user_id);
+        console.log(`redis에서 연결 정보 삭제: con:${broadcaster_id}:${registerId}`);
+        await this.redisService.removeConnection(broadcaster_id, registerId);
+        await this.redisService.removeViewer(broadcaster_id, registerId);
       }
     }
-    await this.deleteChatRoomUser(broadcaster_id, user_id);
+    await this.deleteChatRoomUser(broadcaster_id, registerId);
     
   }
 
