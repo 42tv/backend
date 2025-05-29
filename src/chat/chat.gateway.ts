@@ -120,6 +120,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.addChatRoomUser(broadcaster_id, user_id, client)
     // redis에 connection을 자신으로 덮어씌우고, 만약 다른서버에 존재한다면 해당 서버에 없애라고 pub날림
     await this.redisService.registConnection(broadcaster_id, user_id);
+    await this.redisService.registViewer(broadcaster_id, user_id);
   }
 
   /**
@@ -137,6 +138,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Redis에서 연결 정보 삭제
         console.log(`redis에서 연결 정보 삭제: con:${broadcaster_id}:${user_id}`);
         await this.redisService.removeConnection(broadcaster_id, user_id);
+        await this.redisService.removeViewer(broadcaster_id, user_id);
       }
     }
     await this.deleteChatRoomUser(broadcaster_id, user_id);

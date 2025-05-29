@@ -97,21 +97,8 @@ export class StreamRepository {
             },
           },
         },
-        _count: {
-          select: {
-            viewers: true, // Assuming the relation name is 'viewers' in your Prisma schema
-          },
-        },
       },
     });
-
-    // Map the result to rename _count to viewerCount
-    return streams.map((stream) => {
-      const { _count, ...rest } = stream;
-      return {
-        ...rest,
-        viewerCount: _count.viewers,
-      };
-    });
+    return streams;
   }
 }
