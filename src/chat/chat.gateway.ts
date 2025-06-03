@@ -125,6 +125,16 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.redisService.registConnection(broadcaster_id, registerId);
     await this.redisService.registViewer(broadcaster_id, registerId);
     
+    // 재생 수 증가 - 각 접속마다 증가
+    if (client.user.broadcaster_idx) {
+      try {
+        await this.streamService.increasePlayCount(client.user.broadcaster_idx);
+        console.log(`Play count increased for broadcaster_idx: ${client.user.broadcaster_idx}`);
+      } catch (error) {
+        console.error(`Failed to increase play count: ${error.message}`);
+      }
+    }
+    
   }
 
   /**

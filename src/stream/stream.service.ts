@@ -71,4 +71,13 @@ export class StreamService {
   async increaseLike(broadcaster_idx: number) {
     return await this.streamRepository.increaseLike(broadcaster_idx);
   }
+
+  /**
+   * 방송의 재생 수를 1 증가시킴
+   * @param broadcaster_idx 방송자의 user_idx
+   * @returns 업데이트된 Stream 객체
+   */
+  async increasePlayCount(broadcaster_idx: number) {
+    return await this.streamRepository.increasePlayCount(broadcaster_idx);
+  }
 }

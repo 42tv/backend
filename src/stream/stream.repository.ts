@@ -119,4 +119,22 @@ export class StreamRepository {
       },
     });
   }
+
+  /**
+   * 방송의 재생 수를 1 증가시킴
+   * @param broadcaster_idx 방송자의 user_idx
+   * @returns 업데이트된 Stream 객체
+   */
+  async increasePlayCount(broadcaster_idx: number) {
+    return await this.prisma.stream.update({
+      where: {
+        user_idx: broadcaster_idx,
+      },
+      data: {
+        play_cnt: {
+          increment: 1,
+        },
+      },
+    });
+  }
 }
