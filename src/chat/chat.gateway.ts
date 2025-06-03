@@ -11,6 +11,7 @@ import { UserService } from 'src/user/user.service';
 import { StreamViewerService } from 'src/stream-viewer/stream-viewer.service';
 import { RedisService } from 'src/redis/redis.service';
 import { ServerCommand } from 'src/utils/utils';
+import { StreamService } from 'src/stream/stream.service';
 
 interface JwtPayload {
   broadcaster_idx: number;
@@ -39,9 +40,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly authService: AuthService,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
-    private readonly streamViewerService: StreamViewerService,
     @Inject(forwardRef(() => RedisService))
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    private readonly streamService: StreamService,
   ) {}
 
   @WebSocketServer()
@@ -123,6 +124,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // redis에 connection을 자신으로 덮어씌우고, 만약 다른서버에 존재한다면 해당 서버에 없애라고 pub날림
     await this.redisService.registConnection(broadcaster_id, registerId);
     await this.redisService.registViewer(broadcaster_id, registerId);
+    
   }
 
   /**
