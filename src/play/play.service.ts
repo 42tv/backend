@@ -44,6 +44,9 @@ export class PlayService {
         guest_uuid: guestId,
       });
       return {
+        broadcaster_idx: broadcaster.idx,
+        broadcaster_id: broadcaster.user_id,
+        broadcaster_nickname: broadcaster.nickname,
         playback_url: broadcaster.ivs.playback_url,
         title: broadcaster.broadcastSetting.title,
         is_bookmarked: false,
@@ -76,6 +79,9 @@ export class PlayService {
         stream_id: stream.stream_id,
       });
       return {
+        broadcaster_idx: broadcaster.idx,
+        broadcaster_id: broadcaster.user_id,
+        broadcaster_nickname: broadcaster.nickname,
         playback_url: broadcaster.ivs.playback_url,
         title: broadcaster.broadcastSetting.title,
         is_bookmarked: bookmark.is_bookmarked ? true : false,
@@ -110,6 +116,9 @@ export class PlayService {
       stream_id: stream.stream_id,
     });
     return {
+      broadcaster_idx: broadcaster.idx,
+      broadcaster_id: broadcaster.user_id,
+      broadcaster_nickname: broadcaster.nickname,
       playback_url: broadcaster.ivs.playback_url,
       is_bookmarked: bookmark.is_bookmarked ? true : false,
       title: broadcaster.broadcastSetting.title,
