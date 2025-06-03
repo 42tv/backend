@@ -19,7 +19,8 @@ export class LiveController {
   @Post('like')
   @UseGuards(MemberGuard)
   async likeLiveStream(@Req() req, @Body('broadcaster_idx') broadcaster_idx: number) {
-    await this.liveService.likeLiveStream(broadcaster_idx);
+    const viewer_idx = req.user.idx; // MemberGuard를 통해 설정된 사용자 정보
+    await this.liveService.likeLiveStream(viewer_idx, broadcaster_idx);
     return {
       code: 200,
       message: 'Live stream liked successfully',

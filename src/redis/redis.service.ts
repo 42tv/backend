@@ -283,4 +283,77 @@ export class RedisService {
   getServerId(): number {
     return this.serverId;
   }
+
+  /**
+   * 일일 좋아요 기록을 확인합니다.
+   * @param viewerIdx 시청자 ID
+   * @param broadcasterIdx 방송자 ID
+   * @param date 날짜 (YYYY-MM-DD 형식)
+   * @returns 이미 좋아요를 했으면 true, 아니면 false
+   */
+  async checkDailyLike(viewerIdx: number, broadcasterIdx: number, date: string): Promise<boolean> {
+    const key = `like:daily:${date}`;
+    const field = `${viewerIdx}:${broadcasterIdx}`;
+    const value = await this.hget(key, field);
+    return value !== null;
+  }
+
+  /**
+   * 일일 좋아요 기록을 저장합니다.
+   * @param viewerIdx 시청자 ID
+   * @param broadcasterIdx 방송자 ID
+   * @param date 날짜 (YYYY-MM-DD 형식)
+   * @returns 새 필드가 생성되면 1, 기존 필드가 업데이트되면 0
+   */
+  async recordDailyLike(viewerIdx: number, broadcasterIdx: number, date: string): Promise<number> {
+    const key = `like:daily:${date}`;
+    const field = `${viewerIdx}:${broadcasterIdx}`;
+    
+    // 키가 처음 생성되는 경우에만 TTL 설정
+    const exists = await this.exists(key);
+    const result = await this.hset(key, field, '1');
+    
+    if (!exists) {
+      // 다음날 자정까지의 초 계산 (KST 기준)
+      const now = new Date();
+      const kstNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+      const tomorrow = new Date(kstNow);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      
+      const ttlSeconds = Math.floor((tomorrow.getTime() - kstNow.getTime()) / 1000);
+      await this.expire(key, ttlSeconds);
+    }
+    
+    return result;
+  }
+
+  /**
+   * 특정 날짜의 모든 좋아요 기록을 삭제합니다.
+   * @param date 날짜 (YYYY-MM-DD 형식)
+   * @returns 삭제된 키의 개수
+   */
+  async deleteDailyLikes(date: string): Promise<number> {
+    const key = `like:daily:${date}`;
+    return await this.del(key);
+  }
+
+  /**
+   * 패턴과 일치하는 모든 키를 조회합니다.
+   * @param pattern 조회할 키 패턴
+   * @returns 패턴과 일치하는 키 배열
+   */
+  async findKeysByPattern(pattern: string): Promise<string[]> {
+    return await this.redis.keys(pattern);
+  }
+
+  /**
+   * 여러 키를 한번에 삭제합니다.
+   * @param keys 삭제할 키 배열
+   * @returns 삭제된 키의 개수
+   */
+  async deleteMultipleKeys(keys: string[]): Promise<number> {
+    if (keys.length === 0) return 0;
+    return await this.del(keys);
+  }
 }
