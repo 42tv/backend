@@ -15,12 +15,15 @@ import {
   ApiInternalServerErrorResponse,
   ApiOperation,
   ApiResponse,
+  ApiTags,
+  ApiBody,
 } from '@nestjs/swagger';
 import { CreateIvsResponse } from './entities/create.channel.response';
 import { CustomInternalServerErrorResponse } from 'src/utils/utils';
 import { IvsEvent } from './entities/lambda.response';
 
 // 이 컨트롤러는 테스트 용임으로 차후 삭제할 예정
+@ApiTags('ivs')
 @Controller('ivs')
 export class IvsController {
   constructor(private readonly ivsService: IvsService) {}
@@ -67,6 +70,17 @@ export class IvsController {
 
   @Post('callback/lambda')
   @ApiOperation({ summary: 'IVS 콜백 람다' })
+  @ApiBody({ type: IvsEvent })
+  @ApiResponse({
+    status: 201,
+    description: '콜백 처리 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'success' },
+      },
+    },
+  })
   async ivsLambdaCallback(@Body() ivsEvnet: IvsEvent) {
     console.log(ivsEvnet);
     await this.ivsService.handleCallbackStreamEvent(ivsEvnet);
@@ -76,6 +90,17 @@ export class IvsController {
   }
 
   @Post('callback/test')
+  @ApiOperation({ summary: 'S3 콜백 테스트 (테스트용)' })
+  @ApiResponse({
+    status: 201,
+    description: '테스트 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'success' },
+      },
+    },
+  })
   async ivsCallbackTest(@Body() ivsEvnet) {
     console.log('========this is s3 callback test ==============');
     console.log(ivsEvnet);
@@ -86,6 +111,11 @@ export class IvsController {
   }
 
   @Delete('sync-channels')
+  @ApiOperation({ summary: 'IVS 채널 동기화 및 고아 채널 삭제' })
+  @ApiResponse({
+    status: 200,
+    description: '동기화 완료',
+  })
   async syncChannels() {
     return await this.ivsService.syncAndDeleteOrphanedChannels();
   }
