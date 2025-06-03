@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
-import { RoomEvent, ServerCommand } from 'src/utils/utils';
+import { RoomChatEvent, RoomUpdateEvent, ServerCommand } from 'src/utils/utils';
 
 @Injectable()
 export class RedisService {
@@ -39,12 +39,26 @@ export class RedisService {
           )
       }
       else if (channel.startsWith("room:")) {
-        const convertMessage = parsedMessage as RoomEvent;
-        await this.eventsGateway.sendToRoom(
+        // play_count_update 이벤트인 경우 시청자 수도 함께 전송
+        if (parsedMessage.type === 'viewer_count') {
+          const convertMessage = parsedMessage as RoomUpdateEvent;
+          const enrichedMessage = {
+            ...convertMessage,
+            viewer_cnt: convertMessage.viewer_cnt, // 시청자 수 추가
+          };
+          await this.eventsGateway.sendToRoom(
+            convertMessage.broadcaster_id,
+            convertMessage.type,
+            enrichedMessage
+          );
+        } else if (parsedMessage.type === 'chat') {
+          const convertMessage = parsedMessage as RoomChatEvent;
+          await this.eventsGateway.sendToRoom(
             convertMessage.broadcaster_id,
             convertMessage.type,
             convertMessage
-        )
+          );
+        }
       }
     });
   }

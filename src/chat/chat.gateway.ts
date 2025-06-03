@@ -7,8 +7,6 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
-import { UserService } from 'src/user/user.service';
-import { StreamViewerService } from 'src/stream-viewer/stream-viewer.service';
 import { RedisService } from 'src/redis/redis.service';
 import { ServerCommand } from 'src/utils/utils';
 import { StreamService } from 'src/stream/stream.service';
@@ -38,8 +36,6 @@ interface AuthenticatedSocket extends Socket {
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly authService: AuthService,
-    @Inject(forwardRef(() => UserService))
-    private readonly userService: UserService,
     @Inject(forwardRef(() => RedisService))
     private readonly redisService: RedisService,
     private readonly streamService: StreamService,
@@ -87,8 +83,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param data 메세지 데이터
    */
   async sendToRoom(broadcasterId: string, eventName: string, data: any) {
-    console.log(broadcasterId, eventName, data);
-    this.server.to(broadcasterId).emit(eventName, data);
+    // 해당 room이 이 서버에 존재하는지 확인
+    if (this.chatRooms.has(broadcasterId)) {
+      // Socket.IO의 room 기능을 사용하여 해당 room의 모든 클라이언트에게 전송
+      this.server.to(broadcasterId).emit(eventName, data);
+      console.log(`[SendToRoom] - room: ${broadcasterId}, event: ${eventName}, data:`, data);
+    }
   }
 
   /**
@@ -119,6 +119,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
     }
+
     // chatRoom에 사용자 추가
     await this.addChatRoomUser(broadcaster_id, registerId, client)
     // redis에 connection을 자신으로 덮어씌우고, 만약 다른서버에 존재한다면 해당 서버에 없애라고 pub날림
@@ -129,7 +130,13 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (client.user.broadcaster_idx) {
       try {
         await this.streamService.increasePlayCount(client.user.broadcaster_idx);
-        console.log(`Play count increased for broadcaster_idx: ${client.user.broadcaster_idx}`);
+        const viewerCount = await this.redisService.getHashFieldCount(`viewer:${broadcaster_id}`);
+        // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
+        await this.redisService.publishMessage(`room:${broadcaster_id}`, {
+          broadcaster_id: broadcaster_id,
+          type: 'viewer_count',
+          viewer_cnt: viewerCount,
+        });
       } catch (error) {
         console.error(`Failed to increase play count: ${error.message}`);
       }
@@ -144,7 +151,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async handleDisconnect(client: AuthenticatedSocket) {
     // 구조분해 할당
-    const { broadcaster_id, stream_idx, type, user_idx, user_id, guest_uuid } =
+    const { broadcaster_id, user_id, guest_uuid } =
       client.user;
     const registerId = user_id || guest_uuid;
     

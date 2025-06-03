@@ -51,10 +51,16 @@ export interface ServerCommand {
   user_id: string;
 }
 
-export interface RoomEvent {
+export interface RoomChatEvent {
   type: 'chat';
   broadcaster_id: string;
   chatter_idx: number;
   chatter_nickname: string;
   chatter_message: string;
+}
+
+export interface RoomUpdateEvent {
+  type: 'viewer_count';
+  broadcaster_id: string;
+  viewer_cnt: number;
 }
