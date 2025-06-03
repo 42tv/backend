@@ -187,10 +187,8 @@ export class UserService {
    * @returns
    */
   async updateNickname(user_idx: number, nickname: string) {
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 현재 닉네임만 조회
     const user = await this.userRepository.findByUserIdx(user_idx);
-    if (!user) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
-    }
     if (user.nickname === nickname) {
       return {
         user: user,
@@ -236,10 +234,8 @@ export class UserService {
     password: string,
     new_password: string,
   ) {
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.findByUserIdx(user_idx);
-    if (!user) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
-    }
     const compare = await bcrypt.compare(password, user.password);
     if (!compare) {
       throw new BadRequestException('비밀번호가 일치하지 않습니다');
@@ -292,14 +288,11 @@ export class UserService {
    * @returns
    */
   async getBroadcastSetting(user_idx: number) {
-    console.log(user_idx);
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.getUserWithRelations(user_idx, {
       ivs_channel: true,
       braodcast_setting: true,
     });
-    if (!user) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
-    }
     console.log(user);
     const sanitizedUser = {
       idx: user.idx,
@@ -326,12 +319,10 @@ export class UserService {
     user_idx: number,
     settingDto: BroadcastSettingDto,
   ) {
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.getUserWithRelations(user_idx, {
       braodcast_setting: true,
     });
-    if (!user) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
-    }
 
     try {
       await this.broadcastSettingService.updateBroadcastSetting(
@@ -373,10 +364,8 @@ export class UserService {
         '파일 사이즈는 5MB 이하로 업로드 가능합니다',
       );
     }
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.findByUserIdx(user_idx);
-    if (!user) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
-    }
 
     try {
       // 기존 프로필 이미지가 있는지 확인하고 있으면 삭제
@@ -440,10 +429,8 @@ export class UserService {
    * @returns
    */
   async getBookmarks(user_idx: number) {
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.findByUserIdx(user_idx);
-    if (!user) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
-    }
     const bookmarks = await this.userRepository.getBookmarks(user.idx);
     const transformedBookmarks = bookmarks.map((bookmark) => {
       const { idx, ...rest } = bookmark.bookmarked || {};
@@ -468,10 +455,8 @@ export class UserService {
    * @returns
    */
   async addBookmark(user_idx: number, bookmarkedUserId: string) {
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.findByUserIdx(user_idx);
-    if (!user) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
-    }
     const bookmarkedUser =
       await this.userRepository.findByUserId(bookmarkedUserId);
     if (!bookmarkedUser) {
@@ -490,11 +475,8 @@ export class UserService {
    * @returns
    */
   async deleteBookmark(user_idx: number, deleted_user_id: string) {
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.findByUserIdx(user_idx);
-    if (!user) {
-      // 실제로는 Guard에서 처리되지만 방어 로직
-      throw new BadRequestException('요청한 유저가 존재하지 않습니다.');
-    }
     const deletedUser = await this.userRepository.findByUserId(deleted_user_id);
     if (!deletedUser) {
       throw new NotFoundException('삭제할 유저가 존재하지 않습니다.');
@@ -510,10 +492,8 @@ export class UserService {
    * 북마크 여러개 삭제
    */
   async deleteBookmarks(user_idx: number, ids: number[]) {
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.findByUserIdx(user_idx);
-    if (!user) {
-      throw new BadRequestException('존재하지 않는 유저입니다');
-    }
     try {
       await this.userRepository.deleteBookmarks(user.idx, ids);
     } catch (e) {

@@ -17,16 +17,13 @@ export class PostService {
    * @returns
    */
   async createPost(sender_idx: number, postDto: PostDto) {
-    const sender = await this.userService.findByUserIdx(sender_idx);
-    if (!sender) {
-      throw new BadRequestException('탈퇴한놈이 쪽지 보내려고하네?');
-    }
+    // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 sender 검사 불필요
     const receiver = await this.userService.findByUserId(postDto.userId);
     if (!receiver) {
       throw new BadRequestException('존재하지 않는 유저입니다.');
     }
     return await this.postRepository.createPost(
-      sender.idx,
+      sender_idx,
       receiver.idx,
       postDto.message,
     );

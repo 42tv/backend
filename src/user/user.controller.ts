@@ -156,7 +156,6 @@ export class UserController {
     type: CustomInternalServerErrorResponse,
   })
   async getBroadcastPreset(@Req() req) {
-    console.log(req.user.idx);
     const broadcastSetting = await this.userService.getBroadcastSetting(
       req.user.idx,
     );
