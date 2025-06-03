@@ -101,4 +101,22 @@ export class StreamRepository {
     });
     return streams;
   }
+
+  /**
+   * 방송자의 좋아요 수를 1 증가시킴
+   * @param broadcaster_idx 방송자의 user_idx
+   * @returns 업데이트된 Stream 객체
+   */
+  async increaseLike(broadcaster_idx: number) {
+    return await this.prisma.stream.update({
+      where: {
+        user_idx: broadcaster_idx,
+      },
+      data: {
+        like_cnt: {
+          increment: 1,
+        },
+      },
+    });
+  }
 }

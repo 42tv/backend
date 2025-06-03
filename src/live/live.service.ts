@@ -27,4 +27,13 @@ export class LiveService {
     
     return livesWithViewerCount;
   }
+
+  /**
+   * 방송자의 좋아요 수를 1 증가시킴
+   * @param broadcaster_idx 방송자의 user_idx
+   * @returns 업데이트된 Stream 객체
+   */
+  async likeLiveStream(broadcaster_idx: number) {
+    return await this.streamService.increaseLike(broadcaster_idx);
+  }
 }

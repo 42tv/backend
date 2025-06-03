@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { LiveService } from './live.service';
+import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 
 @Controller('live')
 export class LiveController {
@@ -12,6 +13,16 @@ export class LiveController {
       code: 200,
       message: 'success',
       lives: liveList,
+    };
+  }
+
+  @Post('like')
+  @UseGuards(MemberGuard)
+  async likeLiveStream(@Req() req, @Body('broadcaster_idx') broadcaster_idx: number) {
+    await this.liveService.likeLiveStream(broadcaster_idx);
+    return {
+      code: 200,
+      message: 'Live stream liked successfully',
     };
   }
 }
