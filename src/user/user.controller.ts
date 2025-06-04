@@ -17,6 +17,10 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import {
+  AddToBlacklistDto,
+  RemoveFromBlacklistDto,
+} from 'src/blacklist/dto/blacklist.dto';
+import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
@@ -344,5 +348,80 @@ export class UserController {
     console.log(req.user.idx, ids);
     await this.userService.deleteBookmarks(req.user.idx, ids);
     return '';
+  }
+
+  @Get('blacklist')
+  @UseGuards(MemberGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '블랙리스트 목록 조회' })
+  @ApiResponse({
+    status: 200,
+    description: '블랙리스트 목록 조회 성공',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number', example: 1 },
+          created_at: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+          blocked: {
+            type: 'object',
+            properties: {
+              idx: { type: 'number', example: 2 },
+              user_id: { type: 'string', example: 'blocked_user' },
+              nickname: { type: 'string', example: '차단된사용자' },
+              profile_img: {
+                type: 'string',
+                example: 'https://profile-image-url',
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getBlacklist(@Req() req) {
+    return await this.userService.getBlacklist(req.user.idx);
+  }
+
+  @Post('blacklist')
+  @UseGuards(MemberGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '블랙리스트에 사용자 추가' })
+  @ApiBody({ type: AddToBlacklistDto })
+  @ApiResponse({
+    status: 201,
+    description: '블랙리스트 추가 성공',
+  })
+  @ApiBadRequestResponse({
+    description:
+      '자기 자신을 차단할 수 없습니다. | 이미 차단된 사용자입니다. | 존재하지 않는 사용자입니다.',
+    type: CustomBadRequestResponse,
+  })
+  async addToBlacklist(@Req() req, @Body() dto: AddToBlacklistDto) {
+    return await this.userService.addToBlacklist(
+      req.user.idx,
+      dto.blocked_user_id,
+    );
+  }
+
+  @Delete('blacklist')
+  @UseGuards(MemberGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '블랙리스트에서 사용자 제거' })
+  @ApiBody({ type: RemoveFromBlacklistDto })
+  @ApiResponse({
+    status: 200,
+    description: '블랙리스트 제거 성공',
+  })
+  @ApiBadRequestResponse({
+    description: '차단되지 않은 사용자입니다. | 존재하지 않는 사용자입니다.',
+    type: CustomBadRequestResponse,
+  })
+  async removeFromBlacklist(@Req() req, @Body() dto: RemoveFromBlacklistDto) {
+    return await this.userService.removeFromBlacklist(
+      req.user.idx,
+      dto.blocked_user_id,
+    );
   }
 }

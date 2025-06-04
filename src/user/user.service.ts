@@ -19,6 +19,8 @@ import { AwsService } from 'src/aws/aws.service';
 import * as sharp from 'sharp';
 import { UserIncludeOptions } from 'src/utils/utils';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
+import { BlacklistService } from 'src/blacklist/blacklist.service';
+import { BlacklistWithBlocked } from 'src/blacklist/types/blacklist.type';
 
 @Injectable()
 export class UserService {
@@ -32,6 +34,7 @@ export class UserService {
     private readonly broadcastSettingService: BroadcastSettingService,
     private readonly awsService: AwsService,
     private readonly bookmarkService: BookmarkService,
+    private readonly blacklistService: BlacklistService,
   ) {}
 
   /**
@@ -504,5 +507,71 @@ export class UserService {
     return {
       message: '북마크 삭제 완료',
     };
+  }
+
+  /**
+   * 블랙리스트 목록 조회
+   */
+  async getBlacklist(user_idx: number) {
+    const blackList = await this.blacklistService.getBlacklist(user_idx);
+    const transformedBlacklist = blackList.map((blacklist) => {
+      const { blocked } = blacklist;
+      return {
+        user_idx: blocked.idx,
+        user_id: blocked.user_id,
+        nickname: blocked.nickname,
+        profile_img: blocked.profile_img,
+        blocked_at: blacklist.created_at
+      };
+    });
+    console.log(transformedBlacklist);
+    return {
+      lists: transformedBlacklist,
+      message: '블랙리스트 조회 완료'
+    };
+  }
+
+  /**
+   * 블랙리스트에 사용자 추가
+   */
+  async addToBlacklist(user_idx: number, blocked_user_id: string) {
+    const blockedUser = await this.findByUserId(blocked_user_id);
+    if (!blockedUser) {
+      throw new NotFoundException('존재하지 않는 사용자입니다.');
+    }
+
+    if (user_idx === blockedUser.idx) {
+      throw new BadRequestException('자기 자신을 차단할 수 없습니다.');
+    }
+
+    const existing = await this.blacklistService.findOne(
+      user_idx,
+      blockedUser.idx,
+    );
+    if (existing) {
+      throw new BadRequestException('이미 차단된 사용자입니다.');
+    }
+
+    return this.blacklistService.create(user_idx, blockedUser.idx);
+  }
+
+  /**
+   * 블랙리스트에서 사용자 제거
+   */
+  async removeFromBlacklist(user_idx: number, blocked_user_id: string) {
+    const blockedUser = await this.findByUserId(blocked_user_id);
+    if (!blockedUser) {
+      throw new NotFoundException('존재하지 않는 사용자입니다.');
+    }
+
+    const existing = await this.blacklistService.findOne(
+      user_idx,
+      blockedUser.idx,
+    );
+    if (!existing) {
+      throw new NotFoundException('차단되지 않은 사용자입니다.');
+    }
+
+    return this.blacklistService.delete(user_idx, blockedUser.idx);
   }
 }

@@ -10,6 +10,7 @@ import { FanLevelModule } from 'src/fan-level/fan-level.module';
 import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.module';
 import { AwsModule } from 'src/aws/aws.module';
 import { BookmarkModule } from 'src/bookmark/bookmark.module';
+import { BlacklistModule } from 'src/blacklist/blacklist.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BookmarkModule } from 'src/bookmark/bookmark.module';
     BroadcastSettingModule,
     AwsModule,
     BookmarkModule,
+    BlacklistModule,
     forwardRef(() => IvsModule),
   ],
   controllers: [UserController],
