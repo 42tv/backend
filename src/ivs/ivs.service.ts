@@ -24,7 +24,6 @@ import { IvsRepository } from './ivs.repository';
 import { IvsEvent } from './entities/lambda.response';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { timeFormatter } from 'src/utils/utils';
-import { ChattingRedisModule } from 'src/redis/redis.module';
 import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
