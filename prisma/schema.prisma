@@ -54,6 +54,10 @@ model User {
   // Bookmark relations
   bookmarksMade  Bookmark[] @relation("UserBookmarksMade") // 내가 즐겨찾기 한 유저 목록
   bookmarkedBy   Bookmark[] @relation("UserBookmarkedBy") // 나를 즐겨찾기 한 유저 목록
+
+  // Blacklist relations
+  blacklistedUsers Blacklist[] @relation("BlacklistOwner") // 내가 차단한 유저 목록
+  blacklistedBy    Blacklist[] @relation("BlacklistedUser") // 나를 차단한 유저 목록
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -295,4 +299,19 @@ model Bookmark {
 
   // Ensure a user can only bookmark another user once
   @@unique([bookmarker_idx, bookmarked_idx])
+}
+
+// 블랙리스트 테이블 - 방송 시청 차단 관리
+model Blacklist {
+  id              Int      @id @default(autoincrement())
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  
+  // Relations
+  owner_idx       Int      // 블랙리스트 소유자 (방송인)
+  blocked_idx     Int      // 차단된 사용자
+  owner           User     @relation("BlacklistOwner", fields: [owner_idx], references: [idx], onDelete: Cascade)
+  blocked         User     @relation("BlacklistedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
+  
+  // Ensure a user can only block another user once
+  @@unique([owner_idx, blocked_idx])
 }
