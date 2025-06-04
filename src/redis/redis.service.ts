@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
@@ -30,7 +30,7 @@ export class RedisService {
     // 서버 ID 발급받기
     this.serverId = (await this.incr('server_id_counter')) - 1;
     console.log(`Server ID: ${this.serverId}`);
-    
+
     // 서버 커맨드 채널 구독
     await this.subscribe(`server_command:${this.serverId}`);
 
@@ -46,7 +46,7 @@ export class RedisService {
   private async handleMessage(channel: string, message: string) {
     try {
       const parsedMessage = JSON.parse(message);
-      
+
       if (channel === `server_command:${this.serverId}`) {
         await this.handleServerCommand(parsedMessage);
       } else if (channel.startsWith('room:')) {
@@ -73,7 +73,7 @@ export class RedisService {
    */
   private async handleRoomMessage(message: any) {
     const messageType = message.type;
-    
+
     switch (messageType) {
       case 'viewer_count':
         await this.handleViewerCountMessage(message as RoomUpdateEvent);
@@ -179,22 +179,28 @@ export class RedisService {
    */
   async registConnection(roomId: string, userId: string): Promise<void> {
     const key = `con:${roomId}:${userId}`;
-    const previousServerId = await this.redis.getset(key, this.serverId.toString());
-    
+    const previousServerId = await this.redis.getset(
+      key,
+      this.serverId.toString(),
+    );
+
     // 이미 다른 서버에 연결되어 있는 경우
     if (previousServerId && previousServerId !== this.serverId.toString()) {
       console.log(
         `Connection already exists on server ${previousServerId}: ${key}`,
       );
-      
+
       const deleteCommand: ServerCommand = {
         command: 'delete',
         prev_server_id: parseInt(previousServerId),
         room_id: roomId,
         user_id: userId,
       };
-      
-      await this.publishMessage(`server_command:${previousServerId}`, deleteCommand);
+
+      await this.publishMessage(
+        `server_command:${previousServerId}`,
+        deleteCommand,
+      );
     }
   }
 
@@ -341,7 +347,6 @@ export class RedisService {
   private async hlen(key: string): Promise<number> {
     return await this.redis.hlen(key);
   }
-
 
   /**
    * Redis에 저장된 키의 만료 시간을 설정합니다.

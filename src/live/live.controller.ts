@@ -1,7 +1,13 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { LiveService } from './live.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 
 @ApiTags('live')
 @Controller('live')
@@ -23,7 +29,10 @@ export class LiveController {
           items: {
             type: 'object',
             properties: {
-              thumbnail: { type: 'string', example: 'https://example.com/thumbnail.jpg' },
+              thumbnail: {
+                type: 'string',
+                example: 'https://example.com/thumbnail.jpg',
+              },
               start_time: { type: 'string', example: '2024-01-15T10:00:00Z' },
               play_cnt: { type: 'number', example: 150 },
               recommend_cnt: { type: 'number', example: 50 },
@@ -34,7 +43,10 @@ export class LiveController {
                   idx: { type: 'number', example: 1 },
                   user_id: { type: 'string', example: 'streamer123' },
                   nickname: { type: 'string', example: '스트리머' },
-                  profile_img: { type: 'string', example: 'https://example.com/profile.jpg' },
+                  profile_img: {
+                    type: 'string',
+                    example: 'https://example.com/profile.jpg',
+                  },
                   broadcastSetting: {
                     type: 'object',
                     properties: {
@@ -42,16 +54,16 @@ export class LiveController {
                       is_fan: { type: 'boolean', example: false },
                       is_pw: { type: 'boolean', example: false },
                       title: { type: 'string', example: '오늘의 방송' },
-                      fan_level: { type: 'number', example: 1 }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                      fan_level: { type: 'number', example: 1 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   async getLiveList() {
     const liveList = await this.liveService.getLiveList();
@@ -74,10 +86,10 @@ export class LiveController {
         broadcaster_idx: {
           type: 'number',
           description: '추천할 방송자의 user_idx',
-          example: 5
-        }
-      }
-    }
+          example: 5,
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -86,9 +98,12 @@ export class LiveController {
       type: 'object',
       properties: {
         code: { type: 'number', example: 200 },
-        message: { type: 'string', example: 'Live stream recommended successfully' }
-      }
-    }
+        message: {
+          type: 'string',
+          example: 'Live stream recommended successfully',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -98,9 +113,9 @@ export class LiveController {
       properties: {
         statusCode: { type: 'number', example: 400 },
         message: { type: 'string', example: '오늘 이미 추천하셨습니다.' },
-        error: { type: 'string', example: 'Bad Request' }
-      }
-    }
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
   })
   @ApiResponse({
     status: 401,
@@ -109,13 +124,19 @@ export class LiveController {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 401 },
-        message: { type: 'string', example: 'Unauthorized' }
-      }
-    }
+        message: { type: 'string', example: 'Unauthorized' },
+      },
+    },
   })
-  async recommendLiveStream(@Req() req: any, @Body('broadcaster_idx') broadcaster_idx: number) {
+  async recommendLiveStream(
+    @Req() req: any,
+    @Body('broadcaster_idx') broadcaster_idx: number,
+  ) {
     const recommender_idx = req.user.idx; // MemberGuard를 통해 설정된 사용자 정보
-    await this.liveService.recommendLiveStream(recommender_idx, broadcaster_idx);
+    await this.liveService.recommendLiveStream(
+      recommender_idx,
+      broadcaster_idx,
+    );
     return {
       code: 200,
       message: 'Live stream recommended successfully',
