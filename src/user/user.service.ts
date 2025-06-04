@@ -574,4 +574,41 @@ export class UserService {
 
     return this.blacklistService.delete(user_idx, blockedUser.idx);
   }
+  
+  /**
+   * 블랙리스트에서 여러 사용자 제거
+   */
+  async removeMultipleFromBlacklist(user_idx: number, blocked_user_ids: string[]) {
+    // 유효한 사용자만 필터링
+    const blockedUsers = await Promise.all(
+      blocked_user_ids.map(async (id) => {
+        const user = await this.findByUserId(id);
+        if (!user) {
+          return null;
+        }
+        return user;
+      })
+    );
+    
+    // null이 아닌 유효한 사용자만 추출
+    const validUsers = blockedUsers.filter(user => user !== null);
+    
+    if (validUsers.length === 0) {
+       return {
+        deletedCount: 0,
+        message: '차단 해제할 유저가 없습니다.'
+       }
+    }
+    
+    // 각 사용자의 idx 추출
+    const blockedIdxs = validUsers.map(user => user.idx);
+    
+    // 일괄 삭제 실행
+    const count = await this.blacklistService.deleteMany(user_idx, blockedIdxs);
+    
+    return {
+      deletedCount: count,
+      message: `${count}명의 사용자를 블랙리스트에서 제거했습니다.`
+    };
+  }
 }

@@ -28,4 +28,8 @@ export class BlacklistService {
   ): Promise<boolean> {
     return this.blacklistRepository.isBlocked(broadcasterIdx, viewerIdx);
   }
+
+  async deleteMany(ownerIdx: number, blockedIdxs: number[]): Promise<number> {
+    return this.blacklistRepository.deleteMany(ownerIdx, blockedIdxs);
+  }
 }

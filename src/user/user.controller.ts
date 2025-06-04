@@ -19,6 +19,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import {
   AddToBlacklistDto,
   RemoveFromBlacklistDto,
+  RemoveMultipleFromBlacklistDto,
 } from 'src/blacklist/dto/blacklist.dto';
 import {
   ApiBadRequestResponse,
@@ -422,6 +423,33 @@ export class UserController {
     return await this.userService.removeFromBlacklist(
       req.user.idx,
       dto.blocked_user_id,
+    );
+  }
+  
+  @Delete('blacklists')
+  @UseGuards(MemberGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '블랙리스트에서 여러 사용자 일괄 제거' })
+  @ApiBody({ type: RemoveMultipleFromBlacklistDto })
+  @ApiResponse({
+    status: 200,
+    description: '블랙리스트 일괄 제거 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        deletedCount: { type: 'number', example: 3 },
+        message: { type: 'string', example: '3명의 사용자를 블랙리스트에서 제거했습니다.' },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: '유효한 사용자가 없습니다.',
+    type: CustomBadRequestResponse,
+  })
+  async removeMultipleFromBlacklist(@Req() req, @Body() dto: RemoveMultipleFromBlacklistDto) {
+    return await this.userService.removeMultipleFromBlacklist(
+      req.user.idx,
+      dto.blocked_user_ids,
     );
   }
 }

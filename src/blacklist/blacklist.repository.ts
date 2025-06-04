@@ -62,4 +62,16 @@ export class BlacklistRepository {
     const blacklist = await this.findOne(ownerIdx, viewerIdx);
     return !!blacklist;
   }
+
+  async deleteMany(ownerIdx: number, blockedIdxs: number[]): Promise<number> {
+    const result = await this.prisma.blacklist.deleteMany({
+      where: {
+        owner_idx: ownerIdx,
+        blocked_idx: {
+          in: blockedIdxs,
+        },
+      },
+    });
+    return result.count;
+  }
 }
