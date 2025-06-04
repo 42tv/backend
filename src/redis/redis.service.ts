@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
-import { RoomChatEvent, RoomUpdateEvent, ServerCommand } from 'src/utils/utils';
+import { RoomChatEvent, RoomRecommendEvent, RoomUpdateEvent, ServerCommand } from 'src/utils/utils';
 
 @Injectable()
 export class RedisService {
@@ -50,6 +50,13 @@ export class RedisService {
           );
         } else if (parsedMessage.type === 'chat') {
           const convertMessage = parsedMessage as RoomChatEvent;
+          await this.eventsGateway.sendToRoom(
+            convertMessage.broadcaster_id,
+            convertMessage.type,
+            convertMessage,
+          );
+        } else if (parsedMessage.type === 'recommend') {
+          const convertMessage = parsedMessage as RoomRecommendEvent;
           await this.eventsGateway.sendToRoom(
             convertMessage.broadcaster_id,
             convertMessage.type,
