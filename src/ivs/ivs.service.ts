@@ -24,6 +24,7 @@ import { IvsRepository } from './ivs.repository';
 import { IvsEvent } from './entities/lambda.response';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { timeFormatter } from 'src/utils/utils';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class IvsService {
@@ -37,6 +38,7 @@ export class IvsService {
     private readonly userService: UserService,
     private readonly streamService: StreamService,
     private readonly broadcastSettingService: BroadcastSettingService,
+    private readonly redisService: RedisService,
   ) {
     this.client = new IvsClient({
       region: process.env.AWS_REGION,
@@ -84,7 +86,7 @@ export class IvsService {
   }
 
   /**
-   * createUser에서 사용하는 더미 데이터 생성
+   * createUser에서 사용하는 IVS 채널 생성
    * @param channel_idx
    * @param tx
    * @returns
@@ -163,6 +165,11 @@ export class IvsService {
     return updated;
   }
 
+  /**
+   * IVS 채널 삭제
+   * @param channelArn
+   * @returns
+   */
   async deleteChannel(channelArn: string) {
     try {
       const command = new DeleteChannelCommand({
@@ -324,16 +331,20 @@ export class IvsService {
   }
 
   async handleCallbackStreamEvent(ivsEvent: IvsEvent) {
-    if (ivsEvent.eventName == 'Stream Start') {
-      await this.streamStart(ivsEvent);
-    } else if (ivsEvent.eventName == 'Stream End') {
-      // await this.streamStop(ivsEvent);
-    }
     const ivs = await this.ivsRepository.findByArn(ivsEvent.resource);
     if (!ivs) {
       throw new BadRequestException('채널이 존재하지 않습니다.');
     }
-
+    if (ivsEvent.eventName == 'Stream Start') {
+      await this.streamStart(ivsEvent);
+    } else if (ivsEvent.eventName == 'Stream End') {
+      const user = await this.userService.findByUserIdx(ivs.user_idx);
+      if (!user) {
+        throw new BadRequestException('사용자를 찾을 수 없습니다.');
+      }
+      await this.redisService.removeViewerKey(user.user_id);
+      // await this.streamStop(ivsEvent);
+    }
     return ivs;
   }
 

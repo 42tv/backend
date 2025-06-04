@@ -40,10 +40,10 @@ export type UserIncludeOptions = {
   coin?: boolean;
 };
 
-/* 
-*  ServerCommand를 포함할 수 있는 구조체여야 하지만 현재는 확립 안되었음 
-*  그래서 일단 DeleteCommand에 사용사례에 맞추어 정의됨됨
-*/
+/*
+ *  ServerCommand를 포함할 수 있는 구조체여야 하지만 현재는 확립 안되었음
+ *  그래서 일단 DeleteCommand에 사용사례에 맞추어 정의됨됨
+ */
 export interface ServerCommand {
   command: 'delete';
   prev_server_id: number;
@@ -51,10 +51,22 @@ export interface ServerCommand {
   user_id: string;
 }
 
-export interface RoomEvent {
+export interface RoomChatEvent {
   type: 'chat';
   broadcaster_id: string;
   chatter_idx: number;
   chatter_nickname: string;
   chatter_message: string;
+}
+
+export interface RoomRecommendEvent {
+  type: 'recommend';
+  broadcaster_id: string;
+  recommender_nickname: string;
+}
+
+export interface RoomUpdateEvent {
+  type: 'viewer_count';
+  broadcaster_id: string;
+  viewer_cnt: number;
 }

@@ -79,7 +79,7 @@ export class StreamRepository {
         // stream_id: true,
         start_time: true,
         play_cnt: true,
-        like_cnt: true,
+        recommend_cnt: true,
         user: {
           select: {
             idx: true,
@@ -97,21 +97,44 @@ export class StreamRepository {
             },
           },
         },
-        _count: {
-          select: {
-            viewers: true, // Assuming the relation name is 'viewers' in your Prisma schema
-          },
+      },
+    });
+    return streams;
+  }
+
+  /**
+   * 방송자의 추천 수를 1 증가시킴
+   * @param broadcaster_idx 방송자의 user_idx
+   * @returns 업데이트된 Stream 객체
+   */
+  async increaseRecommend(broadcaster_idx: number) {
+    return await this.prisma.stream.update({
+      where: {
+        user_idx: broadcaster_idx,
+      },
+      data: {
+        recommend_cnt: {
+          increment: 1,
         },
       },
     });
+  }
 
-    // Map the result to rename _count to viewerCount
-    return streams.map((stream) => {
-      const { _count, ...rest } = stream;
-      return {
-        ...rest,
-        viewerCount: _count.viewers,
-      };
+  /**
+   * 방송의 재생 수를 1 증가시킴
+   * @param broadcaster_idx 방송자의 user_idx
+   * @returns 업데이트된 Stream 객체
+   */
+  async increasePlayCount(broadcaster_idx: number) {
+    return await this.prisma.stream.update({
+      where: {
+        user_idx: broadcaster_idx,
+      },
+      data: {
+        play_cnt: {
+          increment: 1,
+        },
+      },
     });
   }
 }

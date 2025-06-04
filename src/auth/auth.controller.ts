@@ -17,6 +17,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiUnauthorizedResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import { LoginResponse } from './entities/login.response';
 import { AuthEntity, AuthFailResponse } from './entities/login.entity';
@@ -25,6 +26,7 @@ import { RefreshResponse } from './entities/refresh.response';
 import { UserService } from 'src/user/user.service';
 import { Response } from 'express';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -85,6 +87,14 @@ export class AuthController {
   @Post('phone-verification')
   @ApiOperation({ summary: '가칭. 본인인증 성공했을시 stream, ivs 만드는용도' })
   @ApiBearerAuth()
+  @ApiResponse({
+    status: 201,
+    description: '본인인증 성공',
+  })
+  @ApiResponse({
+    status: 401,
+    description: '인증되지 않은 사용자',
+  })
   @UseGuards(MemberGuard)
   async phoneVerification(@Request() req) {
     console.log(req.user);

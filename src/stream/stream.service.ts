@@ -55,7 +55,29 @@ export class StreamService {
     return await this.streamRepository.deleteStream(stream_id, tx);
   }
 
+  /**
+   * 현재 방송중인 리스트 조회
+   * @returns
+   */
   async getLiveList() {
     return await this.streamRepository.getLiveList();
+  }
+
+  /**
+   * 방송자의 추천 수를 1 증가시킴
+   * @param broadcaster_idx 방송자의 user_idx
+   * @returns 업데이트된 Stream 객체
+   */
+  async increaseRecommend(broadcaster_idx: number) {
+    return await this.streamRepository.increaseRecommend(broadcaster_idx);
+  }
+
+  /**
+   * 방송의 재생 수를 1 증가시킴
+   * @param broadcaster_idx 방송자의 user_idx
+   * @returns 업데이트된 Stream 객체
+   */
+  async increasePlayCount(broadcaster_idx: number) {
+    return await this.streamRepository.increasePlayCount(broadcaster_idx);
   }
 }

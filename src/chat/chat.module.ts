@@ -6,12 +6,13 @@ import { AuthModule } from 'src/auth/auth.module';
 import { EventsGateway } from './chat.gateway';
 import { StreamViewerModule } from 'src/stream-viewer/stream-viewer.module';
 import { ChattingRedisModule } from 'src/redis/redis.module';
+import { StreamModule } from 'src/stream/stream.module';
 
 @Module({
   imports: [
     UserModule,
     AuthModule,
-    StreamViewerModule,
+    StreamModule,
     forwardRef(() => ChattingRedisModule),
   ],
   controllers: [ChatController],

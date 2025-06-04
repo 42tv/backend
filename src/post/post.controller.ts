@@ -19,6 +19,10 @@ import {
   ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiOperation,
+  ApiTags,
+  ApiQuery,
+  ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import {
   CustomBadRequestResponse,
@@ -34,6 +38,7 @@ import {
   PutResponse,
 } from './swagger.entity/swagger.entity';
 
+@ApiTags('post')
 @Controller('post')
 export class PostController {
   constructor(private readonly postService: PostService) {}
@@ -41,6 +46,18 @@ export class PostController {
   @Get()
   @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 리스트 가져오기' })
+  @ApiQuery({
+    name: 'kind',
+    required: false,
+    description: '쪽지 종류 (sent, received)',
+    example: 'received',
+  })
+  @ApiQuery({
+    name: 'nickname',
+    required: false,
+    description: '닉네임으로 필터링',
+    example: 'user123',
+  })
   @ApiCreatedResponse({
     description: '쪽지 리스트',
     type: GetResponse,
@@ -57,6 +74,7 @@ export class PostController {
   @Post()
   @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 쓰기' })
+  @ApiBody({ type: PostDto })
   @ApiCreatedResponse({
     description: '변경 성공',
     type: PostResponse,
@@ -80,6 +98,11 @@ export class PostController {
   @Put(':postId')
   @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 읽기' })
+  @ApiParam({
+    name: 'postId',
+    type: 'string',
+    description: '읽을 쪽지의 ID',
+  })
   @ApiCreatedResponse({
     description: '읽기 성공',
     type: PutResponse,
@@ -102,7 +125,21 @@ export class PostController {
 
   @Delete()
   @UseGuards(MemberGuard)
-  @ApiOperation({ summary: '쪽지 삭제' })
+  @ApiOperation({ summary: '쪽지 일괄 삭제' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['postIds'],
+      properties: {
+        postIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '삭제할 쪽지 ID 배열',
+          example: ['post1', 'post2', 'post3'],
+        },
+      },
+    },
+  })
   @ApiCreatedResponse({
     description: '삭제 성공',
     type: DeleteResponse,
@@ -125,7 +162,12 @@ export class PostController {
 
   @Delete(':postId')
   @UseGuards(MemberGuard)
-  @ApiOperation({ summary: '쪽지 삭제' })
+  @ApiOperation({ summary: '쪽지 개별 삭제' })
+  @ApiParam({
+    name: 'postId',
+    type: 'string',
+    description: '삭제할 쪽지의 ID',
+  })
   @ApiCreatedResponse({
     description: '삭제 성공',
     type: DeleteResponse,
@@ -169,6 +211,11 @@ export class PostController {
   @Post('block/user/:blockedUserIdx')
   @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 차단 유저' })
+  @ApiParam({
+    name: 'blockedUserIdx',
+    type: 'number',
+    description: '차단할 사용자의 idx',
+  })
   @ApiCreatedResponse({
     description: '차단 성공',
     type: PostBlockResponse,
@@ -191,7 +238,21 @@ export class PostController {
 
   @Delete('block/user')
   @UseGuards(MemberGuard)
-  @ApiOperation({ summary: '쪽지 차단 동시 해제' })
+  @ApiOperation({ summary: '쪽지 차단 일괄 해제' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['blockedUserIdxs'],
+      properties: {
+        blockedUserIdxs: {
+          type: 'array',
+          items: { type: 'number' },
+          description: '차단 해제할 사용자 idx 배열',
+          example: [1, 2, 3],
+        },
+      },
+    },
+  })
   @ApiCreatedResponse({
     description: '차단 해제 성공',
     type: PostUnBlockResponse,
@@ -215,9 +276,14 @@ export class PostController {
 
   @Delete('block/user/:blockedUserIdx')
   @UseGuards(MemberGuard)
-  @ApiOperation({ summary: '쪽지 차단 다수 해제' })
+  @ApiOperation({ summary: '쪽지 차단 개별 해제' })
+  @ApiParam({
+    name: 'blockedUserIdx',
+    type: 'number',
+    description: '차단 해제할 사용자의 idx',
+  })
   @ApiCreatedResponse({
-    description: '차단 다수 해제 성공',
+    description: '차단 해제 성공',
     type: PostUnBlockResponse,
   })
   @ApiBadRequestResponse({

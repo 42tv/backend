@@ -1,7 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
+import { BlacklistService } from 'src/blacklist/blacklist.service';
 
 @Injectable()
 export class PlayService {
@@ -9,6 +14,7 @@ export class PlayService {
     private readonly userService: UserService,
     private readonly streamService: StreamService,
     private readonly authService: AuthService,
+    private readonly blacklistService: BlacklistService,
   ) {}
 
   async play(userIdx, streamerId, isGuest, guestId, password) {
@@ -44,13 +50,16 @@ export class PlayService {
         guest_uuid: guestId,
       });
       return {
+        broadcaster_idx: broadcaster.idx,
+        broadcaster_id: broadcaster.user_id,
+        broadcaster_nickname: broadcaster.nickname,
         playback_url: broadcaster.ivs.playback_url,
         title: broadcaster.broadcastSetting.title,
         is_bookmarked: false,
         profile_img: broadcaster.profile_img,
         nickname: broadcaster.nickname,
         play_cnt: stream.play_cnt,
-        like_cnt: stream.like_cnt,
+        recommend_cnt: stream.recommend_cnt,
         start_time: stream.start_time,
         play_token: playToken.token,
       };
@@ -62,6 +71,19 @@ export class PlayService {
     const user = await this.userService.findByUserIdx(userIdx);
     if (!user) {
       throw new BadRequestException('탈퇴한 유저입니다.');
+    }
+
+    // 블랙리스트 체크 (본인이 아닌 경우에만)
+    if (user.idx !== broadcaster.idx) {
+      const isBlocked = await this.blacklistService.isUserBlocked(
+        broadcaster.idx,
+        user.idx,
+      );
+      if (isBlocked) {
+        throw new ForbiddenException(
+          '해당 방송에 제재된 사용자입니다',
+        );
+      }
     }
 
     if (user.idx === broadcaster.idx) {
@@ -76,13 +98,16 @@ export class PlayService {
         stream_id: stream.stream_id,
       });
       return {
+        broadcaster_idx: broadcaster.idx,
+        broadcaster_id: broadcaster.user_id,
+        broadcaster_nickname: broadcaster.nickname,
         playback_url: broadcaster.ivs.playback_url,
         title: broadcaster.broadcastSetting.title,
         is_bookmarked: bookmark.is_bookmarked ? true : false,
         profile_img: broadcaster.profile_img,
         nickname: broadcaster.nickname,
         play_cnt: stream.play_cnt,
-        like_cnt: stream.like_cnt,
+        recommend_cnt: stream.recommend_cnt,
         start_time: stream.start_time,
         play_token: playToken.token,
       };
@@ -110,13 +135,16 @@ export class PlayService {
       stream_id: stream.stream_id,
     });
     return {
+      broadcaster_idx: broadcaster.idx,
+      broadcaster_id: broadcaster.user_id,
+      broadcaster_nickname: broadcaster.nickname,
       playback_url: broadcaster.ivs.playback_url,
       is_bookmarked: bookmark.is_bookmarked ? true : false,
       title: broadcaster.broadcastSetting.title,
       profile_img: broadcaster.profile_img,
       nickname: broadcaster.nickname,
       play_cnt: stream.play_cnt,
-      like_cnt: stream.like_cnt,
+      recommend_cnt: stream.recommend_cnt,
       start_time: stream.start_time,
       play_token: playToken.token,
     };

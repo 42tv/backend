@@ -1,13 +1,17 @@
-import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
-import { RoomEvent, ServerCommand } from 'src/utils/utils';
+import {
+  RoomChatEvent,
+  RoomRecommendEvent,
+  RoomUpdateEvent,
+  ServerCommand,
+} from 'src/utils/utils';
 
 @Injectable()
 export class RedisService {
   private serverId: number;
-  
   private subscriber: Redis;
 
   constructor(
@@ -24,94 +28,179 @@ export class RedisService {
 
   async onModuleInit() {
     // 서버 ID 발급받기
-    this.serverId = await this.incr('server_id_counter') - 1;
+    this.serverId = (await this.incr('server_id_counter')) - 1;
     console.log(`Server ID: ${this.serverId}`);
-    await this.subscribe(`server_command:${this.serverId}`)
-    
-    // await this.subscriber.subscribe('chatting', (err, count) => {
-    //   if (err) {
-    //     console.error('Failed to subscribe: %s', err.message);
-    //     return;
-    //   }
-    //   console.log(
-    //     `Subscribed successfully! This client is currently subscribed to ${count} channels.`,
-    //   );
-    // });
-    this.subscriber.on('message', async (channel, message) => {
-      const parsedMessage = JSON.parse(message);
-      if (channel == `server_command:${this.serverId}`) {
-          const convertMessage = parsedMessage as ServerCommand;
-          console.log(`[Server Command] received`);
-          console.log(convertMessage);
-          await this.eventsGateway.handleServerCommmand(
-            convertMessage
-          )
-      }
-      else if (channel.startsWith("room:")) {
-        const convertMessage = parsedMessage as RoomEvent;
-        await this.eventsGateway.sendToRoom(
-            convertMessage.broadcaster_id,
-            convertMessage.type,
-            convertMessage
-        )
-      }
-    });
+
+    // 서버 커맨드 채널 구독
+    await this.subscribe(`server_command:${this.serverId}`);
+
+    // 메시지 핸들러 등록
+    this.subscriber.on('message', this.handleMessage.bind(this));
   }
 
-  async subscribe(event: string) {
-    await this.subscriber.subscribe(event, (err, count) => {
-      if (err) {
-        console.error('Failed to subscribe: %s', err.message);
-        return;
+  /**
+   * Redis 메시지 핸들러
+   * @param channel 메시지를 받은 채널
+   * @param message 받은 메시지 (JSON 문자열)
+   */
+  private async handleMessage(channel: string, message: string) {
+    try {
+      const parsedMessage = JSON.parse(message);
+
+      if (channel === `server_command:${this.serverId}`) {
+        await this.handleServerCommand(parsedMessage);
+      } else if (channel.startsWith('room:')) {
+        await this.handleRoomMessage(parsedMessage);
       }
-      console.log(
-        `Subscribed successfully! subscribed to ${event} channels.`,
-      );
-    });
+    } catch (error) {
+      console.error(`[Redis] Failed to handle message:`, error);
+    }
+  }
+
+  /**
+   * 서버 커맨드 메시지 처리
+   * @param message 서버 커맨드 메시지
+   */
+  private async handleServerCommand(message: any) {
+    const command = message as ServerCommand;
+    console.log(`[Server Command] received:`, command);
+    await this.eventsGateway.handleServerCommmand(command);
+  }
+
+  /**
+   * 룸 메시지 처리 (chat, recommend, viewer_count 등)
+   * @param message 룸 메시지
+   */
+  private async handleRoomMessage(message: any) {
+    const messageType = message.type;
+
+    switch (messageType) {
+      case 'viewer_count':
+        await this.handleViewerCountMessage(message as RoomUpdateEvent);
+        break;
+      case 'chat':
+        await this.handleChatMessage(message as RoomChatEvent);
+        break;
+      case 'recommend':
+        await this.handleRecommendMessage(message as RoomRecommendEvent);
+        break;
+      default:
+        console.warn(`[Redis] Unknown room message type: ${messageType}`);
+    }
+  }
+
+  /**
+   * 시청자 수 업데이트 메시지 처리
+   * @param message 시청자 수 업데이트 메시지
+   */
+  private async handleViewerCountMessage(message: RoomUpdateEvent) {
+    const enrichedMessage = {
+      ...message,
+      viewer_cnt: message.viewer_cnt,
+    };
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.type,
+      enrichedMessage,
+    );
+  }
+
+  /**
+   * 채팅 메시지 처리
+   * @param message 채팅 메시지
+   */
+  private async handleChatMessage(message: RoomChatEvent) {
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.type,
+      message,
+    );
+  }
+
+  /**
+   * 추천 메시지 처리
+   * @param message 추천 메시지
+   */
+  private async handleRecommendMessage(message: RoomRecommendEvent) {
+    console.log(`[Recommend] received:`, message);
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.type,
+      message,
+    );
+  }
+
+  /**
+   * Redis 채널 구독
+   * @param channel 구독할 채널 이름
+   */
+  async subscribe(channel: string): Promise<void> {
+    try {
+      await this.subscriber.subscribe(channel);
+      console.log(`Subscribed successfully to ${channel}`);
+    } catch (error) {
+      console.error(`Failed to subscribe to ${channel}:`, error.message);
+      throw error;
+    }
   }
 
   /**
    * Redis 채널 구독 해제
-   * @param event 구독 해제할 이벤트(채널) 이름
-   * @returns
+   * @param channel 구독 해제할 채널 이름
    */
-  async unsubscribe(event: string) {
-    await this.subscriber.unsubscribe(event, (err, count) => {
-      if (err) {
-        console.error('Failed to unsubscribe: %s', err.message);
-        return;
-      }
-      console.log(
-        `Unsubscribed successfully! Remaining subscriptions: ${count}`,
-      );
-    });
+  async unsubscribe(channel: string): Promise<void> {
+    try {
+      await this.subscriber.unsubscribe(channel);
+      console.log(`Unsubscribed successfully from ${channel}`);
+    } catch (error) {
+      console.error(`Failed to unsubscribe from ${channel}:`, error.message);
+      throw error;
+    }
   }
 
-  async publishMessage(channel: string, message: any) {
-    await this.redis.publish(channel, JSON.stringify(message));
-  }
-  
   /**
-   * redis에 connection 등록, 다른 서버에 등록되어있었으면 publish 날려서 해당 서버에 삭제 요청
-   * @param roomId 
-   * @param userId 
-   * @returns
+   * Redis 채널에 메시지 발행
+   * @param channel 발행할 채널
+   * @param message 발행할 메시지
    */
-  async registConnection(
-    roomId: string,
-    userId: string,
-  ) {
+  async publishMessage(channel: string, message: any): Promise<void> {
+    try {
+      await this.redis.publish(channel, JSON.stringify(message));
+    } catch (error) {
+      console.error(`Failed to publish message to ${channel}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Redis에 connection 등록, 다른 서버에 등록되어있었으면 publish 날려서 해당 서버에 삭제 요청
+   * @param roomId 방 ID
+   * @param userId 사용자 ID
+   */
+  async registConnection(roomId: string, userId: string): Promise<void> {
     const key = `con:${roomId}:${userId}`;
-    const old = await this.redis.getset(key, this.serverId);
-    // 이미 키가 존재하면서, 자신의 서버가 아닐때만 
-    if (old && old != this.serverId.toString()) {
-      console.log(`Connection already exist another server: ${key} - ${this.serverId}`);
-      await this.publishMessage(`server_command:${old}`, { 
+    const previousServerId = await this.redis.getset(
+      key,
+      this.serverId.toString(),
+    );
+
+    // 이미 다른 서버에 연결되어 있는 경우
+    if (previousServerId && previousServerId !== this.serverId.toString()) {
+      console.log(
+        `Connection already exists on server ${previousServerId}: ${key}`,
+      );
+
+      const deleteCommand: ServerCommand = {
         command: 'delete',
-        prev_server_id: old,
+        prev_server_id: parseInt(previousServerId),
         room_id: roomId,
         user_id: userId,
-      });
+      };
+
+      await this.publishMessage(
+        `server_command:${previousServerId}`,
+        deleteCommand,
+      );
     }
   }
 
@@ -121,13 +210,51 @@ export class RedisService {
    * @param userId 사용자 ID
    * @returns 삭제된 키의 개수
    */
-  async removeConnection(
-    roomId: string, 
-    userId: string
-  ): Promise<number> {
+  async removeConnection(roomId: string, userId: string): Promise<number> {
     const key = `con:${roomId}:${userId}`;
     console.log(`Removing redis connection: ${key}`);
     return await this.del(key);
+  }
+
+  /**
+   * 시청자 등록
+   * @param broadcasterId 방송자 ID
+   * @param userId 시청자 ID
+   */
+  async registViewer(broadcasterId: string, userId: string): Promise<void> {
+    const key = `viewer:${broadcasterId}`;
+    await this.hset(key, userId, '1');
+  }
+
+  /**
+   * 시청자 제거
+   * @param broadcasterId 방송자 ID
+   * @param userId 시청자 ID
+   */
+  async removeViewer(broadcasterId: string, userId: string): Promise<void> {
+    const key = `viewer:${broadcasterId}`;
+    console.log(`[Remove Viewer] ${userId} from ${broadcasterId}`);
+    await this.hdel(key, userId);
+  }
+
+  /**
+   * 방송 종료시 viewer 해시 키 전체 삭제
+   * @param broadcasterId 방송자 ID
+   * @returns 삭제된 키의 개수
+   */
+  async removeViewerKey(broadcasterId: string): Promise<number> {
+    const key = `viewer:${broadcasterId}`;
+    console.log(`[Broadcast End] Deleting viewer key: ${key}`);
+    return await this.del(key);
+  }
+
+  /**
+   * Redis 해시의 필드 개수를 반환합니다.
+   * @param key 해시 키
+   * @returns 해시에 포함된 필드의 개수
+   */
+  async getHashFieldCount(key: string): Promise<number> {
+    return await this.hlen(key);
   }
 
   /**
@@ -181,7 +308,11 @@ export class RedisService {
    * @param value 필드 값
    * @returns 새 필드가 생성되면 1, 기존 필드가 업데이트되면 0
    */
-  private async hset(key: string, field: string, value: string): Promise<number> {
+  private async hset(
+    key: string,
+    field: string,
+    value: string,
+  ): Promise<number> {
     return await this.redis.hset(key, field, value);
   }
 
@@ -196,12 +327,25 @@ export class RedisService {
   }
 
   /**
-   * Redis에 저장된 키의 남은 만료 시간을 초 단위로 반환합니다.
-   * @param key 확인할 키
-   * @returns 남은 시간(초), 키가 없거나 만료 설정이 없으면 -1 또는 -2
+   * Redis 해시에서 하나 이상의 필드를 삭제합니다.
+   * @param key 해시 키
+   * @param fields 삭제할 필드 이름 또는 필드 이름 배열
+   * @returns 삭제된 필드 수
    */
-  private async ttl(key: string): Promise<number> {
-    return await this.redis.ttl(key);
+  private async hdel(key: string, fields: string | string[]): Promise<number> {
+    if (Array.isArray(fields)) {
+      return await this.redis.hdel(key, ...fields);
+    }
+    return await this.redis.hdel(key, fields);
+  }
+
+  /**
+   * Redis 해시의 필드 개수를 반환합니다.
+   * @param key 해시 키
+   * @returns 해시에 포함된 필드의 개수
+   */
+  private async hlen(key: string): Promise<number> {
+    return await this.redis.hlen(key);
   }
 
   /**
@@ -230,5 +374,90 @@ export class RedisService {
    */
   getServerId(): number {
     return this.serverId;
+  }
+
+  /**
+   * 일일 추천 기록을 확인합니다.
+   * @param viewerIdx 시청자 ID
+   * @param broadcasterIdx 방송자 ID
+   * @param date 날짜 (YYYY-MM-DD 형식)
+   * @returns 이미 추천을 했으면 true, 아니면 false
+   */
+  async checkDailyRecommend(
+    viewerIdx: number,
+    broadcasterIdx: number,
+    date: string,
+  ): Promise<boolean> {
+    const key = `recommend:daily:${date}`;
+    const field = `${viewerIdx}:${broadcasterIdx}`;
+    const value = await this.hget(key, field);
+    return value !== null;
+  }
+
+  /**
+   * 일일 추천 기록을 저장합니다.
+   * @param viewerIdx 시청자 ID
+   * @param broadcasterIdx 방송자 ID
+   * @param date 날짜 (YYYY-MM-DD 형식)
+   * @returns 새 필드가 생성되면 1, 기존 필드가 업데이트되면 0
+   */
+  async recordDailyRecommend(
+    viewerIdx: number,
+    broadcasterIdx: number,
+    date: string,
+  ): Promise<number> {
+    const key = `recommend:daily:${date}`;
+    const field = `${viewerIdx}:${broadcasterIdx}`;
+
+    // 키가 처음 생성되는 경우에만 TTL 설정
+    const exists = await this.exists(key);
+    const result = await this.hset(key, field, '1');
+
+    if (!exists) {
+      // 다음날 자정까지의 초 계산 (KST 기준)
+      const now = new Date();
+      const kstNow = new Date(
+        now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }),
+      );
+      const tomorrow = new Date(kstNow);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      const ttlSeconds = Math.floor(
+        (tomorrow.getTime() - kstNow.getTime()) / 1000,
+      );
+      await this.expire(key, ttlSeconds);
+    }
+
+    return result;
+  }
+
+  /**
+   * 특정 날짜의 모든 추천 기록을 삭제합니다.
+   * @param date 날짜 (YYYY-MM-DD 형식)
+   * @returns 삭제된 키의 개수
+   */
+  async deleteDailyRecommends(date: string): Promise<number> {
+    const key = `recommend:daily:${date}`;
+    return await this.del(key);
+  }
+
+  /**
+   * 패턴과 일치하는 모든 키를 조회합니다.
+   * @param pattern 조회할 키 패턴
+   * @returns 패턴과 일치하는 키 배열
+   */
+  async findKeysByPattern(pattern: string): Promise<string[]> {
+    return await this.redis.keys(pattern);
+  }
+
+  /**
+   * 여러 키를 한번에 삭제합니다.
+   * @param keys 삭제할 키 배열
+   * @returns 삭제된 키의 개수
+   */
+  async deleteMultipleKeys(keys: string[]): Promise<number> {
+    if (keys.length === 0) return 0;
+    return await this.del(keys);
   }
 }
