@@ -78,6 +78,21 @@ export class PlayController {
       },
     },
   })
+  @ApiResponse({
+    status: 403,
+    description: '접근 금지',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 403 },
+        message: {
+          type: 'string',
+          example: '차단된 사용자입니다. 방송을 시청할 수 없습니다.',
+        },
+        error: { type: 'string', example: 'Forbidden' },
+      },
+    },
+  })
   async play(@Req() req, @Body() body) {
     const isGuest = req.user.is_guest;
     const userIdx = req.user.idx;

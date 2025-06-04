@@ -1,7 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
+import { BlacklistService } from 'src/blacklist/blacklist.service';
 
 @Injectable()
 export class PlayService {
@@ -9,6 +14,7 @@ export class PlayService {
     private readonly userService: UserService,
     private readonly streamService: StreamService,
     private readonly authService: AuthService,
+    private readonly blacklistService: BlacklistService,
   ) {}
 
   async play(userIdx, streamerId, isGuest, guestId, password) {
@@ -65,6 +71,19 @@ export class PlayService {
     const user = await this.userService.findByUserIdx(userIdx);
     if (!user) {
       throw new BadRequestException('탈퇴한 유저입니다.');
+    }
+
+    // 블랙리스트 체크 (본인이 아닌 경우에만)
+    if (user.idx !== broadcaster.idx) {
+      const isBlocked = await this.blacklistService.isUserBlocked(
+        broadcaster.idx,
+        user.idx,
+      );
+      if (isBlocked) {
+        throw new ForbiddenException(
+          '해당 방송에 제재된 사용자입니다',
+        );
+      }
     }
 
     if (user.idx === broadcaster.idx) {
