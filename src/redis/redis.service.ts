@@ -2,7 +2,12 @@ import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
-import { RoomChatEvent, RoomRecommendEvent, RoomUpdateEvent, ServerCommand } from 'src/utils/utils';
+import {
+  RoomChatEvent,
+  RoomRecommendEvent,
+  RoomUpdateEvent,
+  ServerCommand,
+} from 'src/utils/utils';
 
 @Injectable()
 export class RedisService {
@@ -24,100 +29,172 @@ export class RedisService {
   async onModuleInit() {
     // 서버 ID 발급받기
     this.serverId = (await this.incr('server_id_counter')) - 1;
-
     console.log(`Server ID: ${this.serverId}`);
+    
+    // 서버 커맨드 채널 구독
     await this.subscribe(`server_command:${this.serverId}`);
 
-    this.subscriber.on('message', async (channel, message) => {
-      const parsedMessage = JSON.parse(message);
-      if (channel == `server_command:${this.serverId}`) {
-        const convertMessage = parsedMessage as ServerCommand;
-        console.log(`[Server Command] received`);
-        console.log(convertMessage);
-        await this.eventsGateway.handleServerCommmand(convertMessage);
-      } else if (channel.startsWith('room:')) {
-        // play_count_update 이벤트인 경우 시청자 수도 함께 전송
-        if (parsedMessage.type === 'viewer_count') {
-          const convertMessage = parsedMessage as RoomUpdateEvent;
-          const enrichedMessage = {
-            ...convertMessage,
-            viewer_cnt: convertMessage.viewer_cnt, // 시청자 수 추가
-          };
-          await this.eventsGateway.sendToRoom(
-            convertMessage.broadcaster_id,
-            convertMessage.type,
-            enrichedMessage,
-          );
-        } else if (parsedMessage.type === 'chat') {
-          const convertMessage = parsedMessage as RoomChatEvent;
-          await this.eventsGateway.sendToRoom(
-            convertMessage.broadcaster_id,
-            convertMessage.type,
-            convertMessage,
-          );
-        } else if (parsedMessage.type === 'recommend') {
-          const convertMessage = parsedMessage as RoomRecommendEvent;
-          await this.eventsGateway.sendToRoom(
-            convertMessage.broadcaster_id,
-            convertMessage.type,
-            convertMessage,
-          );
-        }
-      }
-    });
+    // 메시지 핸들러 등록
+    this.subscriber.on('message', this.handleMessage.bind(this));
   }
 
-  async subscribe(event: string) {
-    await this.subscriber.subscribe(event, (err, count) => {
-      if (err) {
-        console.error('Failed to subscribe: %s', err.message);
-        return;
+  /**
+   * Redis 메시지 핸들러
+   * @param channel 메시지를 받은 채널
+   * @param message 받은 메시지 (JSON 문자열)
+   */
+  private async handleMessage(channel: string, message: string) {
+    try {
+      const parsedMessage = JSON.parse(message);
+      
+      if (channel === `server_command:${this.serverId}`) {
+        await this.handleServerCommand(parsedMessage);
+      } else if (channel.startsWith('room:')) {
+        await this.handleRoomMessage(parsedMessage);
       }
-      console.log(`Subscribed successfully! subscribed to ${event} channels.`);
-    });
+    } catch (error) {
+      console.error(`[Redis] Failed to handle message:`, error);
+    }
+  }
+
+  /**
+   * 서버 커맨드 메시지 처리
+   * @param message 서버 커맨드 메시지
+   */
+  private async handleServerCommand(message: any) {
+    const command = message as ServerCommand;
+    console.log(`[Server Command] received:`, command);
+    await this.eventsGateway.handleServerCommmand(command);
+  }
+
+  /**
+   * 룸 메시지 처리 (chat, recommend, viewer_count 등)
+   * @param message 룸 메시지
+   */
+  private async handleRoomMessage(message: any) {
+    const messageType = message.type;
+    
+    switch (messageType) {
+      case 'viewer_count':
+        await this.handleViewerCountMessage(message as RoomUpdateEvent);
+        break;
+      case 'chat':
+        await this.handleChatMessage(message as RoomChatEvent);
+        break;
+      case 'recommend':
+        await this.handleRecommendMessage(message as RoomRecommendEvent);
+        break;
+      default:
+        console.warn(`[Redis] Unknown room message type: ${messageType}`);
+    }
+  }
+
+  /**
+   * 시청자 수 업데이트 메시지 처리
+   * @param message 시청자 수 업데이트 메시지
+   */
+  private async handleViewerCountMessage(message: RoomUpdateEvent) {
+    const enrichedMessage = {
+      ...message,
+      viewer_cnt: message.viewer_cnt,
+    };
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.type,
+      enrichedMessage,
+    );
+  }
+
+  /**
+   * 채팅 메시지 처리
+   * @param message 채팅 메시지
+   */
+  private async handleChatMessage(message: RoomChatEvent) {
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.type,
+      message,
+    );
+  }
+
+  /**
+   * 추천 메시지 처리
+   * @param message 추천 메시지
+   */
+  private async handleRecommendMessage(message: RoomRecommendEvent) {
+    console.log(`[Recommend] received:`, message);
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.type,
+      message,
+    );
+  }
+
+  /**
+   * Redis 채널 구독
+   * @param channel 구독할 채널 이름
+   */
+  async subscribe(channel: string): Promise<void> {
+    try {
+      await this.subscriber.subscribe(channel);
+      console.log(`Subscribed successfully to ${channel}`);
+    } catch (error) {
+      console.error(`Failed to subscribe to ${channel}:`, error.message);
+      throw error;
+    }
   }
 
   /**
    * Redis 채널 구독 해제
-   * @param event 구독 해제할 이벤트(채널) 이름
-   * @returns
+   * @param channel 구독 해제할 채널 이름
    */
-  async unsubscribe(event: string) {
-    await this.subscriber.unsubscribe(event, (err, count) => {
-      if (err) {
-        console.error('Failed to unsubscribe: %s', err.message);
-        return;
-      }
-      console.log(
-        `Unsubscribed successfully! Remaining subscriptions: ${count}`,
-      );
-    });
-  }
-
-  async publishMessage(channel: string, message: any) {
-    await this.redis.publish(channel, JSON.stringify(message));
+  async unsubscribe(channel: string): Promise<void> {
+    try {
+      await this.subscriber.unsubscribe(channel);
+      console.log(`Unsubscribed successfully from ${channel}`);
+    } catch (error) {
+      console.error(`Failed to unsubscribe from ${channel}:`, error.message);
+      throw error;
+    }
   }
 
   /**
-   * redis에 connection 등록, 다른 서버에 등록되어있었으면 publish 날려서 해당 서버에 삭제 요청
-   * @param roomId
-   * @param userId
-   * @returns
+   * Redis 채널에 메시지 발행
+   * @param channel 발행할 채널
+   * @param message 발행할 메시지
    */
-  async registConnection(roomId: string, userId: string) {
+  async publishMessage(channel: string, message: any): Promise<void> {
+    try {
+      await this.redis.publish(channel, JSON.stringify(message));
+    } catch (error) {
+      console.error(`Failed to publish message to ${channel}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Redis에 connection 등록, 다른 서버에 등록되어있었으면 publish 날려서 해당 서버에 삭제 요청
+   * @param roomId 방 ID
+   * @param userId 사용자 ID
+   */
+  async registConnection(roomId: string, userId: string): Promise<void> {
     const key = `con:${roomId}:${userId}`;
-    const old = await this.redis.getset(key, this.serverId);
-    // 이미 키가 존재하면서, 자신의 서버가 아닐때만
-    if (old && old != this.serverId.toString()) {
+    const previousServerId = await this.redis.getset(key, this.serverId.toString());
+    
+    // 이미 다른 서버에 연결되어 있는 경우
+    if (previousServerId && previousServerId !== this.serverId.toString()) {
       console.log(
-        `Connection already exist another server: ${key} - ${this.serverId}`,
+        `Connection already exists on server ${previousServerId}: ${key}`,
       );
-      await this.publishMessage(`server_command:${old}`, {
+      
+      const deleteCommand: ServerCommand = {
         command: 'delete',
-        prev_server_id: old,
+        prev_server_id: parseInt(previousServerId),
         room_id: roomId,
         user_id: userId,
-      });
+      };
+      
+      await this.publishMessage(`server_command:${previousServerId}`, deleteCommand);
     }
   }
 
@@ -133,25 +210,35 @@ export class RedisService {
     return await this.del(key);
   }
 
-  async registViewer(broadcasterId: string, userId: string) {
+  /**
+   * 시청자 등록
+   * @param broadcasterId 방송자 ID
+   * @param userId 시청자 ID
+   */
+  async registViewer(broadcasterId: string, userId: string): Promise<void> {
     const key = `viewer:${broadcasterId}`;
     await this.hset(key, userId, '1');
   }
 
-  async removeViewer(broadcasterId: string, userId: string) {
+  /**
+   * 시청자 제거
+   * @param broadcasterId 방송자 ID
+   * @param userId 시청자 ID
+   */
+  async removeViewer(broadcasterId: string, userId: string): Promise<void> {
     const key = `viewer:${broadcasterId}`;
-    console.log(`[Last Viewer Deleted], deleting key: ${key}`);
+    console.log(`[Remove Viewer] ${userId} from ${broadcasterId}`);
     await this.hdel(key, userId);
   }
 
   /**
-   * 방종 종료시 hset인 viewer key를 삭제
-   * @param registedId
-   * @returns
+   * 방송 종료시 viewer 해시 키 전체 삭제
+   * @param broadcasterId 방송자 ID
+   * @returns 삭제된 키의 개수
    */
-  async removeViewerKey(registedId: string) {
-    const key = `viewer:${registedId}`;
-    console.log(`[Braodcast End], deleting redis viewer key: ${key}`);
+  async removeViewerKey(broadcasterId: string): Promise<number> {
+    const key = `viewer:${broadcasterId}`;
+    console.log(`[Broadcast End] Deleting viewer key: ${key}`);
     return await this.del(key);
   }
 
@@ -255,14 +342,6 @@ export class RedisService {
     return await this.redis.hlen(key);
   }
 
-  /**
-   * Redis에 저장된 키의 남은 만료 시간을 초 단위로 반환합니다.
-   * @param key 확인할 키
-   * @returns 남은 시간(초), 키가 없거나 만료 설정이 없으면 -1 또는 -2
-   */
-  private async ttl(key: string): Promise<number> {
-    return await this.redis.ttl(key);
-  }
 
   /**
    * Redis에 저장된 키의 만료 시간을 설정합니다.
