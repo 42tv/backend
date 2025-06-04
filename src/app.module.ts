@@ -24,6 +24,7 @@ import { LiveModule } from './live/live.module';
 import { PlayModule } from './play/play.module';
 import { StreamViewerModule } from './stream-viewer/stream-viewer.module';
 import { FanModule } from './fan/fan.module';
+import { BookmarkModule } from './bookmark/bookmark.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { FanModule } from './fan/fan.module';
     PlayModule,
     StreamViewerModule,
     FanModule,
+    BookmarkModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],

@@ -18,6 +18,7 @@ import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting
 import { AwsService } from 'src/aws/aws.service';
 import * as sharp from 'sharp';
 import { UserIncludeOptions } from 'src/utils/utils';
+import { BookmarkService } from 'src/bookmark/bookmark.service';
 
 @Injectable()
 export class UserService {
@@ -30,6 +31,7 @@ export class UserService {
     private readonly fanLevelService: FanLevelService,
     private readonly broadcastSettingService: BroadcastSettingService,
     private readonly awsService: AwsService,
+    private readonly bookmarkService: BookmarkService,
   ) {}
 
   /**
@@ -462,7 +464,7 @@ export class UserService {
     if (!bookmarkedUser) {
       throw new NotFoundException('존재하지 않는 유저입니다');
     }
-    await this.userRepository.addBookmark(user.idx, bookmarkedUser.idx);
+    await this.bookmarkService.addBookmark(user.idx, bookmarkedUser.idx);
     return {
       message: '북마크 추가 완료',
     };
@@ -481,8 +483,7 @@ export class UserService {
     if (!deletedUser) {
       throw new NotFoundException('삭제할 유저가 존재하지 않습니다.');
     }
-
-    await this.userRepository.deleteBookmark(user.idx, deletedUser.idx);
+    await this.bookmarkService.removeBookmark(user.idx, deletedUser.idx);
     return {
       message: '북마크 삭제 완료',
     };
@@ -495,7 +496,7 @@ export class UserService {
     // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.findByUserIdx(user_idx);
     try {
-      await this.userRepository.deleteBookmarks(user.idx, ids);
+      await this.bookmarkService.deleteBookmarks(user.idx, ids);
     } catch (e) {
       throw new BadRequestException('유효하지 않은 북마크 삭제요청입니다');
     }

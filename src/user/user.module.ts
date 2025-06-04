@@ -9,6 +9,7 @@ import { IvsModule } from 'src/ivs/ivs.module';
 import { FanLevelModule } from 'src/fan-level/fan-level.module';
 import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.module';
 import { AwsModule } from 'src/aws/aws.module';
+import { BookmarkModule } from 'src/bookmark/bookmark.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AwsModule } from 'src/aws/aws.module';
     FanLevelModule,
     BroadcastSettingModule,
     AwsModule,
+    BookmarkModule,
     forwardRef(() => IvsModule),
   ],
   controllers: [UserController],
