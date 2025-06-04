@@ -1,7 +1,13 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { PlayService } from './play.service';
 import { GuestGuard } from 'src/auth/guard/jwt.guest.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 @ApiTags('play')
 @Controller('play')
@@ -45,7 +51,7 @@ export class PlayController {
         profile_img: { type: 'string', example: 'https://profile-image-url' },
         nickname: { type: 'string', example: '스트리머닉네임' },
         play_cnt: { type: 'number', example: 150 },
-        like_cnt: { type: 'number', example: 50 },
+        recommend_cnt: { type: 'number', example: 50 },
         start_time: { type: 'string', example: '2024-01-15T10:00:00Z' },
         play_token: { type: 'string', example: 'jwt-play-token' },
       },

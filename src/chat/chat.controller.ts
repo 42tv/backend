@@ -2,7 +2,13 @@ import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { SendChatDto } from './dto/send-chat.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 @ApiTags('chat')
 @Controller('chat')

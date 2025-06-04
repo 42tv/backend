@@ -168,8 +168,8 @@ export class IvsService {
 
   /**
    * IVS 채널 삭제
-   * @param channelArn 
-   * @returns 
+   * @param channelArn
+   * @returns
    */
   async deleteChannel(channelArn: string) {
     try {

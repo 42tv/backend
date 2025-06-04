@@ -26,7 +26,7 @@ export class LiveController {
               thumbnail: { type: 'string', example: 'https://example.com/thumbnail.jpg' },
               start_time: { type: 'string', example: '2024-01-15T10:00:00Z' },
               play_cnt: { type: 'number', example: 150 },
-              like_cnt: { type: 'number', example: 50 },
+              recommend_cnt: { type: 'number', example: 50 },
               viewerCount: { type: 'number', example: 75 },
               user: {
                 type: 'object',
@@ -62,10 +62,10 @@ export class LiveController {
     };
   }
 
-  @Post('like')
+  @Post('recommend')
   @UseGuards(MemberGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '실시간 방송 좋아요' })
+  @ApiOperation({ summary: '실시간 방송 추천' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -73,7 +73,7 @@ export class LiveController {
       properties: {
         broadcaster_idx: {
           type: 'number',
-          description: '좋아요를 보낼 방송자의 user_idx',
+          description: '추천할 방송자의 user_idx',
           example: 5
         }
       }
@@ -81,12 +81,12 @@ export class LiveController {
   })
   @ApiResponse({
     status: 200,
-    description: '좋아요 성공',
+    description: '추천 성공',
     schema: {
       type: 'object',
       properties: {
         code: { type: 'number', example: 200 },
-        message: { type: 'string', example: 'Live stream liked successfully' }
+        message: { type: 'string', example: 'Live stream recommended successfully' }
       }
     }
   })
@@ -113,12 +113,12 @@ export class LiveController {
       }
     }
   })
-  async likeLiveStream(@Req() req: any, @Body('broadcaster_idx') broadcaster_idx: number) {
-    const viewer_idx = req.user.idx; // MemberGuard를 통해 설정된 사용자 정보
-    await this.liveService.likeLiveStream(viewer_idx, broadcaster_idx);
+  async recommendLiveStream(@Req() req: any, @Body('broadcaster_idx') broadcaster_idx: number) {
+    const recommender_idx = req.user.idx; // MemberGuard를 통해 설정된 사용자 정보
+    await this.liveService.recommendLiveStream(recommender_idx, broadcaster_idx);
     return {
       code: 200,
-      message: 'Live stream liked successfully',
+      message: 'Live stream recommended successfully',
     };
   }
 }

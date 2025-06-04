@@ -14,8 +14,8 @@ export class AppController {
     description: '서버 상태 확인',
     schema: {
       type: 'string',
-      example: 'Hello World!'
-    }
+      example: 'Hello World!',
+    },
   })
   getHello(): string {
     return this.appService.getHello();

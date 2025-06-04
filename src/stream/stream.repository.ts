@@ -79,7 +79,7 @@ export class StreamRepository {
         // stream_id: true,
         start_time: true,
         play_cnt: true,
-        like_cnt: true,
+        recommend_cnt: true,
         user: {
           select: {
             idx: true,
@@ -103,17 +103,17 @@ export class StreamRepository {
   }
 
   /**
-   * 방송자의 좋아요 수를 1 증가시킴
+   * 방송자의 추천 수를 1 증가시킴
    * @param broadcaster_idx 방송자의 user_idx
    * @returns 업데이트된 Stream 객체
    */
-  async increaseLike(broadcaster_idx: number) {
+  async increaseRecommend(broadcaster_idx: number) {
     return await this.prisma.stream.update({
       where: {
         user_idx: broadcaster_idx,
       },
       data: {
-        like_cnt: {
+        recommend_cnt: {
           increment: 1,
         },
       },

@@ -6,6 +6,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
   imports: [PrismaModule],
   controllers: [],
   exports: [FanService],
-  providers: [FanService]
+  providers: [FanService],
 })
 export class FanModule {}

@@ -8,7 +8,7 @@ import { RoomChatEvent, RoomUpdateEvent, ServerCommand } from 'src/utils/utils';
 export class RedisService {
   private serverId: number;
   private subscriber: Redis;
-  
+
   constructor(
     @InjectRedis() private readonly redis: Redis,
     @Inject(forwardRef(() => EventsGateway))
@@ -23,22 +23,19 @@ export class RedisService {
 
   async onModuleInit() {
     // 서버 ID 발급받기
-    this.serverId = await this.incr('server_id_counter') - 1;
+    this.serverId = (await this.incr('server_id_counter')) - 1;
 
     console.log(`Server ID: ${this.serverId}`);
-    await this.subscribe(`server_command:${this.serverId}`)
+    await this.subscribe(`server_command:${this.serverId}`);
 
     this.subscriber.on('message', async (channel, message) => {
       const parsedMessage = JSON.parse(message);
       if (channel == `server_command:${this.serverId}`) {
-          const convertMessage = parsedMessage as ServerCommand;
-          console.log(`[Server Command] received`);
-          console.log(convertMessage);
-          await this.eventsGateway.handleServerCommmand(
-            convertMessage
-          )
-      }
-      else if (channel.startsWith("room:")) {
+        const convertMessage = parsedMessage as ServerCommand;
+        console.log(`[Server Command] received`);
+        console.log(convertMessage);
+        await this.eventsGateway.handleServerCommmand(convertMessage);
+      } else if (channel.startsWith('room:')) {
         // play_count_update 이벤트인 경우 시청자 수도 함께 전송
         if (parsedMessage.type === 'viewer_count') {
           const convertMessage = parsedMessage as RoomUpdateEvent;
@@ -49,14 +46,14 @@ export class RedisService {
           await this.eventsGateway.sendToRoom(
             convertMessage.broadcaster_id,
             convertMessage.type,
-            enrichedMessage
+            enrichedMessage,
           );
         } else if (parsedMessage.type === 'chat') {
           const convertMessage = parsedMessage as RoomChatEvent;
           await this.eventsGateway.sendToRoom(
             convertMessage.broadcaster_id,
             convertMessage.type,
-            convertMessage
+            convertMessage,
           );
         }
       }
@@ -69,9 +66,7 @@ export class RedisService {
         console.error('Failed to subscribe: %s', err.message);
         return;
       }
-      console.log(
-        `Subscribed successfully! subscribed to ${event} channels.`,
-      );
+      console.log(`Subscribed successfully! subscribed to ${event} channels.`);
     });
   }
 
@@ -95,23 +90,22 @@ export class RedisService {
   async publishMessage(channel: string, message: any) {
     await this.redis.publish(channel, JSON.stringify(message));
   }
-  
+
   /**
    * redis에 connection 등록, 다른 서버에 등록되어있었으면 publish 날려서 해당 서버에 삭제 요청
-   * @param roomId 
-   * @param userId 
+   * @param roomId
+   * @param userId
    * @returns
    */
-  async registConnection(
-    roomId: string,
-    userId: string,
-  ) {
+  async registConnection(roomId: string, userId: string) {
     const key = `con:${roomId}:${userId}`;
     const old = await this.redis.getset(key, this.serverId);
-    // 이미 키가 존재하면서, 자신의 서버가 아닐때만 
+    // 이미 키가 존재하면서, 자신의 서버가 아닐때만
     if (old && old != this.serverId.toString()) {
-      console.log(`Connection already exist another server: ${key} - ${this.serverId}`);
-      await this.publishMessage(`server_command:${old}`, { 
+      console.log(
+        `Connection already exist another server: ${key} - ${this.serverId}`,
+      );
+      await this.publishMessage(`server_command:${old}`, {
         command: 'delete',
         prev_server_id: old,
         room_id: roomId,
@@ -126,27 +120,18 @@ export class RedisService {
    * @param userId 사용자 ID
    * @returns 삭제된 키의 개수
    */
-  async removeConnection(
-    roomId: string, 
-    userId: string
-  ): Promise<number> {
+  async removeConnection(roomId: string, userId: string): Promise<number> {
     const key = `con:${roomId}:${userId}`;
     console.log(`Removing redis connection: ${key}`);
     return await this.del(key);
   }
 
-  async registViewer(
-    broadcasterId: string,
-    userId: string,
-  ) {
+  async registViewer(broadcasterId: string, userId: string) {
     const key = `viewer:${broadcasterId}`;
-    await this.hset(key, userId, "1");
+    await this.hset(key, userId, '1');
   }
 
-  async removeViewer(
-    broadcasterId: string,
-    userId: string,
-  ) {
+  async removeViewer(broadcasterId: string, userId: string) {
     const key = `viewer:${broadcasterId}`;
     console.log(`[Last Viewer Deleted], deleting key: ${key}`);
     await this.hdel(key, userId);
@@ -154,12 +139,10 @@ export class RedisService {
 
   /**
    * 방종 종료시 hset인 viewer key를 삭제
-   * @param registedId 
-   * @returns 
+   * @param registedId
+   * @returns
    */
-  async removeViewerKey(
-    registedId: string,
-  ) {
+  async removeViewerKey(registedId: string) {
     const key = `viewer:${registedId}`;
     console.log(`[Braodcast End], deleting redis viewer key: ${key}`);
     return await this.del(key);
@@ -225,7 +208,11 @@ export class RedisService {
    * @param value 필드 값
    * @returns 새 필드가 생성되면 1, 기존 필드가 업데이트되면 0
    */
-  private async hset(key: string, field: string, value: string): Promise<number> {
+  private async hset(
+    key: string,
+    field: string,
+    value: string,
+  ): Promise<number> {
     return await this.redis.hset(key, field, value);
   }
 
@@ -251,7 +238,7 @@ export class RedisService {
     }
     return await this.redis.hdel(key, fields);
   }
-  
+
   /**
    * Redis 해시의 필드 개수를 반환합니다.
    * @param key 해시 키
@@ -299,56 +286,68 @@ export class RedisService {
   }
 
   /**
-   * 일일 좋아요 기록을 확인합니다.
+   * 일일 추천 기록을 확인합니다.
    * @param viewerIdx 시청자 ID
    * @param broadcasterIdx 방송자 ID
    * @param date 날짜 (YYYY-MM-DD 형식)
-   * @returns 이미 좋아요를 했으면 true, 아니면 false
+   * @returns 이미 추천을 했으면 true, 아니면 false
    */
-  async checkDailyLike(viewerIdx: number, broadcasterIdx: number, date: string): Promise<boolean> {
-    const key = `like:daily:${date}`;
+  async checkDailyRecommend(
+    viewerIdx: number,
+    broadcasterIdx: number,
+    date: string,
+  ): Promise<boolean> {
+    const key = `recommend:daily:${date}`;
     const field = `${viewerIdx}:${broadcasterIdx}`;
     const value = await this.hget(key, field);
     return value !== null;
   }
 
   /**
-   * 일일 좋아요 기록을 저장합니다.
+   * 일일 추천 기록을 저장합니다.
    * @param viewerIdx 시청자 ID
    * @param broadcasterIdx 방송자 ID
    * @param date 날짜 (YYYY-MM-DD 형식)
    * @returns 새 필드가 생성되면 1, 기존 필드가 업데이트되면 0
    */
-  async recordDailyLike(viewerIdx: number, broadcasterIdx: number, date: string): Promise<number> {
-    const key = `like:daily:${date}`;
+  async recordDailyRecommend(
+    viewerIdx: number,
+    broadcasterIdx: number,
+    date: string,
+  ): Promise<number> {
+    const key = `recommend:daily:${date}`;
     const field = `${viewerIdx}:${broadcasterIdx}`;
-    
+
     // 키가 처음 생성되는 경우에만 TTL 설정
     const exists = await this.exists(key);
     const result = await this.hset(key, field, '1');
-    
+
     if (!exists) {
       // 다음날 자정까지의 초 계산 (KST 기준)
       const now = new Date();
-      const kstNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+      const kstNow = new Date(
+        now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }),
+      );
       const tomorrow = new Date(kstNow);
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(0, 0, 0, 0);
-      
-      const ttlSeconds = Math.floor((tomorrow.getTime() - kstNow.getTime()) / 1000);
+
+      const ttlSeconds = Math.floor(
+        (tomorrow.getTime() - kstNow.getTime()) / 1000,
+      );
       await this.expire(key, ttlSeconds);
     }
-    
+
     return result;
   }
 
   /**
-   * 특정 날짜의 모든 좋아요 기록을 삭제합니다.
+   * 특정 날짜의 모든 추천 기록을 삭제합니다.
    * @param date 날짜 (YYYY-MM-DD 형식)
    * @returns 삭제된 키의 개수
    */
-  async deleteDailyLikes(date: string): Promise<number> {
-    const key = `like:daily:${date}`;
+  async deleteDailyRecommends(date: string): Promise<number> {
+    const key = `recommend:daily:${date}`;
     return await this.del(key);
   }
 

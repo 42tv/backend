@@ -1,12 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { BookmarkRepository } from './bookmark.repository';
 
-
 @Injectable()
 export class BookmarkService {
-  constructor(
-    private readonly bookmarkRepository: BookmarkRepository,
-  ) {}
+  constructor(private readonly bookmarkRepository: BookmarkRepository) {}
 
   /**
    * 북마크 추가
@@ -16,9 +13,9 @@ export class BookmarkService {
    */
   async addBookmark(bookmarker_idx: number, bookmarked_idx: number) {
     await this.bookmarkRepository.createBookmark(
-        bookmarker_idx,
-        bookmarked_idx,
-      );
+      bookmarker_idx,
+      bookmarked_idx,
+    );
   }
 
   /**
@@ -29,9 +26,9 @@ export class BookmarkService {
    */
   async removeBookmark(bookmarker_idx: number, bookmarked_idx: number) {
     await this.bookmarkRepository.deleteBookmark(
-        bookmarker_idx,
-        bookmarked_idx,
-    )
+      bookmarker_idx,
+      bookmarked_idx,
+    );
   }
 
   /**
@@ -41,7 +38,7 @@ export class BookmarkService {
    */
   async getUserBookmarks(user_idx: number) {
     const bookmarks = await this.bookmarkRepository.findAllBookmarks(user_idx);
-    
+
     return {
       bookmarks: bookmarks.map((bookmark) => ({
         id: bookmark.id,
@@ -74,7 +71,7 @@ export class BookmarkService {
     } catch (e) {
       throw new BadRequestException('유효하지 않은 북마크 삭제요청입니다');
     }
-    
+
     return {
       message: '북마크 삭제 완료',
     };

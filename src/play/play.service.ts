@@ -53,7 +53,7 @@ export class PlayService {
         profile_img: broadcaster.profile_img,
         nickname: broadcaster.nickname,
         play_cnt: stream.play_cnt,
-        like_cnt: stream.like_cnt,
+        recommend_cnt: stream.recommend_cnt,
         start_time: stream.start_time,
         play_token: playToken.token,
       };
@@ -88,7 +88,7 @@ export class PlayService {
         profile_img: broadcaster.profile_img,
         nickname: broadcaster.nickname,
         play_cnt: stream.play_cnt,
-        like_cnt: stream.like_cnt,
+        recommend_cnt: stream.recommend_cnt,
         start_time: stream.start_time,
         play_token: playToken.token,
       };
@@ -125,7 +125,7 @@ export class PlayService {
       profile_img: broadcaster.profile_img,
       nickname: broadcaster.nickname,
       play_cnt: stream.play_cnt,
-      like_cnt: stream.like_cnt,
+      recommend_cnt: stream.recommend_cnt,
       start_time: stream.start_time,
       play_token: playToken.token,
     };

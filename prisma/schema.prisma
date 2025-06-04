@@ -100,7 +100,7 @@ model Channel {
   user_idx          Int      @id 
   title             String   @default("")
   bookmark          Int      @default(0)
-  like              Int      @default(0)
+  recommend         Int      @default(0)
   watch             Int      @default(0)
   month_time        Int      @default(0)
   total_time        Int      @default(0)
@@ -155,7 +155,7 @@ model Stream {
   start_time      String
 
   play_cnt        Int      @default(0)
-  like_cnt        Int      @default(0)
+  recommend_cnt   Int      @default(0)
   thumbnail       String   @default("")
   // Relations
   user_idx        Int      @unique
