@@ -7,6 +7,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
+import { BookmarkService } from 'src/bookmark/bookmark.service';
 
 @Injectable()
 export class PlayService {
@@ -15,6 +16,7 @@ export class PlayService {
     private readonly streamService: StreamService,
     private readonly authService: AuthService,
     private readonly blacklistService: BlacklistService,
+    private readonly bookmarkService: BookmarkService,
   ) {}
 
   async play(userIdx, streamerId, isGuest, guestId, password) {
@@ -32,6 +34,9 @@ export class PlayService {
     if (!stream) {
       throw new BadRequestException('방송중인 스트리머가 아닙니다.');
     }
+    
+    // 스트리머의 북마크 개수 조회
+    const bookmarkData = await this.bookmarkService.getUserBookmarkCount(broadcaster.idx);
     if (isGuest) {
       if (
         broadcaster.broadcastSetting.is_adult ||
@@ -60,6 +65,7 @@ export class PlayService {
         nickname: broadcaster.nickname,
         play_cnt: stream.play_cnt,
         recommend_cnt: stream.recommend_cnt,
+        bookmark_cnt: bookmarkData.count,
         start_time: stream.start_time,
         play_token: playToken.token,
       };
@@ -108,6 +114,7 @@ export class PlayService {
         nickname: broadcaster.nickname,
         play_cnt: stream.play_cnt,
         recommend_cnt: stream.recommend_cnt,
+        bookmark_cnt: bookmarkData.count,
         start_time: stream.start_time,
         play_token: playToken.token,
       };
@@ -145,6 +152,7 @@ export class PlayService {
       nickname: broadcaster.nickname,
       play_cnt: stream.play_cnt,
       recommend_cnt: stream.recommend_cnt,
+      bookmark_cnt: bookmarkData.count,
       start_time: stream.start_time,
       play_token: playToken.token,
     };
