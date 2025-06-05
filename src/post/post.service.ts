@@ -62,7 +62,7 @@ export class PostService {
     for (const post of posts) {
       const sender = await this.userService.findByUserIdx(post.sender_idx);
       const recipient = await this.userService.findByUserIdx(
-        post.recipient_idx,
+        post.receiver_idx,
       );
       result.push({
         id: post.id,
