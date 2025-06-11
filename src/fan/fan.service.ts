@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { FanRepository } from './fan.repository';
 
 @Injectable()
 export class FanService {
   constructor(
-    private readonly prismaService: PrismaService, // Assuming PrismaService is defined and imported correctly
-    private readonly fanLevelService: FanLevelService, // Assuming FanLevelService is defined and imported correctly
+    private readonly fanRepository: FanRepository,
+    private readonly fanLevelService: FanLevelService,
   ) {}
 
   /**
@@ -17,14 +17,7 @@ export class FanService {
    */
   async getFanLevel(fan_idx: number, creator_idx: number) {
     // 해당 팬이 크리에이터에게 후원한 총 금액 조회
-    const fanRelation = await this.prismaService.fan.findUnique({
-      where: {
-        creator_id_fan_idx: {
-          creator_id: creator_idx,
-          fan_idx: fan_idx,
-        },
-      },
-    });
+    const fanRelation = await this.fanRepository.findFanRelation(fan_idx, creator_idx);
 
     if (!fanRelation) {
       return null; // 팬이 아님
@@ -58,14 +51,7 @@ export class FanService {
    * @returns 팬 관계 여부
    */
   async isFan(fan_idx: number, creator_idx: number): Promise<boolean> {
-    const fanRelation = await this.prismaService.fan.findUnique({
-      where: {
-        creator_id_fan_idx: {
-          creator_id: creator_idx,
-          fan_idx: fan_idx,
-        },
-      },
-    });
+    const fanRelation = await this.fanRepository.findFanRelation(fan_idx, creator_idx);
 
     return !!fanRelation;
   }
