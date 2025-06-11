@@ -25,6 +25,7 @@ model User {
   channel             Channel?
   ivs                 IVSChannel?
   broadcastSetting    BroadcastSetting?
+  postSettings        PostSettings?
   UserTerms           UserTerms[]
   coin                Coin?
   
@@ -188,6 +189,18 @@ model Stream {
 //   @@unique([stream_id, guest_id], name: "UniqueGuestView")
 // }
 
+// 쪽지 설정 테이블 - 크리에이터별 쪽지 수신 설정
+model PostSettings {
+  user_idx          Int      @id
+  min_fan_level_id  Int?     // 쪽지를 보낼 수 있는 최소 팬 레벨 ID (null이면 제한 없음)
+  created_at        DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at        DateTime @updatedAt
+
+  // Relations
+  user              User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  minFanLevel       FanLevel? @relation(fields: [min_fan_level_id], references: [id], onDelete: SetNull)
+}
+
 // 쪽지 테이블 (유저간 메시지)
 model Posts {
   id             Int      @id @default(autoincrement())
@@ -265,6 +278,7 @@ model FanLevel {
   // Relations
   user_idx         Int      // 크리에이터(등급 소유자) 인덱스
   user             User     @relation("CreatorRankTiers", fields: [user_idx], references: [idx], onDelete: Cascade)
+  postSettings     PostSettings[] // 이 팬레벨을 최소 요구사항으로 설정한 쪽지 설정들
   
   // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
   @@unique([user_idx, name])

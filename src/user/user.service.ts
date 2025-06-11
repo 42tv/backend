@@ -175,6 +175,13 @@ export class UserService {
         await this.ivsService.createIvs(createdUser.user_id, tx);
         //팬레벨 생성
         await this.fanLevelService.createInitFanLevel(createdUser.idx, tx);
+        //쪽지 설정 생성
+        await tx.postSettings.create({
+          data: {
+            user_idx: createdUser.idx,
+            min_fan_level_id: null, // 기본적으로 제한 없음
+          },
+        });
         const sanitizedUser = { ...createdUser };
         delete sanitizedUser.password;
         return sanitizedUser;

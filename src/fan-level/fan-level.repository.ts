@@ -78,15 +78,20 @@ export class FanLevelRepository {
    * @param tx
    * @returns
    */
-  async findByUserIdx(user_idx, tx?: Prisma.TransactionClient) {
+  async findByUserIdx(user_idx, orderBy: 'asc' | 'desc' = 'asc', tx?: Prisma.TransactionClient) {
     const prismaClient = tx || this.prisma;
     return await prismaClient.fanLevel.findMany({
       where: {
         user_idx: user_idx,
       },
       orderBy: {
-        min_donation: 'asc',
+        min_donation: orderBy,
       },
+      select: {
+        id: true,
+        name: true,
+        min_donation: true
+      }
     });
   }
 
@@ -129,6 +134,6 @@ export class FanLevelRepository {
     await Promise.all(createPromises);
 
     // 업데이트된 레벨 반환
-    return this.findByUserIdx(user_idx, prismaClient);
+    return this.findByUserIdx(user_idx, 'asc', prismaClient);
   }
 }
