@@ -44,15 +44,4 @@ export class FanService {
     };
   }
 
-  /**
-   * 특정 유저가 다른 유저의 팬인지 확인하는 함수
-   * @param fan_idx 팬의 user idx
-   * @param creator_idx 크리에이터의 user idx
-   * @returns 팬 관계 여부
-   */
-  async isFan(fan_idx: number, creator_idx: number): Promise<boolean> {
-    const fanRelation = await this.fanRepository.findFanRelation(fan_idx, creator_idx);
-
-    return !!fanRelation;
-  }
 }
