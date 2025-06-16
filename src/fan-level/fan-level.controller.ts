@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Put, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FanLevelService } from './fan-level.service';
 import { UpdateFanLevelDto } from './dto/update-fan-level.dto';
@@ -17,7 +17,7 @@ export class FanLevelController {
     return await this.fanLevelService.findByUserIdx(req.user.idx);
   }
 
-  @Post('')
+  @Put('')
   @UseGuards(MemberGuard)
   @ApiOperation({ summary: '사용자의 팬 레벨 설정 업데이트' })
   @ApiResponse({ status: 201, description: '팬 레벨 설정 업데이트 성공' })

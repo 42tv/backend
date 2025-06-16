@@ -12,7 +12,6 @@ class FanLevelItem {
   min_donation: number;
 
   @ApiProperty({ description: '팬 레벨 색상 (헥스 코드)', example: '#FF5733', required: false })
-  @IsOptional()
   @IsString()
   @Matches(/^#[0-9A-Fa-f]{6}$/, { message: '색상은 #으로 시작하는 6자리 헥스 코드여야 합니다. (예: #FF5733)' })
   color: string;

@@ -83,7 +83,7 @@ export class FanLevelRepository {
    * @param tx
    * @returns
    */
-  async findByUserIdx(user_idx, orderBy: 'asc' | 'desc' = 'asc', tx?: Prisma.TransactionClient) {
+  async findByUserIdx(user_idx, orderBy: 'asc' | 'desc' = 'desc', tx?: Prisma.TransactionClient) {
     const prismaClient = tx || this.prisma;
     return await prismaClient.fanLevel.findMany({
       where: {
@@ -133,7 +133,7 @@ export class FanLevelRepository {
           },
           name: level.name,
           min_donation: level.min_donation,
-          color: level.color || '#808080', // 기본 색상 설정
+          color: level.color, // 기본 색상 설정
         },
       }),
     );

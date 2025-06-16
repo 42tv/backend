@@ -26,7 +26,7 @@ export class FanLevelService {
    * @param tx
    * @returns
    */
-  async findByUserIdx(user_idx, orderBy: 'asc' | 'desc' = 'asc', tx?: Prisma.TransactionClient) {
+  async findByUserIdx(user_idx, orderBy: 'asc' | 'desc' = 'desc', tx?: Prisma.TransactionClient) {
     return await this.fanLevelRepository.findByUserIdx(user_idx, orderBy, tx);
   }  /**
    * 사용자의 팬레벨 설정을 업데이트 (트랜잭션 내에서 처리)
