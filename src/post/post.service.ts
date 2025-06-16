@@ -1,14 +1,38 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, ForbiddenException } from '@nestjs/common';
 import { PostRepository } from './post.repository';
 import { PostDto } from './dto/create.post.dto';
 import { UserService } from 'src/user/user.service';
+import { FanService } from 'src/fan/fan.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { FanLevelService } from 'src/fan-level/fan-level.service';
+import { min } from 'class-validator';
 
 @Injectable()
 export class PostService {
   constructor(
     private readonly postRepository: PostRepository,
     private readonly userService: UserService,
+    private readonly fanService: FanService,
+    private readonly fanLevelService: FanLevelService,
+    private readonly prismaService: PrismaService,
   ) {}
+
+  /**
+   * 유저 생성 시 PostSettings 초기화 함수
+   * @param user_idx 유저 인덱스
+   * @param tx 트랜잭션 옵션
+   * @returns
+   */
+  async createPostSettings(user_idx: number, tx?: any) {
+    const prismaClient = tx ?? this.prismaService;
+    return await prismaClient.postSettings.create({
+      data: {
+        user_idx: user_idx,
+        is_fan_only: false,
+        min_fan_level_id: null,
+      },
+    });
+  }
 
   /**
    * 쪽지 보내는 함수
@@ -22,6 +46,41 @@ export class PostService {
     if (!receiver) {
       throw new BadRequestException('존재하지 않는 유저입니다.');
     }
+
+    // 자기 자신에게 쪽지 보내기 방지
+    // if (sender_idx === receiver.idx) {
+    //   throw new BadRequestException('자기 자신에게는 쪽지를 보낼 수 없습니다.');
+    // }
+
+    // 받는 사람의 쪽지 설정 확인
+    const postSettings = await this.prismaService.postSettings.findUnique({
+      where: { user_idx: receiver.idx },
+      include: {
+        minFanLevel: true, // 최소 팬레벨 정보도 함께 조회
+      },
+    });
+
+    if (!postSettings) {
+      throw new BadRequestException('받는 사람의 쪽지 설정을 찾을 수 없습니다.');
+    }
+
+    // 쪽지 설정이 있고 팬 전용 설정이 켜져 있는 경우
+    if (postSettings.min_fan_level_id) {
+      // 팬인지 확인
+      const fan = await this.fanService.getFanLevel(sender_idx, receiver.idx);
+      if (!fan) {
+        throw new ForbiddenException(`${receiver.nickname}님의 쪽지 수신은 "${postSettings.minFanLevel.name}" 레벨 이상이어야 합니다`);
+      }
+
+      // 최소 팬레벨이 설정되어 있는 경우
+      if (postSettings.min_fan_level_id && postSettings.minFanLevel) {
+        // 팬 레벨 확인
+        if (fan.totalDonation < postSettings.minFanLevel.min_donation) {
+          throw new ForbiddenException(`쪽지를 보내기 위해서는 최소 "${postSettings.minFanLevel.name}" 레벨 이상이어야 합니다.`);
+        }
+      }
+    }
+
     return await this.postRepository.createPost(
       sender_idx,
       receiver.idx,
@@ -196,5 +255,81 @@ export class PostService {
       } catch (e) {}
     }
     return;
+  }
+
+  /**
+   * 쪽지 설정 조회 함수
+   * @param user_idx 유저 인덱스
+   * @returns
+   */
+  async getPostSettings(user_idx: number) {
+    const postSettings = await this.prismaService.postSettings.findUnique({
+      where: { user_idx },
+      include: {
+        minFanLevel: true,
+      },
+    });
+    if (!postSettings) {
+      throw new BadRequestException('쪽지 설정을 찾을 수 없습니다.');
+    }
+
+    const fanLevels = await this.fanLevelService.findByUserIdx(user_idx);
+    console.log('fanLevels', fanLevels);
+    console.log(`postSetting`, postSettings);
+
+    // minFanLevel이 팬레벨 배열에서 몇 번째로 높은 레벨인지 계산
+    let minFanLevelRank = null;
+    console.log(postSettings.minFanLevel)
+    if (postSettings.minFanLevel) {
+      // fanLevels는 min_donation 내림차순순 정렬되어 있으므로
+      // 배열에서 해당 레벨의 인덱스를 찾아서 순위를 계산
+      const levelIndex = fanLevels.findIndex(level => level.id === postSettings.minFanLevel.id);
+      if (levelIndex != -1) {
+        minFanLevelRank = levelIndex + 1;
+      }
+    }
+    console.log(`minFanLevelRank`, minFanLevelRank);
+
+    return {
+      fanLevels: fanLevels,
+      minFanLevel: minFanLevelRank,
+    };
+  }
+
+  /**
+   * 쪽지 설정 업데이트 함수
+   * @param user_idx 유저 인덱스
+   * @param updateData 업데이트할 데이터
+   * @returns
+   */
+  async updatePostSettings(user_idx: number, min_fan_level_rank?: number ) {
+    let min_fan_level_id: number | null = null;
+
+    // 팬레벨 순위가 제공된 경우, 해당 순위의 팬레벨을 찾아 ID 설정
+    if (min_fan_level_rank !== null && min_fan_level_rank !== undefined) {
+      // 사용자의 팬레벨 목록을 min_donation 오름차순으로 조회
+      const fanLevels = await this.fanLevelService.findByUserIdx(user_idx);
+      if (fanLevels.length === 0) {
+        throw new BadRequestException('팬레벨이 설정되지 않았습니다.');
+      }
+
+      // 순위가 1~5 범위를 벗어나거나 존재하지 않는 경우
+      if (min_fan_level_rank < 1 || min_fan_level_rank > fanLevels.length) {
+        throw new BadRequestException(`유효하지 않은 팬레벨 순위입니다. 1~${fanLevels.length} 범위 내에서 선택해주세요.`);
+      }
+
+      // 순위는 1부터 시작하므로 배열 인덱스로 변환 (1 -> 0, 2 -> 1, ...)
+      min_fan_level_id = fanLevels[min_fan_level_rank - 1].id;
+    }
+    await this.prismaService.postSettings.update({
+      where: { user_idx },
+      data: {
+        min_fan_level_id: min_fan_level_id,
+      }
+    });
+
+    return {
+      message: '수신제한 설정이 업데이트되었습니다',
+    };
   }
 }

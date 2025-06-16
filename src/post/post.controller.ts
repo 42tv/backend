@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { PostDto } from './dto/create.post.dto';
+import { UpdatePostSettingsDto } from './dto/update-post-settings.dto';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import {
   ApiBadRequestResponse,
@@ -303,5 +304,45 @@ export class PostController {
     return {
       message: '유저를 차단 해제했습니다.',
     };
+  }
+
+  @Get('setting')
+  @UseGuards(MemberGuard)
+  @ApiOperation({ summary: '쪽지 설정 조회' })
+  @ApiCreatedResponse({
+    description: '쪽지 설정 조회 성공',
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
+  async getPostSettings(@Req() req) {
+    return await this.postService.getPostSettings(req.user.idx);
+  }
+
+  @Put('/setting/level')
+  @UseGuards(MemberGuard)
+  @ApiOperation({ summary: '쪽지 설정 업데이트' })
+  @ApiBody({ type: UpdatePostSettingsDto })
+  @ApiCreatedResponse({
+    description: '쪽지 설정 업데이트 성공',
+  })
+  @ApiBadRequestResponse({
+    description: '적절한 에러 안내 메세지',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 에러',
+    type: CustomInternalServerErrorResponse,
+  })
+  @ApiBearerAuth()
+  async updatePostSettings(@Req() req, @Body() updateData: UpdatePostSettingsDto) {
+    console.log(updateData);
+    return await this.postService.updatePostSettings(req.user.idx, updateData.minFanLevel);
   }
 }
