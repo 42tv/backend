@@ -272,6 +272,7 @@ model FanLevel {
   
   name             String   // 등급 이름 (예: "브론즈", "실버", "골드")
   min_donation     Int      // 해당 등급에 도달하기 위한 최소 후원 금액
+  color            String   @default("#808080") // 팬 등급 색상 (헥스 코드)
   created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at       DateTime @updatedAt
   
