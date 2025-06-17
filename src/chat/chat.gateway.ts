@@ -89,6 +89,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async sendToRoom(broadcasterId: string, eventName: string, data: any) {
     // 해당 room이 이 서버에 존재하는지 확인
+    console.log(this.chatRooms.has(broadcasterId));
     if (this.chatRooms.has(broadcasterId)) {
       // Socket.IO의 room 기능을 사용하여 해당 room의 모든 클라이언트에게 전송
       this.server.to(broadcasterId).emit(eventName, data);

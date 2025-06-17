@@ -478,6 +478,13 @@ export class UserService {
       throw new NotFoundException('존재하지 않는 유저입니다');
     }
     await this.bookmarkService.addBookmark(user.idx, bookmarkedUser.idx);
+
+    await this.redisService.publishMessage(`room:${bookmarkedUser.user_id}`, {
+      type: 'bookmark',
+      action: 'add',
+      user_idx: user.idx,
+      broadcaster_id: bookmarkedUser.user_id,
+    })
     return {
       message: '북마크 추가 완료',
     };
@@ -497,6 +504,12 @@ export class UserService {
       throw new NotFoundException('삭제할 유저가 존재하지 않습니다.');
     }
     await this.bookmarkService.removeBookmark(user.idx, deletedUser.idx);
+    await this.redisService.publishMessage(`room:${deletedUser.user_id}`, {
+      type: 'bookmark',
+      action: 'delete',
+      user_idx: user.idx,
+      broadcaster_id: deletedUser.user_id,
+    });
     return {
       message: '북마크 삭제 완료',
     };

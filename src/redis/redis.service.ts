@@ -3,6 +3,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
 import {
+  BookmarkEvent,
   RoomChatEvent,
   RoomRecommendEvent,
   RoomUpdateEvent,
@@ -84,6 +85,9 @@ export class RedisService {
       case 'recommend':
         await this.handleRecommendMessage(message as RoomRecommendEvent);
         break;
+      case 'bookmark':
+        await this.handleBookmarkMessage(message as BookmarkEvent)
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${messageType}`);
     }
@@ -127,6 +131,19 @@ export class RedisService {
       message.broadcaster_id,
       message.type,
       message,
+    );
+  }
+
+  /**
+   * 북마크 메시지 처리
+   * @param message 북마크 메시지
+   */
+  private async handleBookmarkMessage(message: BookmarkEvent) {
+    console.log(`[Bookmark] received:`, message);
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.type,
+      message
     );
   }
 
