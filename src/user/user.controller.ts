@@ -452,4 +452,39 @@ export class UserController {
       dto.blocked_user_ids,
     );
   }
+
+  @Get('profile/:nickname')
+  @ApiOperation({ summary: '닉네임으로 사용자 프로필 조회' })
+  @ApiParam({
+    name: 'nickname',
+    description: '조회할 사용자의 닉네임',
+    example: 'user123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '사용자 프로필 조회 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        idx: { type: 'number', example: 1 },
+        user_id: { type: 'string', example: 'user123' },
+        nickname: { type: 'string', example: 'nickname123' },
+        profile_img: { type: 'string', example: 'https://example.com/profile.jpg' },
+        created_at: { type: 'string', format: 'date-time' },
+        updated_at: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: '존재하지 않는 사용자입니다.',
+    type: CustomBadRequestResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 오류',
+    type: CustomInternalServerErrorResponse,
+  })
+  async getUserProfileByNickname(@Param('nickname') nickname: string) {
+    return await this.userService.getUserProfileByNickname(nickname);
+  }
 }

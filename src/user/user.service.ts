@@ -618,4 +618,27 @@ export class UserService {
       message: `${count}명의 사용자를 블랙리스트에서 제거했습니다.`
     };
   }
+
+  /**
+   * 닉네임으로 사용자 프로필 정보 조회
+   * @param nickname 조회할 사용자의 닉네임
+   * @returns 사용자 프로필 정보
+   */
+  async getUserProfileByNickname(nickname: string) {
+    const user = await this.userRepository.findByUserNickname(nickname);
+    
+    if (!user) {
+      throw new NotFoundException('존재하지 않는 사용자입니다.');
+    }
+
+    // 민감한 정보를 제외한 공개 프로필 정보만 반환
+    return {
+      idx: user.idx,
+      user_id: user.user_id,
+      nickname: user.nickname,
+      profile_img: user.profile_img,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    };
+  }
 }
