@@ -21,6 +21,7 @@ import { UserIncludeOptions } from 'src/utils/utils';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { BlacklistWithBlocked } from 'src/blacklist/types/blacklist.type';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class UserService {
@@ -35,6 +36,8 @@ export class UserService {
     private readonly awsService: AwsService,
     private readonly bookmarkService: BookmarkService,
     private readonly blacklistService: BlacklistService,
+    @Inject(forwardRef(() => RedisService))
+    private readonly redisService: RedisService,
   ) {}
 
   /**
