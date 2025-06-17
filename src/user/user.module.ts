@@ -11,6 +11,7 @@ import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.
 import { AwsModule } from 'src/aws/aws.module';
 import { BookmarkModule } from 'src/bookmark/bookmark.module';
 import { BlacklistModule } from 'src/blacklist/blacklist.module';
+import { ChattingRedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { BlacklistModule } from 'src/blacklist/blacklist.module';
     AwsModule,
     BookmarkModule,
     BlacklistModule,
+    forwardRef(() => ChattingRedisModule),
     forwardRef(() => IvsModule),
   ],
   controllers: [UserController],
