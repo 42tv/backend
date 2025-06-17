@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, Post, Req, UseGuards } from '@nestjs/common';
 import { LiveService } from './live.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import {
@@ -15,6 +15,7 @@ export class LiveController {
   constructor(private readonly liveService: LiveService) {}
 
   @Get()
+  @Header('Cache-Control', 'no-store')
   @ApiOperation({ summary: '실시간 방송 목록 조회' })
   @ApiResponse({
     status: 200,
