@@ -21,6 +21,7 @@ import { UserIncludeOptions } from 'src/utils/utils';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { BlacklistWithBlocked } from 'src/blacklist/types/blacklist.type';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class UserService {
@@ -35,6 +36,8 @@ export class UserService {
     private readonly awsService: AwsService,
     private readonly bookmarkService: BookmarkService,
     private readonly blacklistService: BlacklistService,
+    @Inject(forwardRef(() => RedisService))
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -475,6 +478,13 @@ export class UserService {
       throw new NotFoundException('존재하지 않는 유저입니다');
     }
     await this.bookmarkService.addBookmark(user.idx, bookmarkedUser.idx);
+
+    await this.redisService.publishMessage(`room:${bookmarkedUser.user_id}`, {
+      type: 'bookmark',
+      action: 'add',
+      user_idx: user.idx,
+      broadcaster_id: bookmarkedUser.user_id,
+    })
     return {
       message: '북마크 추가 완료',
     };
@@ -494,6 +504,12 @@ export class UserService {
       throw new NotFoundException('삭제할 유저가 존재하지 않습니다.');
     }
     await this.bookmarkService.removeBookmark(user.idx, deletedUser.idx);
+    await this.redisService.publishMessage(`room:${deletedUser.user_id}`, {
+      type: 'bookmark',
+      action: 'delete',
+      user_idx: user.idx,
+      broadcaster_id: deletedUser.user_id,
+    });
     return {
       message: '북마크 삭제 완료',
     };
@@ -616,6 +632,29 @@ export class UserService {
     return {
       deletedCount: count,
       message: `${count}명의 사용자를 블랙리스트에서 제거했습니다.`
+    };
+  }
+
+  /**
+   * 닉네임으로 사용자 프로필 정보 조회
+   * @param nickname 조회할 사용자의 닉네임
+   * @returns 사용자 프로필 정보
+   */
+  async getUserProfileByNickname(nickname: string) {
+    const user = await this.userRepository.findByUserNickname(nickname);
+    
+    if (!user) {
+      throw new NotFoundException('존재하지 않는 사용자입니다.');
+    }
+
+    // 민감한 정보를 제외한 공개 프로필 정보만 반환
+    return {
+      idx: user.idx,
+      user_id: user.user_id,
+      nickname: user.nickname,
+      profile_img: user.profile_img,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
     };
   }
 }

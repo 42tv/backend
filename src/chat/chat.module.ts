@@ -10,9 +10,9 @@ import { StreamModule } from 'src/stream/stream.module';
 
 @Module({
   imports: [
-    UserModule,
-    AuthModule,
-    StreamModule,
+    forwardRef(() => UserModule),
+    forwardRef(() => AuthModule),
+    forwardRef(() => StreamModule),
     forwardRef(() => ChattingRedisModule),
   ],
   controllers: [ChatController],
