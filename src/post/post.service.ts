@@ -81,11 +81,14 @@ export class PostService {
       }
     }
 
-    return await this.postRepository.createPost(
-      sender_idx,
-      receiver.idx,
-      postDto.message,
-    );
+    return await this.prismaService.$transaction(async (tx) => {
+      return await this.postRepository.createPost(
+        sender_idx,
+        receiver.idx,
+        postDto.message,
+        tx,
+      );
+    });
   }
 
   /**
@@ -160,14 +163,14 @@ export class PostService {
   }
 
   /**
-   * 쪽지 삭제 함수
+   * 받은 쪽지 삭제 함수
    * @param recipient_idx 받는 유저 idx
    * @param postId 삭제할 쪽지 idx
    * @returns
    */
-  async deletePost(recipient_idx: number, postId: string) {
+  async deleteReceivedPost(recipient_idx: number, postId: string) {
     try {
-      await this.postRepository.deletePost(recipient_idx, Number(postId));
+      await this.postRepository.deleteReceivedPost(recipient_idx, Number(postId));
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
     }
@@ -175,14 +178,44 @@ export class PostService {
   }
 
   /**
-   * 쪽지 삭제 함수
-   * @param recipient_idx 받는 유저 idx
+   * 보낸 쪽지 삭제 함수
+   * @param sender_idx 보낸 유저 idx
    * @param postId 삭제할 쪽지 idx
    * @returns
    */
-  async deletePosts(recipient_idx: number, postIds: []) {
+  async deleteSentPost(sender_idx: number, postId: string) {
     try {
-      await this.postRepository.deletePosts(recipient_idx, postIds);
+      await this.postRepository.deleteSentPost(sender_idx, Number(postId));
+    } catch (e) {
+      throw new BadRequestException('유효하지 않은 요청입니다');
+    }
+    return;
+  }
+
+  /**
+   * 받은 쪽지 여러개 삭제 함수
+   * @param recipient_idx 받는 유저 idx
+   * @param postIds 삭제할 쪽지 idx 배열
+   * @returns
+   */
+  async deleteReceivedPosts(recipient_idx: number, postIds: number[]) {
+    try {
+      await this.postRepository.deleteReceivedPosts(recipient_idx, postIds);
+    } catch (e) {
+      throw new BadRequestException('유효하지 않은 요청입니다');
+    }
+    return;
+  }
+
+  /**
+   * 보낸 쪽지 여러개 삭제 함수
+   * @param sender_idx 보낸 유저 idx
+   * @param postIds 삭제할 쪽지 idx 배열
+   * @returns
+   */
+  async deleteSentPosts(sender_idx: number, postIds: number[]) {
+    try {
+      await this.postRepository.deleteSentPosts(sender_idx, postIds);
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
     }

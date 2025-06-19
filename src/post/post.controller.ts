@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { PostDto } from './dto/create.post.dto';
+import { DeletePostsDto } from './dto/delete-posts.dto';
 import { UpdatePostSettingsDto } from './dto/update-post-settings.dto';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import {
@@ -127,20 +128,7 @@ export class PostController {
   @Delete()
   @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 일괄 삭제' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['postIds'],
-      properties: {
-        postIds: {
-          type: 'array',
-          items: { type: 'string' },
-          description: '삭제할 쪽지 ID 배열',
-          example: ['post1', 'post2', 'post3'],
-        },
-      },
-    },
-  })
+  @ApiBody({ type: DeletePostsDto })
   @ApiCreatedResponse({
     description: '삭제 성공',
     type: DeleteResponse,
@@ -154,8 +142,12 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async deletePosts(@Req() req, @Body('postIds') postIds) {
-    await this.postService.deletePosts(req.user.idx, postIds);
+  async deletePosts(@Req() req, @Body() deletePostsDto: DeletePostsDto) {
+    if (deletePostsDto.type === 'sent') {
+      await this.postService.deleteSentPosts(req.user.idx, deletePostsDto.postIds);
+    } else {
+      await this.postService.deleteReceivedPosts(req.user.idx, deletePostsDto.postIds);
+    }
     return {
       message: '쪽지를 삭제했습니다.',
     };
@@ -169,6 +161,13 @@ export class PostController {
     type: 'string',
     description: '삭제할 쪽지의 ID',
   })
+  @ApiQuery({
+    name: 'type',
+    required: true,
+    enum: ['sent', 'received'],
+    description: '삭제할 쪽지 타입 (sent: 보낸쪽지, received: 받은쪽지)',
+    example: 'received',
+  })
   @ApiCreatedResponse({
     description: '삭제 성공',
     type: DeleteResponse,
@@ -182,8 +181,12 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async deletePost(@Req() req, @Param('postId') postId) {
-    await this.postService.deletePost(req.user.idx, postId);
+  async deletePost(@Req() req, @Param('postId') postId, @Query('type') type: 'sent' | 'received') {
+    if (type === 'sent') {
+      await this.postService.deleteSentPost(req.user.idx, postId);
+    } else {
+      await this.postService.deleteReceivedPost(req.user.idx, postId);
+    }
     return {
       message: '쪽지를 삭제했습니다.',
     };
