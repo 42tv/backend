@@ -206,7 +206,7 @@ model SentPosts {
   id              Int      @id @default(autoincrement())
   content         String   // 쪽지 내용
   sent_at         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  is_deleted      Boolean  @default(false) // 보낸 사람이 삭제했는지 여부
+  is_read         Boolean  @default(false) // 읽음 상태
 
   // Relations
   sender_idx      Int      // 보낸 사용자
@@ -220,10 +220,9 @@ model SentPosts {
 model ReceivedPosts {
   id              Int      @id @default(autoincrement())
   content         String   // 쪽지 내용
-  is_read         Boolean  @default(false) // 읽음 상태
   sent_at         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   read_at         DateTime? // 읽은 시간
-  is_deleted      Boolean  @default(false) // 받은 사람이 삭제했는지 여부
+  is_read         Boolean  @default(false) // 읽음 상태
 
   // Relations
   sender_idx      Int      // 보낸 사용자

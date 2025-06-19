@@ -155,7 +155,9 @@ export class PostService {
    */
   async readPosts(recipient_idx: number, postId: string) {
     try {
-      await this.postRepository.readPosts(recipient_idx, Number(postId));
+      await this.prismaService.$transaction(async (tx) => {
+        await this.postRepository.readPosts(recipient_idx, Number(postId), tx);
+      });
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
     }

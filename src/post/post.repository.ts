@@ -163,6 +163,17 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
+    await prismaClient.sentPosts.update({
+      where: {
+        id: postId,
+        sender_idx: receiver_idx,
+      },
+      data: {
+        is_read: true,
+        sent_at: new Date(new Date().getTime() + 9 * 60 *
+        60 * 1000), // Korean time (UTC+9)
+      },
+    });
     return await prismaClient.receivedPosts.update({
       where: {
         id: postId,
