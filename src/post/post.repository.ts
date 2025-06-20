@@ -49,7 +49,6 @@ export class PostRepository {
     return await prismaClient.receivedPosts.findMany({
       where: {
         receiver_idx: receiver_idx,
-        is_deleted: false,
       },
       orderBy: {
         sent_at: 'desc',
@@ -85,7 +84,6 @@ export class PostRepository {
       where: {
         receiver_idx: receiver_idx,
         sender_idx: sender.idx,
-        is_deleted: false,
       },
       orderBy: {
         sent_at: 'desc',
@@ -105,7 +103,6 @@ export class PostRepository {
     return await prismaClient.sentPosts.findMany({
       where: {
         sender_idx: sender_idx,
-        is_deleted: false,
       },
       orderBy: {
         sent_at: 'desc',
@@ -141,7 +138,6 @@ export class PostRepository {
       where: {
         sender_idx: sender_idx,
         receiver_idx: receiver.idx,
-        is_deleted: false,
       },
       orderBy: {
         sent_at: 'desc',
@@ -187,7 +183,7 @@ export class PostRepository {
   }
 
   /**
-   * 받은 쪽지 삭제 (소프트 삭제)
+   * 받은 쪽지 삭제 (하드 삭제)
    * @param receiver_idx
    * @param postId
    * @param tx
@@ -199,19 +195,16 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.receivedPosts.update({
+    return await prismaClient.receivedPosts.delete({
       where: {
-        receiver_idx: receiver_idx,
         id: postId,
-      },
-      data: {
-        is_deleted: true,
+        receiver_idx: receiver_idx,
       },
     });
   }
 
   /**
-   * 보낸 쪽지 삭제 (소프트 삭제)
+   * 보낸 쪽지 삭제 (하드 삭제)
    * @param sender_idx
    * @param postId
    * @param tx
@@ -223,19 +216,16 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.sentPosts.update({
+    return await prismaClient.sentPosts.delete({
       where: {
-        sender_idx: sender_idx,
         id: postId,
-      },
-      data: {
-        is_deleted: true,
+        sender_idx: sender_idx,
       },
     });
   }
 
   /**
-   * 받은 쪽지 여러개 삭제 (소프트 삭제)
+   * 받은 쪽지 여러개 삭제 (하드 삭제)
    * @param receiver_idx
    * @param postIds
    * @param tx
@@ -247,21 +237,18 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.receivedPosts.updateMany({
+    return await prismaClient.receivedPosts.deleteMany({
       where: {
         receiver_idx: receiver_idx,
         id: {
           in: postIds,
         },
       },
-      data: {
-        is_deleted: true,
-      },
     });
   }
 
   /**
-   * 보낸 쪽지 여러개 삭제 (소프트 삭제)
+   * 보낸 쪽지 여러개 삭제 (하드 삭제)
    * @param sender_idx
    * @param postIds
    * @param tx
@@ -273,15 +260,12 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.sentPosts.updateMany({
+    return await prismaClient.sentPosts.deleteMany({
       where: {
         sender_idx: sender_idx,
         id: {
           in: postIds,
         },
-      },
-      data: {
-        is_deleted: true,
       },
     });
   }
