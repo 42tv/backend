@@ -177,6 +177,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         await this.redisService.removeViewer(broadcaster_id, registerId);
       }
     }
+    const viewerCount = await this.redisService.getHashFieldCount(
+      `viewer:${broadcaster_id}`,
+    );
+    // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
+    await this.redisService.publishMessage(`room:${broadcaster_id}`, {
+      broadcaster_id: broadcaster_id,
+      type: 'viewer_count',
+      viewer_cnt: viewerCount,
+    });
     await this.deleteChatRoomUser(broadcaster_id, registerId);
   }
 
