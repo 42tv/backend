@@ -358,18 +358,23 @@ export class IvsService {
     try {
       const command = new ListChannelsCommand({});
       const response = await this.client.send(command);
+      console.log(response);
       const allChannels = response.channels || [];
 
-      this.logger.log(`Found ${allChannels.length} channels in AWS IVS.`);
+      console.log(`Found ${allChannels.length} channels in AWS IVS.`);
 
       const userIvs = await this.prisma.iVSChannel.findMany({});
 
       for (const channel of allChannels) {
+        let found = false;
         for (const userChannel of userIvs) {
-          if (channel.arn != userChannel.arn) {
-            channelsToDelete.push(channel.arn);
+          if (channel.arn == userChannel.arn) {
+            found = true;
             break;
           }
+        }
+        if (!found) {
+          channelsToDelete.push(channel.arn);
         }
       }
 
