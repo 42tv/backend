@@ -38,6 +38,7 @@ export type UserIncludeOptions = {
   braodcast_setting?: boolean;
   ivs_channel?: boolean;
   coin?: boolean;
+  fan_level?: boolean;
 };
 
 /*

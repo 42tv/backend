@@ -143,6 +143,7 @@ export class UserRepository {
         ...(includeOptions.braodcast_setting && { broadcastSetting: true }),
         ...(includeOptions.ivs_channel && { ivs: true }),
         ...(includeOptions.coin && { coin: true }),
+        ...(includeOptions.fan_level && { fanLevel: true }),
       },
     });
   }

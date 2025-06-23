@@ -7,6 +7,8 @@ import { EventsGateway } from './chat.gateway';
 import { StreamViewerModule } from 'src/stream-viewer/stream-viewer.module';
 import { ChattingRedisModule } from 'src/redis/redis.module';
 import { StreamModule } from 'src/stream/stream.module';
+import { FanLevelModule } from 'src/fan-level/fan-level.module';
+import { FanModule } from 'src/fan/fan.module';
 
 @Module({
   imports: [
@@ -14,6 +16,7 @@ import { StreamModule } from 'src/stream/stream.module';
     forwardRef(() => AuthModule),
     forwardRef(() => StreamModule),
     forwardRef(() => ChattingRedisModule),
+    FanModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, EventsGateway],

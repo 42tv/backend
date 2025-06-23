@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { EventsGateway } from './chat.gateway';
 import { UserService } from 'src/user/user.service';
 import { RedisService } from 'src/redis/redis.service';
+import { FanLevelService } from 'src/fan-level/fan-level.service';
+import { FanService } from 'src/fan/fan.service';
 
 @Injectable()
 export class ChatService {
@@ -9,6 +11,7 @@ export class ChatService {
     private readonly eventsGateway: EventsGateway,
     private readonly userService: UserService,
     private readonly redisService: RedisService,
+    private readonly fanService: FanService,
   ) {}
 
   async sendChattingMessage(
