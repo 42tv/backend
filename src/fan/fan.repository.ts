@@ -13,7 +13,7 @@ export class FanRepository {
    * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 팬 관계 정보 또는 null
    */
-  async findFanRelation(
+  async findFan(
     fan_idx: number,
     creator_idx: number,
     tx?: Prisma.TransactionClient,

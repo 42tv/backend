@@ -21,6 +21,9 @@ export class ChatService {
   ) {
     // Emit the message to the WebSocket
     const user = await this.userService.getUserWithRelations(userIdx, {});
+    const broadcaster = await this.userService.getUserByUserIdWithRelations(broadcasterId, {});
+    const fanGrade = await this.fanService.getFanLevel(user.idx, broadcaster.idx);
+
     await this.redisService.publishMessage(`room:${broadcasterId}`, {
       type: 'chat',
       broadcaster_id: broadcasterId,

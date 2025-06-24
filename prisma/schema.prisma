@@ -59,6 +59,10 @@ model User {
   // Blacklist relations
   blacklistedUsers Blacklist[] @relation("BlacklistOwner") // 내가 차단한 유저 목록
   blacklistedBy    Blacklist[] @relation("BlacklistedUser") // 나를 차단한 유저 목록
+
+  // Manager relations
+  managedCreators Manager[] @relation("UserManager")    // 내가 매니저로 관리하는 크리에이터들
+  managers        Manager[] @relation("CreatorManaged") // 나를 관리하는 매니저들
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -345,4 +349,19 @@ model Blacklist {
   
   // Ensure a user can only block another user once
   @@unique([owner_idx, blocked_idx])
+}
+
+// 매니저 관계 테이블 - 크리에이터와 매니저 간의 관계 관리
+model Manager {
+  id              Int      @id @default(autoincrement())
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // Relations
+  broadcaster_idx Int      // 크리에이터 (관리 받는 사람)
+  manager_idx     Int      // 매니저 (관리하는 사람)
+  broadcaster     User     @relation("CreatorManaged", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
+  manager         User     @relation("UserManager", fields: [manager_idx], references: [idx], onDelete: Cascade)
+  
+  // 한 매니저는 같은 크리에이터를 중복해서 관리할 수 없음
+  @@unique([broadcaster_idx, manager_idx])
 }
