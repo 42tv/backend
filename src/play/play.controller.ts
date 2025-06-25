@@ -1,5 +1,5 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { PlayService } from './play.service';
+import { PlayResponse, PlayService } from './play.service';
 import { GuestGuard } from 'src/auth/guard/jwt.guest.guard';
 import {
   ApiTags,
@@ -93,7 +93,7 @@ export class PlayController {
       },
     },
   })
-  async play(@Req() req, @Body() body) {
+  async play(@Req() req, @Body() body): Promise<PlayResponse> {
     const isGuest = req.user.is_guest;
     const userIdx = req.user.idx;
     const guestId = req.user.guest_id;

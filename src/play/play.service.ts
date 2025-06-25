@@ -9,7 +9,7 @@ import { UserService } from 'src/user/user.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
 
-interface PlayResponse {
+export interface PlayResponse {
   broadcaster: {
     idx: number;
     user_id: string;
@@ -46,7 +46,7 @@ export class PlayService {
     isGuest: boolean,
     guestId: string,
     password: string,
-  ): Promise<PlayResponse> {
+  ) : Promise<PlayResponse> {
     // 기본 데이터 조회
     const { broadcaster, stream, bookmarkData } = await this.getBasicPlayData(streamerId);
     
