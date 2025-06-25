@@ -6,9 +6,10 @@ import { StreamModule } from 'src/stream/stream.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { BlacklistModule } from 'src/blacklist/blacklist.module';
 import { BookmarkModule } from 'src/bookmark/bookmark.module';
+import { ManagerModule } from 'src/manager/manager.module';
 
 @Module({
-  imports: [UserModule, StreamModule, AuthModule, BlacklistModule, BookmarkModule],
+  imports: [UserModule, StreamModule, AuthModule, BlacklistModule, BookmarkModule, ManagerModule],
   controllers: [PlayController],
   providers: [PlayService],
   exports: [PlayService],

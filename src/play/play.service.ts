@@ -8,6 +8,7 @@ import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
+import { ManagerService } from 'src/manager/manager.service';
 
 export interface PlayResponse {
   broadcaster: {
@@ -39,6 +40,7 @@ export class PlayService {
     private readonly authService: AuthService,
     private readonly blacklistService: BlacklistService,
     private readonly bookmarkService: BookmarkService,
+    private readonly managerService: ManagerService, // ManagerService가 필요하다면 주입
   ) {}
 
   async play(
@@ -68,8 +70,8 @@ export class PlayService {
     }
     
     // Manager 여부 확인 - 실제 구현에서는 적절한 조건으로 변경 필요
-    // 예: user 테이블에 role 필드가 있거나, 별도 manager 테이블이 있는 경우
-    if (user.role === 'manager' || await this.checkIfUserIsManager(user.idx, broadcaster.idx)) {
+    const isManager = await this.managerService.isManager(user.idx, broadcaster.idx)
+    if (isManager) {
       return this.handleManagerPlay(broadcaster, stream, bookmarkData, bookmark, user);
     }
     
