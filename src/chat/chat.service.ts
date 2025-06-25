@@ -4,6 +4,7 @@ import { UserService } from 'src/user/user.service';
 import { RedisService } from 'src/redis/redis.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { FanService } from 'src/fan/fan.service';
+import { ManagerService } from 'src/manager/manager.service';
 
 @Injectable()
 export class ChatService {
@@ -30,6 +31,8 @@ export class ChatService {
       chatter_idx: user.idx,
       chatter_nickname: user.nickname,
       chatter_message: message,
+      role: fanGrade.level.name,
+      color: fanGrade.level.color,
     });
     return {
       message: '성공적으로 채팅을 전송하였습니다.',

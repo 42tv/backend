@@ -11,13 +11,14 @@ export class ManagerService {
    * @param creatorIdx 크리에이터 사용자 ID
    * @returns 매니저 관계 정보 또는 null
    */
-  async isManagerOf(managerIdx: number, creatorIdx: number) {
-    return await this.prismaService.manager.findFirst({
+  async isManager(managerIdx: number, broadcasteridx: number) {
+    const manager =  await this.prismaService.manager.findFirst({
       where: {
         manager_idx: managerIdx,
-        broadcaster_idx: creatorIdx
+        broadcaster_idx: broadcasteridx
       }
     });
+    return manager ? true : false;
   }
 
   /**

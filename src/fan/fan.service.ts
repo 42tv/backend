@@ -22,53 +22,46 @@ export class FanService {
 
     // 매니저, 팬 확인
     const fanRelation = await this.fanRepository.findFan(fanIdx, broadcasterIdx);
-    const managerRelation = await this.managerService.isManagerOf(fanIdx, broadcasterIdx);
-    // const noralUser = {
-    //   id:
-    // }
+    const isManager = await this.managerService.isManager(fanIdx, broadcasterIdx);
 
-    if (!fanRelation && !managerRelation) {
-      return null; // 팬도 아니고 매니저도 아님
-    }
-    
-    // 매니저인 경우 매니저 레벨 반환
-    if (managerRelation) {
+    if (!fanRelation && !isManager) {
       return {
         level: {
-          id: -2,
-          name: 'manager',
-          min_donation: 0,
-          color: '#FF6B35', // 매니저 전용 색상
+          name: 'viewer',
+          color: '#6B7280', // 기본 팬 레벨 색상
         },
         totalDonation: 0,
-        isManager: true,
-      };
+      }
     }
 
     // 크리에이터의 팬 레벨 설정 조회
     const fanLevels = await this.fanLevelService.findByUserIdx(broadcasterIdx, 'desc');
+
+    // 매니저인 경우 매니저 레벨 반환
+    if (isManager) {
+      return {
+        level: {
+          name: 'manager',
+          color: '#3EB350', // 매니저 전용 색상
+        },
+        totalDonation: fanRelation ? fanRelation.total_donation : 0,
+        isManager: true,
+      };
+    }
 
     // 팬의 총 후원 금액에 맞는 레벨 찾기
     const totalDonation = fanRelation.total_donation;
     for (const level of fanLevels) {
       if (totalDonation >= level.min_donation) {
         return {
-          level: level,
+          level: {
+            name: level.name,
+            color: level.color,
+          },
           totalDonation: totalDonation,
         };
       }
     }
-
-    // 어떤 레벨에도 해당하지 않는 경우 (가장 낮은 레벨도 못 채운 경우)
-    return {
-      level: {
-        id: -1,
-        name: 'normal',
-        min_donation: 0,
-        color: '#6B7280',
-      },
-      totalDonation: 0,
-    };
   }
 
   /**
