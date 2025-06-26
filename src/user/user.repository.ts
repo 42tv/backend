@@ -140,7 +140,7 @@ export class UserRepository {
       include: {
         ...(includeOptions.user_detail && { user_detail: true }),
         ...(includeOptions.channel && { channel: true }),
-        ...(includeOptions.braodcast_setting && { broadcastSetting: true }),
+        ...(includeOptions.broadcast_setting && { broadcastSetting: true }),
         ...(includeOptions.ivs_channel && { ivs: true }),
         ...(includeOptions.coin && { coin: true }),
         ...(includeOptions.fan_level && { fanLevel: true }),
@@ -168,9 +168,10 @@ export class UserRepository {
       include: {
         ...(includeOptions.user_detail && { user_detail: true }),
         ...(includeOptions.channel && { channel: true }),
-        ...(includeOptions.braodcast_setting && { broadcastSetting: true }),
+        ...(includeOptions.broadcast_setting && { broadcastSetting: true }),
         ...(includeOptions.ivs_channel && { ivs: true }),
         ...(includeOptions.coin && { coin: true }),
+        ...(includeOptions.fan_level && { fan_level: true }),
       },
     });
   }
