@@ -86,7 +86,7 @@ export class PlayService {
       streamerId,
       {
         ivs_channel: true,
-        braodcast_setting: true,
+        broadcast_setting: true,
       },
     );
     

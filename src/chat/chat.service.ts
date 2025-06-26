@@ -30,7 +30,13 @@ export class ChatService {
     const donation = fan ? fan.total_donation : 0;
     const fanLevels = broadcaster.fanLevel;
 
+    let userFanLevel = null;
+    console.log(fanLevels);
     for (const level of fanLevels) {
+      if (donation >= level.min_donation) {
+        userFanLevel = level;
+        break; // 가장 높은 레벨만 사용
+      }
     }
 
     await this.redisService.publishMessage(`room:${broadcasterId}`, {
