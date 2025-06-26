@@ -67,7 +67,7 @@ export class PostService {
     // 쪽지 설정이 있고 팬 전용 설정이 켜져 있는 경우
     if (postSettings.min_fan_level_id) {
       // 팬인지 확인
-      const fan = await this.fanService.getFanLevel(sender_idx, receiver.idx);
+      const fan = await this.fanService.findFan(sender_idx, receiver.idx);
       if (!fan) {
         throw new ForbiddenException(`${receiver.nickname}님의 쪽지 수신은 "${postSettings.minFanLevel.name}" 레벨 이상이어야 합니다`);
       }
@@ -75,7 +75,7 @@ export class PostService {
       // 최소 팬레벨이 설정되어 있는 경우
       if (postSettings.min_fan_level_id && postSettings.minFanLevel) {
         // 팬 레벨 확인
-        if (fan.totalDonation < postSettings.minFanLevel.min_donation) {
+        if (fan.total_donation < postSettings.minFanLevel.min_donation) {
           throw new ForbiddenException(`쪽지를 보내기 위해서는 최소 "${postSettings.minFanLevel.name}" 레벨 이상이어야 합니다.`);
         }
       }

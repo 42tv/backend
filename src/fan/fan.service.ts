@@ -12,16 +12,18 @@ export class FanService {
   ) {}
 
   /**
-   * 특정 팬이 크리에이터에게 얼마나 후원했는지 확인하여 팬 레벨을 계산하는 함수
+   * 특정 팬이 방송인에게 얼마나 후원했는지 확인하여 팬 레벨을 계산하는 함수
    * 매니저인 경우 'manager' 레벨을 반환
    * @param fan_idx 팬의 user idx
-   * @param creator_idx 크리에이터의 user idx
+   * @param broadcaster_idx 방송인의 user idx
    * @returns 현재 팬의 레벨 정보 또는 매니저 정보
    */
   async getFanLevel(fanIdx: number, broadcasterIdx: number) {
 
     // 매니저, 팬 확인
     const fanRelation = await this.fanRepository.findFan(fanIdx, broadcasterIdx);
+    return fanRelation;
+
     const isManager = await this.managerService.isManager(fanIdx, broadcasterIdx);
 
     if (!fanRelation && !isManager) {
@@ -34,7 +36,7 @@ export class FanService {
       }
     }
 
-    // 크리에이터의 팬 레벨 설정 조회
+    // 방송인의 팬 레벨 설정 조회
     const fanLevels = await this.fanLevelService.findByUserIdx(broadcasterIdx, 'desc');
 
     // 매니저인 경우 매니저 레벨 반환
@@ -65,13 +67,13 @@ export class FanService {
   }
 
   /**
-   * 팬이 크리에이터에게 후원한 총 금액을 조회하는 함수
+   * 팬이 방송인에게 후원한 총 금액을 조회하는 함수
    * @param fan_idx 팬의 user idx
-   * @param creator_idx 크리에이터의 user idx
-   * @returns 팬이 크리에이터에게 후원한 총 금액
+   * @param broadcaster_idx 방송인의 user idx
+   * @returns 팬이 방송인에게 후원한 총 금액
    */
-  async getTotalDonation(fan_idx: number, creator_idx: number): Promise<number> {
-    const fanRelation = await this.fanRepository.findFan(fan_idx, creator_idx);
+  async getTotalDonation(fan_idx: number, broadcaster_idx: number): Promise<number> {
+    const fanRelation = await this.fanRepository.findFan(fan_idx, broadcaster_idx);
     return fanRelation ? fanRelation.total_donation : 0;
   }
 
