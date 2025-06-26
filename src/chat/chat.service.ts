@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { EventsGateway } from './chat.gateway';
 import { UserService } from 'src/user/user.service';
 import { RedisService } from 'src/redis/redis.service';
-import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { FanService } from 'src/fan/fan.service';
-import { ManagerService } from 'src/manager/manager.service';
+import { FanLevel, User } from '@prisma/client';
 
 @Injectable()
 export class ChatService {
@@ -20,10 +19,20 @@ export class ChatService {
     broadcasterId: string,
     message: string,
   ) {
-    // Emit the message to the WebSocket
     const user = await this.userService.getUserWithRelations(userIdx, {});
-    const broadcaster = await this.userService.getUserByUserIdWithRelations(broadcasterId, {});
-    const fanLevel = await this.fanService.getFanLevel(user.idx, broadcaster.idx);
+    const broadcaster = await this.userService.getUserByUserIdWithRelations(broadcasterId, {
+      fan_level: true,
+    });
+    if (!broadcaster) {
+      throw new BadRequestException('방송인을 찾을 수 없습니다');
+    }
+    const fan = await this.fanService.findFan(user.idx, broadcaster.idx);
+    const donation = fan ? fan.total_donation : 0;
+    const fanLevels = broadcaster.fanLevel;
+
+    for (const level of fanLevels) {
+    }
+
     await this.redisService.publishMessage(`room:${broadcasterId}`, {
       type: 'chat',
       broadcaster_id: broadcasterId,
