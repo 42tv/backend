@@ -8,6 +8,7 @@ import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
+import { ManagerService } from 'src/manager/manager.service';
 
 export interface PlayResponse {
   broadcaster: {
@@ -27,6 +28,7 @@ export interface PlayResponse {
   user: {
     is_bookmarked: boolean;
     play_token: string;
+    role: string;
   };
 }
 
@@ -38,6 +40,7 @@ export class PlayService {
     private readonly authService: AuthService,
     private readonly blacklistService: BlacklistService,
     private readonly bookmarkService: BookmarkService,
+    private readonly managerService: ManagerService, // ManagerService가 필요하다면 주입
   ) {}
 
   async play(
@@ -66,6 +69,12 @@ export class PlayService {
       return this.handleOwnerPlay(broadcaster, stream, bookmarkData, bookmark, user);
     }
     
+    // Manager 여부 확인 - 실제 구현에서는 적절한 조건으로 변경 필요
+    const isManager = await this.managerService.isManager(user.idx, broadcaster.idx)
+    if (isManager) {
+      return this.handleManagerPlay(broadcaster, stream, bookmarkData, bookmark, user);
+    }
+    
     // 일반 회원 접근 제한 검증
     await this.validateMemberAccess(broadcaster, password);
     
@@ -77,7 +86,7 @@ export class PlayService {
       streamerId,
       {
         ivs_channel: true,
-        braodcast_setting: true,
+        broadcast_setting: true,
       },
     );
     
@@ -152,7 +161,7 @@ export class PlayService {
       guest_uuid: guestId,
     });
 
-    return this.createPlayResponse(broadcaster, stream, bookmarkData, false, playToken.token);
+    return this.createPlayResponse(broadcaster, stream, bookmarkData, false, playToken.token, 'guest');
   }
 
   private async handleOwnerPlay(
@@ -179,6 +188,35 @@ export class PlayService {
       bookmarkData,
       bookmark.is_bookmarked ? true : false,
       playToken.token,
+      'owner',
+    );
+  }
+
+  private async handleManagerPlay(
+    broadcaster: any,
+    stream: any,
+    bookmarkData: any,
+    bookmark: any,
+    user: any,
+  ): Promise<PlayResponse> {
+    const playToken = this.authService.generatePlayToken({
+      broadcaster_idx: broadcaster.idx,
+      broadcaster_id: broadcaster.user_id,
+      broadcaster_nickname: broadcaster.nickname,
+      type: 'manager',
+      user_idx: user.idx,
+      user_id: user.user_id,
+      stream_idx: stream.id,
+      stream_id: stream.stream_id,
+    });
+
+    return this.createPlayResponse(
+      broadcaster,
+      stream,
+      bookmarkData,
+      bookmark.is_bookmarked ? true : false,
+      playToken.token,
+      'manager',
     );
   }
 
@@ -206,6 +244,7 @@ export class PlayService {
       bookmarkData,
       bookmark.is_bookmarked ? true : false,
       playToken.token,
+      'member',
     );
   }
 
@@ -215,6 +254,7 @@ export class PlayService {
     bookmarkData: any,
     isBookmarked: boolean,
     playToken: string,
+    role: string,
   ): PlayResponse {
     return {
       broadcaster: {
@@ -234,6 +274,7 @@ export class PlayService {
       user: {
         is_bookmarked: isBookmarked,
         play_token: playToken,
+        role: role,
       },
     };
   }

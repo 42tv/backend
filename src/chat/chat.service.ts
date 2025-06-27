@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { EventsGateway } from './chat.gateway';
 import { UserService } from 'src/user/user.service';
 import { RedisService } from 'src/redis/redis.service';
-import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { FanService } from 'src/fan/fan.service';
+import { FanLevel, User } from '@prisma/client';
 import { ManagerService } from 'src/manager/manager.service';
 
 @Injectable()
@@ -13,6 +13,7 @@ export class ChatService {
     private readonly userService: UserService,
     private readonly redisService: RedisService,
     private readonly fanService: FanService,
+    private readonly managerService: ManagerService,
   ) {}
 
   async sendChattingMessage(
@@ -20,22 +21,57 @@ export class ChatService {
     broadcasterId: string,
     message: string,
   ) {
-    // Emit the message to the WebSocket
     const user = await this.userService.getUserWithRelations(userIdx, {});
-    const broadcaster = await this.userService.getUserByUserIdWithRelations(broadcasterId, {});
-    const fanGrade = await this.fanService.getFanLevel(user.idx, broadcaster.idx);
+    const broadcaster = await this.userService.getUserByUserIdWithRelations(broadcasterId, {
+      fan_level: true,
+    });
+    if (!broadcaster) {
+      throw new BadRequestException('방송인을 찾을 수 없습니다');
+    }
+    const fan = await this.fanService.findFan(user.idx, broadcaster.idx);
+    const donation = fan ? fan.total_donation : 0;
+    const fanLevels = broadcaster.fanLevel;
+    const { grade, color } = this.getGradeAndColor(fanLevels, donation);
+    const role = await this.getRole(user, broadcaster);
+
 
     await this.redisService.publishMessage(`room:${broadcasterId}`, {
       type: 'chat',
-      broadcaster_id: broadcasterId,
+      broadcaster_id: broadcaster.user_id,
       chatter_idx: user.idx,
       chatter_nickname: user.nickname,
       chatter_message: message,
-      role: fanGrade.level.name,
-      color: fanGrade.level.color,
+      grade: grade,
+      color: color,
+      role: role,
     });
     return {
       message: '성공적으로 채팅을 전송하였습니다.',
     };
   }
+  
+  getGradeAndColor(fanLevels: FanLevel[], min_donation: number) {
+    let grade='normal';
+    let color='#6B7280'
+    for (const level of fanLevels) {
+      if (min_donation >= level.min_donation) {
+        grade = level.name;
+        color = level.color;
+        break;
+      }
+    }
+    return { grade, color };
+  }
+
+  async getRole(user: User, broadcaster: User): Promise<'broadcaster' | 'manager' | 'viewer'> {
+    if (user.idx === broadcaster.idx) {
+      return 'broadcaster';
+    }
+    const isManager = await this.managerService.isManager(user.idx, broadcaster.idx);
+    if (isManager) {
+      return 'manager';
+    }
+    return 'viewer';
+  }
+
 }

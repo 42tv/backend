@@ -7,6 +7,7 @@ import { EventsGateway } from './chat.gateway';
 import { ChattingRedisModule } from 'src/redis/redis.module';
 import { StreamModule } from 'src/stream/stream.module';
 import { FanModule } from 'src/fan/fan.module';
+import { ManagerModule } from 'src/manager/manager.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { FanModule } from 'src/fan/fan.module';
     forwardRef(() => StreamModule),
     forwardRef(() => ChattingRedisModule),
     FanModule,
+    ManagerModule
   ],
   controllers: [ChatController],
   providers: [ChatService, EventsGateway],

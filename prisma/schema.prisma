@@ -276,14 +276,14 @@ model Fan {
   updated_at          DateTime @updatedAt
   
   // Relations
-  creator_id          Int      // 크리에이터(팔로우 당하는 사람) 인덱스
-  creator             User     @relation("UserFans", fields: [creator_id], references: [idx], onDelete: Cascade)
+  broadcaster_idx     Int      // 방송인(팔로우 당하는 사람) 인덱스
+  broadcaster         User     @relation("UserFans", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
 
   fan_idx             Int      // 팬(팔로우 하는 사람) 인덱스
   fan                 User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
 
   // Ensure a user can only follow another user once
-  @@unique([creator_id, fan_idx])
+  @@unique([broadcaster_idx, fan_idx])
 }
 
 // 팬 등급 시스템 - 각 크리에이터별 팬 등급 정의
@@ -342,13 +342,13 @@ model Blacklist {
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   
   // Relations
-  owner_idx       Int      // 블랙리스트 소유자 (방송인)
+  broadcaster_idx Int      // 블랙리스트 소유자 (방송인)
   blocked_idx     Int      // 차단된 사용자
-  owner           User     @relation("BlacklistOwner", fields: [owner_idx], references: [idx], onDelete: Cascade)
+  broadcaster     User     @relation("BlacklistOwner", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
   blocked         User     @relation("BlacklistedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
   
   // Ensure a user can only block another user once
-  @@unique([owner_idx, blocked_idx])
+  @@unique([broadcaster_idx, blocked_idx])
 }
 
 // 매니저 관계 테이블 - 크리에이터와 매니저 간의 관계 관리

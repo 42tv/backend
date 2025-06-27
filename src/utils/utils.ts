@@ -35,7 +35,7 @@ export function timeFormatter(time: string) {
 export type UserIncludeOptions = {
   user_detail?: boolean;
   channel?: boolean;
-  braodcast_setting?: boolean;
+  broadcast_setting?: boolean;
   ivs_channel?: boolean;
   coin?: boolean;
   fan_level?: boolean;

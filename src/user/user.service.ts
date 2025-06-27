@@ -306,7 +306,7 @@ export class UserService {
     // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.getUserWithRelations(user_idx, {
       ivs_channel: true,
-      braodcast_setting: true,
+      broadcast_setting: true,
     });
     console.log(user);
     const sanitizedUser = {
@@ -336,7 +336,7 @@ export class UserService {
   ) {
     // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.getUserWithRelations(user_idx, {
-      braodcast_setting: true,
+      broadcast_setting: true,
     });
 
     try {
