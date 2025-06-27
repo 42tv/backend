@@ -4,6 +4,7 @@ import { UserService } from 'src/user/user.service';
 import { RedisService } from 'src/redis/redis.service';
 import { FanService } from 'src/fan/fan.service';
 import { FanLevel, User } from '@prisma/client';
+import { ManagerService } from 'src/manager/manager.service';
 
 @Injectable()
 export class ChatService {
@@ -12,6 +13,7 @@ export class ChatService {
     private readonly userService: UserService,
     private readonly redisService: RedisService,
     private readonly fanService: FanService,
+    private readonly managerService: ManagerService,
   ) {}
 
   async sendChattingMessage(
@@ -30,7 +32,7 @@ export class ChatService {
     const donation = fan ? fan.total_donation : 0;
     const fanLevels = broadcaster.fanLevel;
     const { grade, color } = this.getGradeAndColor(fanLevels, donation);
-    const role = this.getRole(user, broadcaster);
+    const role = await this.getRole(user, broadcaster);
 
 
     await this.redisService.publishMessage(`room:${broadcasterId}`, {
@@ -61,10 +63,15 @@ export class ChatService {
     return { grade, color };
   }
 
-  getRole(user: User, broadcaster: User) {
+  async getRole(user: User, broadcaster: User): Promise<'broadcaster' | 'manager' | 'viewer'> {
     if (user.idx === broadcaster.idx) {
-      return 'owner';
+      return 'broadcaster';
     }
+    const isManager = await this.managerService.isManager(user.idx, broadcaster.idx);
+    if (isManager) {
+      return 'manager';
+    }
+    return 'viewer';
   }
 
 }

@@ -16,6 +16,7 @@ import { ManagerModule } from 'src/manager/manager.module';
     forwardRef(() => StreamModule),
     forwardRef(() => ChattingRedisModule),
     FanModule,
+    ManagerModule
   ],
   controllers: [ChatController],
   providers: [ChatService, EventsGateway],
