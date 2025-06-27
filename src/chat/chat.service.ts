@@ -31,8 +31,13 @@ export class ChatService {
     const fan = await this.fanService.findFan(user.idx, broadcaster.idx);
     const donation = fan ? fan.total_donation : 0;
     const fanLevels = broadcaster.fanLevel;
-    const { grade, color } = this.getGradeAndColor(fanLevels, donation);
+    let { grade, color } = this.getGradeAndColor(fanLevels, donation);
     const role = await this.getRole(user, broadcaster);
+    if (role === 'broadcaster') {
+    }
+    else if (role === 'manager') {
+      color = '#3EB350';
+    }
 
 
     await this.redisService.publishMessage(`room:${broadcasterId}`, {
