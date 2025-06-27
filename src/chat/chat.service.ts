@@ -29,32 +29,42 @@ export class ChatService {
     const fan = await this.fanService.findFan(user.idx, broadcaster.idx);
     const donation = fan ? fan.total_donation : 0;
     const fanLevels = broadcaster.fanLevel;
+    const { grade, color } = this.getGradeAndColor(fanLevels, donation);
+    const role = this.getRole(user, broadcaster);
 
-    let userFanLevel = null;
-    console.log(fanLevels);
-    for (const level of fanLevels) {
-      if (donation >= level.min_donation) {
-        userFanLevel = level;
-        break; // 가장 높은 레벨만 사용
-      }
-    }
 
     await this.redisService.publishMessage(`room:${broadcasterId}`, {
       type: 'chat',
-      broadcaster_id: broadcasterId,
+      broadcaster_id: broadcaster.user_id,
       chatter_idx: user.idx,
       chatter_nickname: user.nickname,
       chatter_message: message,
-          // role: fanLevel.level.name,
-          // color: fanGrade.level.color,
+      grade: grade,
+      color: color,
+      role: role,
     });
     return {
       message: '성공적으로 채팅을 전송하였습니다.',
     };
   }
   
-  calculateFanGrade(fanRelation, ) {
+  getGradeAndColor(fanLevels: FanLevel[], min_donation: number) {
+    let grade='normal';
+    let color='#6B7280'
+    for (const level of fanLevels) {
+      if (min_donation >= level.min_donation) {
+        grade = level.name;
+        color = level.color;
+        break;
+      }
+    }
+    return { grade, color };
+  }
 
+  getRole(user: User, broadcaster: User) {
+    if (user.idx === broadcaster.idx) {
+      return 'owner';
+    }
   }
 
 }
