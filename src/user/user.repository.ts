@@ -143,7 +143,13 @@ export class UserRepository {
         ...(includeOptions.broadcast_setting && { broadcastSetting: true }),
         ...(includeOptions.ivs_channel && { ivs: true }),
         ...(includeOptions.coin && { coin: true }),
-        ...(includeOptions.fan_level && { fanLevel: true }),
+        ...(includeOptions.fan_level && { 
+          fanLevel: {
+            orderBy: {
+              min_donation: 'desc'  // 최소 후원 금액 기준 오름차순 정렬
+            }
+          }
+        }),
       },
     });
   }
@@ -171,7 +177,13 @@ export class UserRepository {
         ...(includeOptions.broadcast_setting && { broadcastSetting: true }),
         ...(includeOptions.ivs_channel && { ivs: true }),
         ...(includeOptions.coin && { coin: true }),
-        ...(includeOptions.fan_level && { fanLevel: true }),
+        ...(includeOptions.fan_level && { 
+          fanLevel: {
+            orderBy: {
+              min_donation: 'desc'  // 최소 후원 금액 기준 오름차순 정렬
+            }
+          }
+        }),
       },
     });
   }
