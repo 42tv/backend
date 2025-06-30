@@ -7,9 +7,10 @@ import { AuthModule } from 'src/auth/auth.module';
 import { BlacklistModule } from 'src/blacklist/blacklist.module';
 import { BookmarkModule } from 'src/bookmark/bookmark.module';
 import { ManagerModule } from 'src/manager/manager.module';
+import { FanModule } from 'src/fan/fan.module';
 
 @Module({
-  imports: [UserModule, StreamModule, AuthModule, BlacklistModule, BookmarkModule, ManagerModule],
+  imports: [UserModule, StreamModule, AuthModule, BlacklistModule, BookmarkModule, ManagerModule, FanModule],
   controllers: [PlayController],
   providers: [PlayService],
   exports: [PlayService],

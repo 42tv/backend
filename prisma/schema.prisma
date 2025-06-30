@@ -157,7 +157,7 @@ model IVSChannel {
 // 이 정보들은 아마 서비스할때에는 redis에 복사본을 들고있다가 
 // 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
 model Stream {
-  id              Int      @id @default(autoincrement())
+  idx             Int      @id @default(autoincrement())
   request_id      String
   stream_id       String   @unique
   title           String
@@ -167,9 +167,9 @@ model Stream {
   recommend_cnt   Int      @default(0)
   thumbnail       String   @default("")
   // Relations
-  user_idx        Int      @unique
-  user            User     @relation("StreamData", fields: [user_idx], references: [idx], onDelete: Cascade)
-  
+  broadcaster_idx        Int      @unique
+  broadcaster            User     @relation("StreamData", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
+
   // Stream viewers relation
   // viewers         StreamViewer[]
 }
@@ -181,16 +181,16 @@ model Stream {
 //   guest_id        String?  // 게스트 ID (예: 세션 ID), 게스트일 경우에만 값 존재
 
 //   // Relations
-//   stream_id       Int      // 시청 중인 스트림 ID
+//   stream_idx      Int      // 시청 중인 스트림 ID
 //   viewer_idx      Int?     // 시청자 User ID (로그인 사용자), 게스트일 경우 null
-//   stream          Stream   @relation(fields: [stream_id], references: [id], onDelete: Cascade)
+//   stream          Stream   @relation(fields: [stream_idx], references: [idx], onDelete: Cascade)
 //   viewer          User?    @relation("StreamViewers", fields: [viewer_idx], references: [idx], onDelete: Cascade) // User? 로 변경
 
 //   // 제약 조건:
 //   // 1. 로그인 유저: 한 스트림에 같은 유저 중복 시청 방지 (viewer_idx가 null이 아닐 때)
 //   // 2. 게스트 유저: 한 스트림에 같은 게스트 ID 중복 시청 방지 (guest_id가 null이 아닐 때)
-//   @@unique([stream_id, viewer_idx], name: "UniqueUserView")
-//   @@unique([stream_id, guest_id], name: "UniqueGuestView")
+//   @@unique([stream_idx, viewer_idx], name: "UniqueUserView")
+//   @@unique([stream_idx, guest_id], name: "UniqueGuestView")
 // }
 
 // 쪽지 설정 테이블 - 크리에이터별 쪽지 수신 설정
@@ -257,7 +257,7 @@ model Gift {
   recipient_idx   Int      // 선물을 받은 사용자
   amount          Int      // 선물한 코인 양
   message         String?  // 선물과 함께 보낸 메시지
-  stream_id       Int?     // 연결된 스트림 (선물이 특정 스트림에서 이루어진 경우)
+  stream_idx      Int?     // 연결된 스트림 (선물이 특정 스트림에서 이루어진 경우)
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   
   // Relations

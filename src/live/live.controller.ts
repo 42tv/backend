@@ -38,7 +38,7 @@ export class LiveController {
               play_cnt: { type: 'number', example: 150 },
               recommend_cnt: { type: 'number', example: 50 },
               viewerCount: { type: 'number', example: 75 },
-              user: {
+              broadcaster: {
                 type: 'object',
                 properties: {
                   idx: { type: 'number', example: 1 },
