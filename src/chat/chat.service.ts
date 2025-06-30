@@ -44,6 +44,7 @@ export class ChatService {
       type: 'chat',
       broadcaster_id: broadcaster.user_id,
       chatter_idx: user.idx,
+      chatter_user_id: user.user_id,
       chatter_nickname: user.nickname,
       chatter_message: message,
       grade: grade,

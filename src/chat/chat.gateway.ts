@@ -10,22 +10,13 @@ import { AuthService } from 'src/auth/auth.service';
 import { RedisService } from 'src/redis/redis.service';
 import { ServerCommand } from 'src/utils/utils';
 import { StreamService } from 'src/stream/stream.service';
-
-interface JwtPayload {
-  broadcaster_idx: number;
-  broadcaster_id: string;
-  broadcaster_nickname: string;
-  type: string;
-  user_idx: number;
-  user_id: string;
-  stream_idx: number;
-  stream_id: string;
-  guest_uuid: string;
-}
+import { WebsocketJwt } from 'src/play/interfaces/websocket';
 
 interface AuthenticatedSocket extends Socket {
-  user: JwtPayload;
+  user: WebsocketJwt;
 }
+
+type UserType = 'manager' | 'broadcaster' | 'member' | 'guest';
 
 @WebSocketGateway({
   cors: {
@@ -63,7 +54,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (!token) {
           return next(new Error('토큰이 없습니다.'));
         }
-        const payload: JwtPayload = await this.authService.validate(token);
+        const payload: WebsocketJwt = await this.authService.validate(token);
         // TypeScript 용으로 socket에 프로퍼티 추가
         (socket as any).user = payload;
         next();
@@ -101,52 +92,98 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
+   * chatRoom에서 지정된 type들에게만 메시지 보내기
+   * @param broadcasterId 스트리머 idx
+   * @param eventName 메시지 이벤트 이름
+   * @param data 메시지 데이터
+   * @param targetTypes 메시지를 받을 사용자 타입들 ('manager', 'broadcaster', 'viewer' 중에서만 선택 가능)
+   */
+  async sendToSpecificUserTypes(
+    broadcasterId: string, 
+    eventName: string, 
+    data: any, 
+    targetTypes: UserType[]
+  ) {
+    // 해당 room이 이 서버에 존재하는지 확인
+    if (this.chatRooms.has(broadcasterId)) {
+      const roomMap = this.chatRooms.get(broadcasterId);
+      let sentCount = 0;
+      
+      // room의 모든 사용자를 순회하면서 지정된 type들에게만 메시지 전송
+      roomMap.forEach((client: AuthenticatedSocket, userId: string) => {
+        if (targetTypes.includes(client.user.user.role as UserType)) {
+          client.emit(eventName, data);
+          sentCount++;
+          console.log(
+            `[SendToSpecificUserTypes] - room: ${broadcasterId}, user: ${userId}, role: ${client.user.user.role}, event: ${eventName}`,
+          );
+        }
+      });
+      
+      console.log(
+        `[SendToSpecificUserTypes] - room: ${broadcasterId}, event: ${eventName}, targetTypes: [${targetTypes.join(', ')}], sentCount: ${sentCount}, data:`,
+        data,
+      );
+    }
+  }
+
+  /**
    * 소켓 연결시
    * @param client
    * @returns
    */
   async handleConnection(client: AuthenticatedSocket) {
     // 구조분해 할당
-    const { broadcaster_id, stream_idx, type, user_idx, user_id, guest_uuid } =
-      client.user;
-    console.log(broadcaster_id, stream_idx, type, user_idx, guest_uuid);
+    const { broadcaster, user, stream } = client.user;
+    
+    console.log(broadcaster.user_id, stream.idx, user.role, user.idx, user.guest_id, user.nickname);
 
-    const registerId = user_id || guest_uuid;
+    const registerId = user.user_id || user.guest_id;
 
     // 자기 서버에 이미 접속중이라면 클라이언트에 중복 접속금지 알림
-    if (this.chatRooms.has(broadcaster_id)) {
-      const roomMap = this.chatRooms.get(broadcaster_id);
+    if (this.chatRooms.has(broadcaster.user_id)) {
+      const roomMap = this.chatRooms.get(broadcaster.user_id);
       if (roomMap.has(registerId)) {
         const existingClient = roomMap.get(registerId);
         if (existingClient) {
           console.log(
-            `Duplicate user(${existingClient.id}) leaved ${broadcaster_id}`,
+            `Duplicate user(${existingClient.id}) leaved ${broadcaster.user_id}`,
           );
           existingClient.emit('duplicate_connection', {
             message: '다른 클라이언트에서 접속하였습니다',
           });
-          existingClient.leave(broadcaster_id); // 기존 소켓을 룸에서 제거
+          existingClient.leave(broadcaster.user_id); // 기존 소켓을 룸에서 제거
           roomMap.delete(registerId); // 기존 소켓 제거
         }
       }
     }
 
     // chatRoom에 사용자 추가
-    await this.addChatRoomUser(broadcaster_id, registerId, client);
+    await this.addChatRoomUser(broadcaster.user_id, registerId, client);
     // redis에 connection을 자신으로 덮어씌우고, 만약 다른서버에 존재한다면 해당 서버에 없애라고 pub날림
-    await this.redisService.registConnection(broadcaster_id, registerId);
-    await this.redisService.registViewer(broadcaster_id, registerId);
-
+    await this.redisService.registConnection(broadcaster.user_id, registerId);
+    await this.redisService.registViewer(broadcaster.user_id, registerId);
+    await this.sendToSpecificUserTypes(
+      broadcaster.user_id,
+      'join',
+      {
+        user_id: registerId,
+        user_idx: user.idx,
+        nickname: user.nickname,
+        role: user.role,
+      },
+      ['manager', 'broadcaster'],
+    )
     // 재생 수 증가 - 각 접속마다 증가
-    if (client.user.broadcaster_idx) {
+    if (broadcaster.idx) {
       try {
-        await this.streamService.increasePlayCount(client.user.broadcaster_idx);
+        await this.streamService.increasePlayCountByStreamId(stream.stream_id);
         const viewerCount = await this.redisService.getHashFieldCount(
-          `viewer:${broadcaster_id}`,
+          `viewer:${broadcaster.user_id}`,
         );
         // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
-        await this.redisService.publishMessage(`room:${broadcaster_id}`, {
-          broadcaster_id: broadcaster_id,
+        await this.redisService.publishMessage(`room:${broadcaster.user_id}`, {
+          broadcaster_id: broadcaster.user_id,
           type: 'viewer_count',
           viewer_cnt: viewerCount,
         });
@@ -163,30 +200,45 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async handleDisconnect(client: AuthenticatedSocket) {
     // 구조분해 할당
-    const { broadcaster_id, user_id, guest_uuid } = client.user;
-    const registerId = user_id || guest_uuid;
+    const { broadcaster, user } = client.user;
+    
+    const registerId = user.user_id || user.guest_id;
 
     // 자신의 서버에 연결된 유저가 나갔을때만 redis에서 key삭제
-    if (this.chatRooms.has(broadcaster_id)) {
-      if (this.chatRooms.get(broadcaster_id).has(registerId)) {
+    if (this.chatRooms.has(broadcaster.user_id)) {
+      if (this.chatRooms.get(broadcaster.user_id).has(registerId)) {
         // Redis에서 연결 정보 삭제
         console.log(
-          `redis에서 연결 정보 삭제: con:${broadcaster_id}:${registerId}`,
+          `redis에서 연결 정보 삭제: con:${broadcaster.user_id}:${registerId}`,
         );
-        await this.redisService.removeConnection(broadcaster_id, registerId);
-        await this.redisService.removeViewer(broadcaster_id, registerId);
+        await this.redisService.removeConnection(broadcaster.user_id, registerId);
+        await this.redisService.removeViewer(broadcaster.user_id, registerId);
       }
     }
+
+    // 사용자가 나갔다는 알림을 다른 사용자들에게 전송
+    await this.sendToSpecificUserTypes(
+      broadcaster.user_id,
+      'leave',
+      {
+        user_id: registerId,
+        user_idx: user.idx,
+        nickname: user.nickname,
+        role: user.role,
+      },
+      ['manager', 'broadcaster'],
+    );
+
     const viewerCount = await this.redisService.getHashFieldCount(
-      `viewer:${broadcaster_id}`,
+      `viewer:${broadcaster.user_id}`,
     );
     // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
-    await this.redisService.publishMessage(`room:${broadcaster_id}`, {
-      broadcaster_id: broadcaster_id,
+    await this.redisService.publishMessage(`room:${broadcaster.user_id}`, {
+      broadcaster_id: broadcaster.user_id,
       type: 'viewer_count',
       viewer_cnt: viewerCount,
     });
-    await this.deleteChatRoomUser(broadcaster_id, registerId);
+    await this.deleteChatRoomUser(broadcaster.user_id, registerId);
   }
 
   /**

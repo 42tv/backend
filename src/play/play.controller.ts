@@ -1,5 +1,5 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { PlayResponse, PlayService } from './play.service';
+import { PlayService } from './play.service';
 import { GuestGuard } from 'src/auth/guard/jwt.guest.guard';
 import {
   ApiTags,
@@ -8,6 +8,7 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { PlayResponse } from './interfaces/response';
 
 @ApiTags('play')
 @Controller('play')
