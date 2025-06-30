@@ -12,6 +12,7 @@ import { ManagerService } from 'src/manager/manager.service';
 import { Stream, User } from '@prisma/client';
 import { PlayResponse } from './interfaces/response';
 import { WebsocketJwt } from './interfaces/websocket';
+import { FanService } from 'src/fan/fan.service';
 
 
 
@@ -24,6 +25,7 @@ export class PlayService {
     private readonly blacklistService: BlacklistService,
     private readonly bookmarkService: BookmarkService,
     private readonly managerService: ManagerService, // ManagerService가 필요하다면 주입
+    private readonly fanService: FanService,
   ) {}
 
   async play(
@@ -40,36 +42,36 @@ export class PlayService {
       return this.handleGuestPlay(broadcaster, stream, bookmarkCount, guestId);
     }
     
-    const user = await this.validateUser(userIdx);
+    const user = await this.userService.findByUserIdx(userIdx);
     const bookmark = await this.userService.getBookmarkByStreamerIdx(userIdx, broadcaster.idx);
     
     // 블랙리스트 체크 (본인이 아닌 경우에만)
     if (user.idx !== broadcaster.idx) {
+      await this.validateGuestAccess(broadcaster);
       await this.checkBlacklist(broadcaster.idx, user.idx);
     }
     
     if (user.idx === broadcaster.idx) {
-      return this.handleOwnerPlay(broadcaster, stream, bookmarkCount, bookmark, user);
+      return this.handleUserPlay(broadcaster, stream, bookmarkCount, bookmark, user, 'broadcaster');
     }
     
     // Manager 여부 확인
     const isManager = await this.managerService.isManager(user.idx, broadcaster.idx)
     if (isManager) {
-      return this.handleManagerPlay(broadcaster, stream, bookmarkCount, bookmark, user);
+      return this.handleUserPlay(broadcaster, stream, bookmarkCount, bookmark, user, 'manager');
     }
     
     // Member 여부 확인 (특정 조건을 만족하는 일반 회원)
-    const isMember = await this.checkMemberStatus(user.idx, broadcaster.idx);
-    if (isMember) {
+    const fan = await this.fanService.findFan(userIdx, broadcaster.idx);
+    if (fan) {
       // Member는 일부 제한 사항을 우회할 수 있음
       await this.validateMemberAccess(broadcaster, password);
-      return this.handleMemberPlay(broadcaster, stream, bookmarkCount, bookmark, user);
+      return this.handleUserPlay(broadcaster, stream, bookmarkCount, bookmark, user, 'member');
     }
     
     // 일반 Viewer - 모든 제한 사항 적용
     await this.validateViewerAccess(broadcaster, password, user);
-    
-    return this.handleViewerPlay(broadcaster, stream, bookmarkCount, bookmark, user);
+    return this.handleUserPlay(broadcaster, stream, bookmarkCount, bookmark, user, 'viewer');
   }
 
   private async getBasicPlayData(streamerId: string) {
@@ -93,14 +95,6 @@ export class PlayService {
     const bookmarkCount = (await this.bookmarkService.getUserBookmarkCount(broadcaster.idx)).count;
     
     return { broadcaster, stream, bookmarkCount };
-  }
-
-  private async validateUser(userIdx: number) {
-    const user = await this.userService.findByUserIdx(userIdx);
-    if (!user) {
-      throw new BadRequestException('탈퇴한 유저입니다.');
-    }
-    return user;
   }
 
   private async checkBlacklist(broadcasterIdx: number, userIdx: number) {
@@ -159,7 +153,6 @@ export class PlayService {
     bookmarkCount: any,
     guestId: string,
   ): Promise<PlayResponse> {
-    await this.validateGuestAccess(broadcaster);
     const payload: WebsocketJwt = {
       broadcaster: {
         idx: broadcaster.idx,
@@ -212,12 +205,13 @@ export class PlayService {
     };
   }
 
-  private async handleOwnerPlay(
+  private async handleUserPlay(
     broadcaster: any,
     stream: any,
     bookmarkCount: any,
     bookmark: any,
     user: any,
+    role: 'broadcaster' | 'manager' | 'member' | 'viewer',
   ): Promise<PlayResponse> {
     const payload: WebsocketJwt = {
       broadcaster: {
@@ -230,7 +224,7 @@ export class PlayService {
         idx: user.idx,
         user_id: user.user_id,
         nickname: user.nickname,
-        role: 'broadcaster',
+        role,
         profile_img: user.profile_img,
         is_guest: false,
       },
@@ -240,7 +234,6 @@ export class PlayService {
       },
     };
     const playToken = this.authService.generatePlayToken(payload);
-
     return {
       broadcaster: {
         idx: broadcaster.idx,
@@ -263,187 +256,9 @@ export class PlayService {
         profile_img: user.profile_img,
         is_bookmarked: bookmark?.is_bookmarked ? true : false,
         play_token: playToken.token,
-        role: 'broadcaster',
+        role: role,
         is_guest: false,
       },
     };
-  }
-
-  private async handleManagerPlay(
-    broadcaster: any,
-    stream: any,
-    bookmarkCount: any,
-    bookmark: any,
-    user: any,
-  ): Promise<PlayResponse> {
-    const payload: WebsocketJwt = {
-      broadcaster: {
-        idx: broadcaster.idx,
-        user_id: broadcaster.user_id,
-        nickname: broadcaster.nickname,
-        profile_img: broadcaster.profile_img,
-      },
-      user: {
-        idx: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-        role: 'manager',
-        profile_img: user.profile_img,
-        is_guest: false,
-      },
-      stream: {
-        idx: stream.idx,
-        stream_id: stream.stream_id,
-      },
-    };
-    const playToken = this.authService.generatePlayToken(payload);
-
-    return {
-      broadcaster: {
-        idx: broadcaster.idx,
-        user_id: broadcaster.user_id,
-        nickname: broadcaster.nickname,
-        profile_img: broadcaster.profile_img,
-      },
-      stream: {
-        title: broadcaster.broadcast_setting.title,
-        playback_url: broadcaster.ivs_channel.playback_url,
-        play_cnt: stream.play_cnt,
-        recommend_cnt: stream.recommend_cnt,
-        bookmark_cnt: bookmarkCount,
-        start_time: stream.start_time,
-      },
-      user: {
-        user_idx: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-        profile_img: user.profile_img,
-        is_bookmarked: bookmark?.is_bookmarked ? true : false,
-        play_token: playToken.token,
-        role: 'manager',
-        is_guest: false,
-      },
-    };
-  }
-
-  private async handleMemberPlay(
-    broadcaster: any,
-    stream: any,
-    bookmarkCount: any,
-    bookmark: any,
-    user: any,
-  ): Promise<PlayResponse> {
-    const payload: WebsocketJwt = {
-      broadcaster: {
-        idx: broadcaster.idx,
-        user_id: broadcaster.user_id,
-        nickname: broadcaster.nickname,
-        profile_img: broadcaster.profile_img,
-      },
-      user: {
-        idx: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-        role: 'member',
-        profile_img: user.profile_img,
-        is_guest: false,
-      },
-      stream: {
-        idx: stream.idx,
-        stream_id: stream.stream_id,
-      },
-    };
-    const playToken = this.authService.generatePlayToken(payload);
-
-    return {
-      broadcaster: {
-        idx: broadcaster.idx,
-        user_id: broadcaster.user_id,
-        nickname: broadcaster.nickname,
-        profile_img: broadcaster.profile_img,
-      },
-      stream: {
-        title: broadcaster.broadcast_setting.title,
-        playback_url: broadcaster.ivs_channel.playback_url,
-        play_cnt: stream.play_cnt,
-        recommend_cnt: stream.recommend_cnt,
-        bookmark_cnt: bookmarkCount,
-        start_time: stream.start_time,
-      },
-      user: {
-        user_idx: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-        profile_img: user.profile_img,
-        is_bookmarked: bookmark?.is_bookmarked ? true : false,
-        play_token: playToken.token,
-        role: 'member',
-        is_guest: false,
-      },
-    };
-  }
-
-  private async handleViewerPlay(
-    broadcaster: any,
-    stream: any,
-    bookmarkCount: any,
-    bookmark: any,
-    user: any,
-  ): Promise<PlayResponse> {
-    const payload: WebsocketJwt = {
-      broadcaster: {
-        idx: broadcaster.idx,
-        user_id: broadcaster.user_id,
-        nickname: broadcaster.nickname,
-        profile_img: broadcaster.profile_img,
-      },
-      user: {
-        idx: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-        role: 'viewer',
-        profile_img: user.profile_img,
-        is_guest: false,
-      },
-      stream: {
-        idx: stream.idx,
-        stream_id: stream.stream_id,
-      },
-    };
-    const playToken = this.authService.generatePlayToken(payload);
-
-    return {
-      broadcaster: {
-        idx: broadcaster.idx,
-        user_id: broadcaster.user_id,
-        nickname: broadcaster.nickname,
-        profile_img: broadcaster.profile_img,
-      },
-      stream: {
-        title: broadcaster.broadcast_setting.title,
-        playback_url: broadcaster.ivs_channel.playback_url,
-        play_cnt: stream.play_cnt,
-        recommend_cnt: stream.recommend_cnt,
-        bookmark_cnt: bookmarkCount,
-        start_time: stream.start_time,
-      },
-      user: {
-        user_idx: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-        profile_img: user.profile_img,
-        is_bookmarked: bookmark?.is_bookmarked ? true : false,
-        play_token: playToken.token,
-        role: 'viewer',
-        is_guest: false,
-      },
-    };
-  }
-
-  private async checkMemberStatus(userIdx: number, broadcasterIdx: number): Promise<boolean> {
-    // Member 상태를 확인하는 로직 구현
-    // 예: 특정 등급 이상의 회원, 구독자, VIP 회원 등
-    // 실제 비즈니스 로직에 따라 구현
-    return false; // 기본값은 false
   }
 }
