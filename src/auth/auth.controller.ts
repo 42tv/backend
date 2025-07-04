@@ -25,8 +25,12 @@ import { JwtRefreshGaurd } from './guard/jwt.refresh.guard';
 import { RefreshResponse } from './entities/refresh.response';
 import { UserService } from 'src/user/user.service';
 import { Response } from 'express';
+// Swagger DTO imports
+import { LoginDto } from './dto/login.dto';
+import { RefreshDto } from './dto/refresh.dto';
+import { LogoutResponseDto, LoginInfoResponseDto } from './dto/response.dto';
 
-@ApiTags('auth')
+@ApiTags('Authentication - 인증 관련 API')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -40,7 +44,14 @@ export class AuthController {
    * @returns access_token에 jwt를 담아서 반납(idx, user_id, nickname 정보를 담음)
    */
   @Post('login')
-  @ApiOperation({ summary: '로그인' })
+  @ApiOperation({ 
+    summary: '사용자 로그인', 
+    description: '사용자 ID와 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.' 
+  })
+  @ApiBody({ 
+    description: '로그인 요청 데이터 (Swagger용)', 
+    type: LoginDto 
+  })
   @ApiResponse({
     status: 201,
     description: '로그인 성공',
@@ -50,7 +61,6 @@ export class AuthController {
     description: '로그인 실패',
     type: AuthFailResponse,
   })
-  @ApiBody({ description: 'Body 데이터', type: AuthEntity, required: true })
   @UseGuards(LocalAuthGuard)
   async login(@Request() req, @Res() res) {
     const { access_token, refresh_token } = this.authService.login(req.user);
@@ -61,8 +71,15 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @ApiOperation({ summary: '리프레시 토큰' })
+  @ApiOperation({ 
+    summary: '토큰 갱신', 
+    description: '리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.' 
+  })
   @ApiBearerAuth()
+  @ApiBody({ 
+    description: '토큰 갱신 요청 데이터 (Swagger용)', 
+    type: RefreshDto 
+  })
   @ApiResponse({
     status: 201,
     description: '리프레시 성공',
@@ -107,16 +124,14 @@ export class AuthController {
    * @returns 로그아웃 성공 메시지
    */
   @Post('logout')
-  @ApiOperation({ summary: '로그아웃' })
+  @ApiOperation({ 
+    summary: '사용자 로그아웃', 
+    description: '사용자를 로그아웃하고 인증 쿠키를 삭제합니다.' 
+  })
   @ApiResponse({
     status: 201,
     description: '로그아웃 성공',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Successfully logged out' },
-      },
-    },
+    type: LogoutResponseDto,
   })
   async logout(@Res() res) {
     // Clear authentication cookies by setting to empty with expired date
@@ -132,10 +147,14 @@ export class AuthController {
    * @returns 로그인 정보 또는 게스트 정보 반환
    */
   @Get('login_info')
-  @ApiOperation({ summary: '로그인 정보 조회' })
+  @ApiOperation({ 
+    summary: '로그인 정보 조회', 
+    description: '현재 사용자의 로그인 정보를 조회하거나 게스트 토큰을 발급합니다.' 
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: '로그인 정보 조회 성공 또는 게스트 정보 반환',
+    type: LoginInfoResponseDto,
   })
   @ApiBearerAuth()
   async getLoginInfo(@Req() req, @Res({ passthrough: true }) res: Response) {
