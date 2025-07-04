@@ -28,7 +28,6 @@ export class PostService {
     return await prismaClient.postSettings.create({
       data: {
         user_idx: user_idx,
-        is_fan_only: false,
         min_fan_level_id: null,
       },
     });
@@ -172,7 +171,9 @@ export class PostService {
    */
   async deleteReceivedPost(recipient_idx: number, postId: string) {
     try {
-      await this.postRepository.deleteReceivedPost(recipient_idx, Number(postId));
+      await this.prismaService.$transaction(async (tx) => {
+        await this.postRepository.deleteReceivedPost(recipient_idx, Number(postId), tx);
+      });
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
     }
@@ -187,7 +188,9 @@ export class PostService {
    */
   async deleteSentPost(sender_idx: number, postId: string) {
     try {
-      await this.postRepository.deleteSentPost(sender_idx, Number(postId));
+      await this.prismaService.$transaction(async (tx) => {
+        await this.postRepository.deleteSentPost(sender_idx, Number(postId), tx);
+      });
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
     }
@@ -202,7 +205,9 @@ export class PostService {
    */
   async deleteReceivedPosts(recipient_idx: number, postIds: number[]) {
     try {
-      await this.postRepository.deleteReceivedPosts(recipient_idx, postIds);
+      await this.prismaService.$transaction(async (tx) => {
+        await this.postRepository.deleteReceivedPosts(recipient_idx, postIds, tx);
+      });
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
     }
@@ -217,7 +222,9 @@ export class PostService {
    */
   async deleteSentPosts(sender_idx: number, postIds: number[]) {
     try {
-      await this.postRepository.deleteSentPosts(sender_idx, postIds);
+      await this.prismaService.$transaction(async (tx) => {
+        await this.postRepository.deleteSentPosts(sender_idx, postIds, tx);
+      });
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
     }
@@ -316,7 +323,7 @@ export class PostService {
     let minFanLevelRank = null;
     console.log(postSettings.minFanLevel)
     if (postSettings.minFanLevel) {
-      // fanLevels는 min_donation 내림차순순 정렬되어 있으므로
+      // fanLevels는 min_donation 오름차순으로 정렬되어 있으므로
       // 배열에서 해당 레벨의 인덱스를 찾아서 순위를 계산
       const levelIndex = fanLevels.findIndex(level => level.id === postSettings.minFanLevel.id);
       if (levelIndex != -1) {

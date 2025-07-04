@@ -35,8 +35,8 @@ model User {
   receivedGifts  Gift[] @relation("GiftRecipient")
 
   // Posts relations
-  sentPosts      SentPosts[]
-  receivedPosts  ReceivedPosts[]
+  sentPosts      Posts[] @relation("SentPosts")
+  receivedPosts  Posts[] @relation("ReceivedPosts")
   
   // Fan relations
   fans           Fan[] @relation("UserFans")
@@ -205,35 +205,21 @@ model PostSettings {
   minFanLevel       FanLevel? @relation(fields: [min_fan_level_id], references: [id], onDelete: SetNull)
 }
 
-// 보낸 쪽지 테이블 - 보낸 사람이 관리하는 메시지
-model SentPosts {
-  id              Int      @id @default(autoincrement())
-  content         String   // 쪽지 내용
-  sent_at         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  is_read         Boolean  @default(false) // 읽음 상태
-
-  // Relations
-  sender_idx      Int      // 보낸 사용자
-  receiver_idx    Int      // 받는 사용자
-  sender          User     @relation(fields: [sender_idx], references: [idx], onDelete: Cascade)
-  
-  // 받는 사람 정보는 직접 조인하지 않고 receiver_idx로만 관리
-}
-
-// 받은 쪽지 테이블 - 받은 사람이 관리하는 메시지
-model ReceivedPosts {
+// 쪽지 테이블 - 통합된 쪽지 관리
+model Posts {
   id              Int      @id @default(autoincrement())
   content         String   // 쪽지 내용
   sent_at         DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   read_at         DateTime? // 읽은 시간
   is_read         Boolean  @default(false) // 읽음 상태
+  sender_deleted  Boolean  @default(false) // 보낸 사람이 삭제했는지 여부
+  receiver_deleted Boolean @default(false) // 받은 사람이 삭제했는지 여부
 
   // Relations
   sender_idx      Int      // 보낸 사용자
   receiver_idx    Int      // 받는 사용자
-  receiver        User     @relation(fields: [receiver_idx], references: [idx], onDelete: Cascade)
-  
-  // 보낸 사람 정보는 직접 조인하지 않고 sender_idx로만 관리
+  sender          User     @relation("SentPosts", fields: [sender_idx], references: [idx], onDelete: Cascade)
+  receiver        User     @relation("ReceivedPosts", fields: [receiver_idx], references: [idx], onDelete: Cascade)
 }
 
 // 코인 정보 테이블 - 사용자별 코인 잔액 관리

@@ -37,7 +37,6 @@ export class PlayService {
   ) : Promise<PlayResponse> {
     // 기본 데이터 조회
     const { broadcaster, stream, bookmarkCount } = await this.getBasicPlayData(streamerId);
-    
     if (isGuest) {
       return this.handleGuestPlay(broadcaster, stream, bookmarkCount, guestId);
     }
@@ -106,23 +105,23 @@ export class PlayService {
 
   private async validateGuestAccess(broadcaster: any) {
     if (
-      broadcaster.broadcast_setting?.is_adult ||
-      broadcaster.broadcast_setting?.is_fan ||
-      broadcaster.broadcast_setting?.is_pw
+      broadcaster.broadcastSetting?.is_adult ||
+      broadcaster.broadcastSetting?.is_fan ||
+      broadcaster.broadcastSetting?.is_pw
     ) {
       throw new BadRequestException('게스트는 시청할 수 없습니다');
     }
   }
 
   private async validateMemberAccess(broadcaster: any, password?: string) {
-    if (broadcaster.broadcast_setting?.is_adult) {
+    if (broadcaster.broadcastSetting?.is_adult) {
       // 성인 여부 검사 로직
     }
-    if (broadcaster.broadcast_setting?.is_fan) {
+    if (broadcaster.broadcastSetting?.is_fan) {
       // 팬 여부 검사 로직
     }
-    if (broadcaster.broadcast_setting?.is_pw) {
-      if (password !== broadcaster.broadcast_setting.password) {
+    if (broadcaster.broadcastSetting?.is_pw) {
+      if (password !== broadcaster.broadcastSetting.password) {
         throw new BadRequestException('비밀번호가 틀렸습니다');
       }
     }
@@ -130,18 +129,18 @@ export class PlayService {
 
   private async validateViewerAccess(broadcaster: any, password?: string, user?: any) {
     // Viewer는 가장 제한적인 접근 권한을 가짐
-    if (broadcaster.broadcast_setting?.is_adult) {
+    if (broadcaster.broadcastSetting?.is_adult) {
       // 성인 여부 검사 로직 - Viewer는 더 엄격한 검증 필요
       if (!user.is_adult_verified) {
         throw new BadRequestException('성인 인증이 필요합니다');
       }
     }
-    if (broadcaster.broadcast_setting?.is_fan) {
+    if (broadcaster.broadcastSetting?.is_fan) {
       // 팬 전용 방송 - Viewer는 접근 불가
       throw new BadRequestException('팬 전용 방송입니다');
     }
-    if (broadcaster.broadcast_setting?.is_pw) {
-      if (password !== broadcaster.broadcast_setting.password) {
+    if (broadcaster.broadcastSetting?.is_pw) {
+      if (password !== broadcaster.broadcastSetting.password) {
         throw new BadRequestException('비밀번호가 틀렸습니다');
       }
     }
@@ -184,8 +183,8 @@ export class PlayService {
         profile_img: broadcaster.profile_img,
       },
       stream: {
-        title: broadcaster.broadcast_setting.title,
-        playback_url: broadcaster.ivs_channel.playback_url,
+        title: broadcaster.broadcastSetting.title,
+        playback_url: broadcaster.ivs.playback_url,
         play_cnt: stream.play_cnt,
         recommend_cnt: stream.recommend_cnt,
         bookmark_cnt: bookmarkCount,
@@ -242,8 +241,8 @@ export class PlayService {
         profile_img: broadcaster.profile_img,
       },
       stream: {
-        title: broadcaster.broadcast_setting.title,
-        playback_url: broadcaster.ivs_channel.playback_url,
+        title: broadcaster.broadcastSetting.title,
+        playback_url: broadcaster.ivs.playback_url,
         play_cnt: stream.play_cnt,
         recommend_cnt: stream.recommend_cnt,
         bookmark_cnt: bookmarkCount,

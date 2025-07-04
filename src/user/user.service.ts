@@ -308,7 +308,6 @@ export class UserService {
       ivs_channel: true,
       broadcast_setting: true,
     });
-    console.log(user);
     const sanitizedUser = {
       idx: user.idx,
       user_id: user.user_id,
