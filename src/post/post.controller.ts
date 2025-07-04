@@ -38,7 +38,7 @@ import {
   PostResponse,
   PostUnBlockResponse,
   PutResponse,
-} from './swagger.entity/swagger.entity';
+} from './entities/post-response.entity';
 
 @ApiTags('post')
 @Controller('post')
