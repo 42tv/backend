@@ -39,11 +39,13 @@ import {
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
-import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
+import { BroadcastSettingDto } from 'src/broadcast-setting/dto/broadcast-setting.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
+// AWS S3 관련 Swagger Entity imports
+import { ProfileImageUploadResponse, ProfileImageUploadEntity } from './entities/profile-upload.entity';
 
-@ApiTags('user')
+@ApiTags('User - 사용자 관리 API (AWS S3 파일 업로드 포함)')
 @Controller('user')
 @UsePipes(new ValidationPipe())
 export class UserController {
@@ -152,35 +154,25 @@ export class UserController {
   )
   @UseGuards(MemberGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '프로필 이미지 업로드' })
+  @ApiOperation({ 
+    summary: '프로필 이미지 업로드', 
+    description: '사용자의 프로필 이미지를 AWS S3에 업로드합니다. 최대 5MB까지 지원합니다.' 
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        image: {
-          type: 'string',
-          format: 'binary',
-          description: '프로필 이미지 파일 (5MB 이하)',
-        },
-      },
-    },
+    description: 'AWS S3 업로드용 프로필 이미지 (Swagger용)',
+    type: ProfileImageUploadEntity,
   })
   @ApiCreatedResponse({
-    description: '업로드 성공',
-    schema: {
-      type: 'object',
-      properties: {
-        imageUrl: { type: 'string', example: 'https://profile-image-url' },
-      },
-    },
+    description: 'AWS S3 업로드 성공',
+    type: ProfileImageUploadResponse,
   })
   @ApiBadRequestResponse({
     description: '파일 형식 불일치 | 파일 크기 초과 | 존재하지 않는 유저',
     type: CustomBadRequestResponse,
   })
   @ApiInternalServerErrorResponse({
-    description: '서버 에러',
+    description: 'AWS S3 업로드 실패 또는 서버 에러',
     type: CustomInternalServerErrorResponse,
   })
   async uploadProfileImage(

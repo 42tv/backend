@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Blacklist } from '@prisma/client';
-import { BlacklistWithBlocked } from './types/blacklist.type';
+import { BlacklistWithBlocked } from './entities/blacklist.entity';
 
 @Injectable()
 export class BlacklistRepository {

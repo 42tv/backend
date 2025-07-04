@@ -13,14 +13,14 @@ import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
-import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
+import { BroadcastSettingDto } from 'src/broadcast-setting/dto/broadcast-setting.dto';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AwsService } from 'src/aws/aws.service';
 import * as sharp from 'sharp';
 import { UserIncludeOptions } from 'src/utils/utils';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
-import { BlacklistWithBlocked } from 'src/blacklist/types/blacklist.type';
+import { BlacklistWithBlocked } from 'src/blacklist/entities/blacklist.entity';
 import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
@@ -308,7 +308,6 @@ export class UserService {
       ivs_channel: true,
       broadcast_setting: true,
     });
-    console.log(user);
     const sanitizedUser = {
       idx: user.idx,
       user_id: user.user_id,

@@ -1,5 +1,6 @@
 import { Socket } from 'socket.io';
-export class WebSocketDto {
+
+export class WebSocketEntity {
   public client_id: string;
   public socket: Socket;
   public user_id: string;
