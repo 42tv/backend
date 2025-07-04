@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BlacklistRepository } from './blacklist.repository';
-import { BlacklistWithBlocked } from './types/blacklist.type';
+import { BlacklistWithBlocked } from './entities/blacklist.entity';
 
 @Injectable()
 export class BlacklistService {
