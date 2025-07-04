@@ -39,7 +39,7 @@ import {
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
-import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
+import { BroadcastSettingDto } from 'src/broadcast-setting/dto/broadcast-setting.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
 // AWS S3 관련 Swagger Entity imports
