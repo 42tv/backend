@@ -71,10 +71,3 @@ export interface RoomUpdateEvent {
   broadcaster_id: string;
   viewer_cnt: number;
 }
-
-export interface BookmarkEvent {
-  type: 'bookmark';
-  action: 'add' | 'delete';
-  user_idx: number;
-  broadcaster_id: string;
-}

@@ -2,8 +2,8 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
+import { BookmarkEvent } from 'src/bookmark/entities/bookmark.entity';
 import {
-  BookmarkEvent,
   RoomChatEvent,
   RoomRecommendEvent,
   RoomUpdateEvent,
