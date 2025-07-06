@@ -162,7 +162,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.addChatRoomUser(broadcaster.user_id, registerId, client);
     // redis에 connection을 자신으로 덮어씌우고, 만약 다른서버에 존재한다면 해당 서버에 없애라고 pub날림
     await this.redisService.registConnection(broadcaster.user_id, registerId);
-    await this.redisService.registViewer(broadcaster.user_id, registerId);
+    await this.redisService.registViewer(broadcaster.user_id, registerId, user.idx, user.nickname, user.role);
     await this.sendToSpecificUserTypes(
       broadcaster.user_id,
       'join',

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, Post, Req, UseGuards, Param } from '@nestjs/common';
 import { LiveService } from './live.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import {
@@ -141,6 +141,44 @@ export class LiveController {
     return {
       code: 200,
       message: 'Live stream recommended successfully',
+    };
+  }
+
+  @Get(':broadcasterId/viewer')
+  @ApiOperation({ summary: '특정 방송자의 시청자 목록 조회' })
+  @ApiResponse({
+    status: 200,
+    description: '시청자 목록 조회 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'success' },
+        viewers: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              user_id: { type: 'string', example: 'registerId123' },
+              user_idx: { type: 'number', example: 1 },
+              nickname: { type: 'string', example: '시청자닉네임' },
+              role: { 
+                type: 'string', 
+                enum: ['broadcaster', 'manager', 'viewer'],
+                example: 'viewer' 
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getBroadcasterViewers(@Param('broadcasterId') broadcasterId: string) {
+    const viewers = await this.liveService.getBroadcasterViewers(broadcasterId);
+    return {
+      code: 200,
+      message: 'success',
+      viewers,
     };
   }
 }

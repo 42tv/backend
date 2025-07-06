@@ -238,9 +238,14 @@ export class RedisService {
    * @param broadcasterId 방송자 ID
    * @param userId 시청자 ID
    */
-  async registViewer(broadcasterId: string, userId: string): Promise<void> {
+  async registViewer(broadcasterId: string, userId: string, userIdx, nickname, role): Promise<void> {
     const key = `viewer:${broadcasterId}`;
-    await this.hset(key, userId, '1');
+    await this.hset(key, userId, JSON.stringify({
+      user_id: userId,
+      user_idx: userIdx,
+      nickname: nickname,
+      role: role,
+    }));
   }
 
   /**
@@ -272,6 +277,15 @@ export class RedisService {
    */
   async getHashFieldCount(key: string): Promise<number> {
     return await this.hlen(key);
+  }
+
+  /**
+   * Redis 해시의 모든 필드와 값을 가져옵니다.
+   * @param key 해시 키
+   * @returns 필드와 값의 객체 형태 (빈 객체일 수 있음)
+   */
+  async getHashAll(key: string): Promise<{ [field: string]: string }> {
+    return await this.redis.hgetall(key);
   }
 
   /**

@@ -75,4 +75,40 @@ export class LiveService {
     });
     return;
   }
+
+  /**
+   * 특정 방송자의 시청자 목록을 조회합니다.
+   * @param broadcasterId 방송자의 user_id
+   * @returns 시청자 정보 배열
+   */
+  async getBroadcasterViewers(broadcasterId: string) {
+    const viewerKey = `viewer:${broadcasterId}`;
+    const viewerData = await this.redisService.getHashAll(viewerKey);
+
+    console.log(viewerData);
+
+    // // 방송자 정보 조회
+    // const broadcaster = await this.userService.findByUserId(broadcasterId);
+    // if (!broadcaster) {
+    //   throw new BadRequestException('존재하지 않는 방송자입니다.');
+    // }
+
+    // const viewers = [];
+    // for (const [registerId, userIdxStr] of Object.entries(viewerData)) {
+    //   const userIdx = parseInt(userIdxStr, 10);
+    //   const user = await this.userService.findByUserIdx(userIdx);
+
+    //   if (user) {
+        
+    //     viewers.push({
+    //       user_id: registerId,
+    //       user_idx: user.idx,
+    //       nickname: user.nickname,
+    //       role: role,
+    //     });
+    //   }
+    // }
+
+    return viewerData;
+  }
 }
