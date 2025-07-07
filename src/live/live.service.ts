@@ -85,30 +85,22 @@ export class LiveService {
     const viewerKey = `viewer:${broadcasterId}`;
     const viewerData = await this.redisService.getHashAll(viewerKey);
 
-    console.log(viewerData);
-
-    // // 방송자 정보 조회
-    // const broadcaster = await this.userService.findByUserId(broadcasterId);
-    // if (!broadcaster) {
-    //   throw new BadRequestException('존재하지 않는 방송자입니다.');
-    // }
-
-    // const viewers = [];
-    // for (const [registerId, userIdxStr] of Object.entries(viewerData)) {
-    //   const userIdx = parseInt(userIdxStr, 10);
-    //   const user = await this.userService.findByUserIdx(userIdx);
-
-    //   if (user) {
-        
-    //     viewers.push({
-    //       user_id: registerId,
-    //       user_idx: user.idx,
-    //       nickname: user.nickname,
-    //       role: role,
-    //     });
-    //   }
-    // }
-
-    return viewerData;
+    // viewerData를 순회하여 value 값을 객체로 만들어 배열로 변환
+    const viewers = Object.entries(viewerData).map(([key, value]) => {
+      try {
+        // value가 JSON 문자열인 경우 파싱
+        return typeof value === 'string' ? JSON.parse(value) : value;
+      } catch (error) {
+        // JSON 파싱에 실패한 경우 원본 value 반환
+        return {
+          user_id: key,
+          user_idx: -1,
+          nickname: 'guest',
+          role: 'guest',
+        };
+      }
+    });
+    console.log(viewers);
+    return viewers;
   }
 }
