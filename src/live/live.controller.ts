@@ -145,6 +145,7 @@ export class LiveController {
   }
 
   @Get(':broadcasterId/viewer')
+  @UseGuards(MemberGuard)
   @ApiOperation({ summary: '특정 방송자의 시청자 목록 조회' })
   @ApiResponse({
     status: 200,
@@ -173,8 +174,8 @@ export class LiveController {
       },
     },
   })
-  async getBroadcasterViewers(@Param('broadcasterId') broadcasterId: string) {
-    const viewers = await this.liveService.getBroadcasterViewers(broadcasterId);
+  async getBroadcasterViewers(@Req() req: any, @Param('broadcasterId') broadcasterId: string) {
+    const viewers = await this.liveService.getBroadcasterViewers(req.user.idx, broadcasterId);
     return {
       code: 200,
       message: 'success',

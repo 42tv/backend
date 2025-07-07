@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ManagerService } from 'src/manager/manager.service';
 import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
@@ -9,6 +10,7 @@ export class LiveService {
     private readonly streamService: StreamService,
     private readonly redisService: RedisService,
     private readonly userService: UserService,
+    private readonly managerService: ManagerService,
   ) {}
 
   async getLiveList() {
@@ -81,7 +83,18 @@ export class LiveService {
    * @param broadcasterId 방송자의 user_id
    * @returns 시청자 정보 배열
    */
-  async getBroadcasterViewers(broadcasterId: string) {
+  async getBroadcasterViewers(userIdx: number, broadcasterId: string) {
+    const user = await this.userService.findByUserIdx(userIdx);
+    const broadcaster = await this.userService.findByUserId(broadcasterId);
+    if (!broadcaster) {
+      throw new BadRequestException('존재하지 않는 방송자입니다.');
+    }
+    // 사용자가 방송자의 매니저인지 확인
+    const isManager = await this.managerService.isManager(broadcaster.idx, userIdx);
+    if (!isManager && user.idx !== broadcaster.idx) {
+      throw new BadRequestException('해당 방송자의 시청자 목록을 조회할 권한이 없습니다.');
+    }
+
     const viewerKey = `viewer:${broadcasterId}`;
     const viewerData = await this.redisService.getHashAll(viewerKey);
 
