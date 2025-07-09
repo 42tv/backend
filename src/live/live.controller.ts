@@ -144,8 +144,9 @@ export class LiveController {
     };
   }
 
-  @Get(':broadcasterId/viewer')
+  @Get(':broadcasterId/viewers')
   @UseGuards(MemberGuard)
+  @Header('Cache-Control', 'no-store')
   @ApiOperation({ summary: '특정 방송자의 시청자 목록 조회' })
   @ApiResponse({
     status: 200,
