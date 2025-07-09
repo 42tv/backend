@@ -18,7 +18,7 @@ import {
   ApiTags,
   ApiBody,
 } from '@nestjs/swagger';
-import { CreateIvsResponse } from './entities/create.channel.response';
+import { CreateIvsResponse } from './swagger/ivs.swagger';
 import { CustomInternalServerErrorResponse } from 'src/utils/utils';
 import { IvsEvent } from './entities/lambda.response';
 

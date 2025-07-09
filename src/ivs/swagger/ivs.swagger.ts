@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+
 export class CreateIvsResponse {
   @ApiProperty({ example: 1, description: 'User 유니크 index' })
   user_idx: number;
