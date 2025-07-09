@@ -1,6 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 
+/**
+ * 채팅 메시지 전송 요청 DTO
+ */
 export class SendChatDto {
   @IsString()
   @IsNotEmpty()

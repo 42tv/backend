@@ -18,9 +18,9 @@ import {
   ApiTags,
   ApiBody,
 } from '@nestjs/swagger';
-import { CreateIvsResponse } from './swagger/ivs.swagger';
+import { CreateIvsResponseDto } from './dto/ivs-response.dto';
 import { CustomInternalServerErrorResponse } from 'src/utils/utils';
-import { IvsEvent } from './entities/lambda.response';
+import { IvsEventDto } from './dto/ivs-request.dto';
 
 // 이 컨트롤러는 테스트 용임으로 차후 삭제할 예정
 @ApiTags('ivs')
@@ -33,7 +33,7 @@ export class IvsController {
   @ApiResponse({
     status: 201,
     description: 'IVS 채널 생성 성공',
-    type: CreateIvsResponse,
+    type: CreateIvsResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: 'AWS IVS의 채널 생성 실패 케이스',
@@ -54,7 +54,7 @@ export class IvsController {
   @ApiResponse({
     status: 201,
     description: 'streamKey 재발급 성공',
-    type: CreateIvsResponse,
+    type: CreateIvsResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: 'streamKey 재발급 실패',
@@ -70,7 +70,7 @@ export class IvsController {
 
   @Post('callback/lambda')
   @ApiOperation({ summary: 'IVS 콜백 람다' })
-  @ApiBody({ type: IvsEvent })
+  @ApiBody({ type: IvsEventDto })
   @ApiResponse({
     status: 201,
     description: '콜백 처리 성공',
@@ -81,7 +81,7 @@ export class IvsController {
       },
     },
   })
-  async ivsLambdaCallback(@Body() ivsEvnet: IvsEvent) {
+  async ivsLambdaCallback(@Body() ivsEvnet: IvsEventDto) {
     console.log(ivsEvnet);
     await this.ivsService.handleCallbackStreamEvent(ivsEvnet);
     return {

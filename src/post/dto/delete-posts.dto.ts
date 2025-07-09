@@ -1,6 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsEnum, IsNotEmpty, IsNumber } from 'class-validator';
 
+/**
+ * 쪽지 다중 삭제 요청 DTO
+ */
 export class DeletePostsDto {
   @IsArray()
   @IsNumber({}, { each: true })

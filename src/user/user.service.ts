@@ -13,7 +13,6 @@ import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
-import { BroadcastSettingDto } from 'src/broadcast-setting/dto/broadcast-setting.dto';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AwsService } from 'src/aws/aws.service';
 import * as sharp from 'sharp';
@@ -22,6 +21,7 @@ import { BookmarkService } from 'src/bookmark/bookmark.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { BlacklistWithBlocked } from 'src/blacklist/entities/blacklist.entity';
 import { RedisService } from 'src/redis/redis.service';
+import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 
 @Injectable()
 export class UserService {

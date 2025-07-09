@@ -1,13 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class LogoutResponseDto {
-  @ApiProperty({ 
-    description: '로그아웃 성공 메시지', 
-    example: 'Successfully logged out' 
-  })
-  message: string;
-}
-
+/**
+ * 로그인 정보 응답 DTO
+ * 클라이언트로 전송되는 사용자 로그인 정보 데이터
+ */
 export class LoginInfoResponseDto {
   @ApiProperty({ 
     description: '사용자 인덱스', 
