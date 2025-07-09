@@ -20,7 +20,7 @@ import {
   AddToBlacklistDto,
   RemoveFromBlacklistDto,
   RemoveMultipleFromBlacklistDto,
-} from 'src/blacklist/dto/blacklist.dto';
+} from './dto/blacklist.dto';
 import {
   ApiBadRequestResponse,
   ApiBody,
