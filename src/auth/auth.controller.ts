@@ -19,16 +19,13 @@ import {
   ApiUnauthorizedResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { LoginResponse } from './entities/login.response';
-import { AuthEntity, AuthFailResponse } from './entities/login.entity';
 import { JwtRefreshGaurd } from './guard/jwt.refresh.guard';
-import { RefreshResponse } from './entities/refresh.response';
 import { UserService } from 'src/user/user.service';
 import { Response } from 'express';
-// Swagger DTO imports
-import { LoginDto } from './dto/login.dto';
-import { RefreshDto } from './dto/refresh.dto';
-import { LogoutResponseDto, LoginInfoResponseDto } from './dto/response.dto';
+import { LoginDto, LoginFailResponse, LoginResponseDto } from './dto/login.dto';
+import { RefreshDto, RefreshResponseDto } from './dto/refresh.dto';
+import { LogoutResponseDto } from './dto/logout.dto';
+import { LoginInfoResponseDto } from './dto/login.info.dto';
 
 @ApiTags('Authentication - 인증 관련 API')
 @Controller('auth')
@@ -55,11 +52,11 @@ export class AuthController {
   @ApiResponse({
     status: 201,
     description: '로그인 성공',
-    type: LoginResponse,
+    type: LoginResponseDto,
   })
   @ApiUnauthorizedResponse({
     description: '로그인 실패',
-    type: AuthFailResponse,
+    type: LoginFailResponse,
   })
   @UseGuards(LocalAuthGuard)
   async login(@Request() req, @Res() res) {
@@ -83,11 +80,11 @@ export class AuthController {
   @ApiResponse({
     status: 201,
     description: '리프레시 성공',
-    type: RefreshResponse,
+    type: RefreshResponseDto,
   })
   @ApiUnauthorizedResponse({
     description: 'refresh token이 만료됨',
-    type: AuthFailResponse,
+    type: LoginFailResponse,
   })
   @UseGuards(JwtRefreshGaurd)
   async refresh(@Request() req, @Res() res) {
