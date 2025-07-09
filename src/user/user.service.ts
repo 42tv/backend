@@ -13,7 +13,7 @@ import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
-import { BroadcastSettingDto } from 'src/broadcast-setting/dto/broadcast-setting.dto';
+import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AwsService } from 'src/aws/aws.service';
 import * as sharp from 'sharp';
