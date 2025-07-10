@@ -289,6 +289,34 @@ export class RedisService {
   }
 
   /**
+   * 특정 방송자의 시청자 목록을 조회합니다.
+   * @param broadcasterId 방송자의 user_id
+   * @returns 시청자 정보 배열
+   */
+  async getViewersList(broadcasterId: string): Promise<any[]> {
+    const viewerKey = `viewer:${broadcasterId}`;
+    const viewerData = await this.getHashAll(viewerKey);
+
+    // viewerData를 순회하여 value 값을 객체로 만들어 배열로 변환
+    const viewers = Object.entries(viewerData).map(([key, value]) => {
+      try {
+        // value가 JSON 문자열인 경우 파싱
+        return typeof value === 'string' ? JSON.parse(value) : value;
+      } catch (error) {
+        // JSON 파싱에 실패한 경우 원본 value 반환
+        return {
+          user_id: key,
+          user_idx: -1,
+          nickname: 'guest',
+          role: 'guest',
+        };
+      }
+    });
+
+    return viewers;
+  }
+
+  /**
    * Redis에 키-값 쌍을 저장합니다.
    * @param key 저장할 키
    * @param value 저장할 값
