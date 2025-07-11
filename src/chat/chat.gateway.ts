@@ -16,7 +16,7 @@ interface AuthenticatedSocket extends Socket {
   user: WebsocketJwt;
 }
 
-type UserType = 'manager' | 'broadcaster' | 'member' | 'guest';
+type UserType = 'manager' | 'broadcaster' | 'member' | 'guest' | 'viewer';
 
 @WebSocketGateway({
   cors: {
@@ -156,6 +156,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           roomMap.delete(registerId); // 기존 소켓 제거
         }
       }
+    }
+
+    // 만약 방송자 or 매니저가 웹소켓 연결시 시청자 목록을 보내주어야함.
+    if (user.role === 'broadcaster' || user.role === 'manager') {
+      const viewers = await this.redisService.getViewersList(broadcaster.user_id);
+      client.emit('viewer_list', viewers);
     }
 
     // chatRoom에 사용자 추가
