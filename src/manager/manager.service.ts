@@ -1,21 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { AddManagerDto } from './dto/add.manager.dto';
 import { RemoveManagerDto } from './dto/remove.manager.dto';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ManagerRepository } from './manager.repository';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class ManagerService {
-  constructor(private readonly managerRepository: ManagerRepository) {}
+  constructor(
+    private readonly managerRepository: ManagerRepository,
+    @Inject(forwardRef(() => RedisService))
+    private readonly redisService: RedisService,
+  ) {}
 
   /**
    * 특정 사용자가 크리에이터의 매니저인지 확인
    * @param managerIdx 매니저 사용자 ID
-   * @param creatorIdx 크리에이터 사용자 ID
+   * @param broadcasterIdx 크리에이터 사용자 ID
    * @returns 매니저 관계 정보 또는 null
    */
-  async isManager(managerIdx: number, broadcasteridx: number) {
-    const manager = await this.managerRepository.findManager(managerIdx, broadcasteridx);
+  async isManager(managerIdx: number, broadcasterIdx: number) {
+    const manager = await this.managerRepository.findManager(managerIdx, broadcasterIdx);
     return manager ? true : false;
   }
 
