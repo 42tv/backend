@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { AddManagerDto } from './dto/add.manager.dto';
 import { RemoveManagerDto } from './dto/remove.manager.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ManagerRepository } from './manager.repository';
 
 @Injectable()
 export class ManagerService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly managerRepository: ManagerRepository) {}
 
   /**
    * 특정 사용자가 크리에이터의 매니저인지 확인
@@ -15,12 +15,7 @@ export class ManagerService {
    * @returns 매니저 관계 정보 또는 null
    */
   async isManager(managerIdx: number, broadcasteridx: number) {
-    const manager =  await this.prismaService.manager.findFirst({
-      where: {
-        manager_idx: managerIdx,
-        broadcaster_idx: broadcasteridx
-      }
-    });
+    const manager = await this.managerRepository.findManager(managerIdx, broadcasteridx);
     return manager ? true : false;
   }
 
@@ -32,9 +27,8 @@ export class ManagerService {
    */
   async addManager(broadcasterIdx: number, addManagerDto: AddManagerDto) {
     // 매니저로 추가할 사용자가 존재하는지 확인
-    const managerUser = await this.prismaService.user.findUnique({
-      where: { user_id: addManagerDto.userId }
-    });
+    const broadcaster = await this.managerRepository.findUserByIdx(broadcasterIdx);
+    const managerUser = await this.managerRepository.findUserByUserId(addManagerDto.userId);
 
     if (!managerUser) {
       throw new NotFoundException('해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.');
@@ -46,36 +40,20 @@ export class ManagerService {
     }
 
     // 이미 매니저 관계가 존재하는지 확인
-    const existingManager = await this.prismaService.manager.findUnique({
-      where: {
-        broadcaster_idx_manager_idx: {
-          broadcaster_idx: broadcasterIdx,
-          manager_idx: managerUser.idx
-        }
-      }
-    });
+    const existingManager = await this.managerRepository.findUniqueManager(
+      broadcasterIdx,
+      managerUser.idx,
+    );
 
     if (existingManager) {
       throw new BadRequestException('이미 매니저로 등록된 사용자입니다.');
     }
 
     // 매니저 관계 생성
-    const manager = await this.prismaService.manager.create({
-      data: {
-        broadcaster_idx: broadcasterIdx,
-        manager_idx: managerUser.idx
-      },
-      include: {
-        manager: {
-          select: {
-            idx: true,
-            user_id: true,
-            nickname: true,
-            profile_img: true
-          }
-        }
-      }
-    });
+    const manager = await this.managerRepository.createManager(
+      broadcasterIdx,
+      managerUser.idx,
+    );
 
     return {
       success: true,
@@ -92,37 +70,24 @@ export class ManagerService {
    */
   async removeManager(broadcasterIdx: number, removeManagerDto: RemoveManagerDto) {
     // 제거할 매니저 사용자가 존재하는지 확인
-    const managerUser = await this.prismaService.user.findUnique({
-      where: { user_id: removeManagerDto.userId }
-    });
+    const managerUser = await this.managerRepository.findUserByUserId(removeManagerDto.userId);
 
     if (!managerUser) {
       throw new NotFoundException('해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.');
     }
 
     // 매니저 관계가 존재하는지 확인
-    const existingManager = await this.prismaService.manager.findUnique({
-      where: {
-        broadcaster_idx_manager_idx: {
-          broadcaster_idx: broadcasterIdx,
-          manager_idx: managerUser.idx
-        }
-      }
-    });
+    const existingManager = await this.managerRepository.findUniqueManager(
+      broadcasterIdx,
+      managerUser.idx,
+    );
 
     if (!existingManager) {
       throw new NotFoundException('매니저로 등록되지 않은 사용자입니다.');
     }
 
     // 매니저 관계 삭제
-    await this.prismaService.manager.delete({
-      where: {
-        broadcaster_idx_manager_idx: {
-          broadcaster_idx: broadcasterIdx,
-          manager_idx: managerUser.idx
-        }
-      }
-    });
+    await this.managerRepository.deleteManager(broadcasterIdx, managerUser.idx);
 
     return {
       success: true,
