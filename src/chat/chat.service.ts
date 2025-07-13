@@ -5,6 +5,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { FanService } from 'src/fan/fan.service';
 import { FanLevel, User } from '@prisma/client';
 import { ManagerService } from 'src/manager/manager.service';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 @Injectable()
 export class ChatService {
@@ -40,17 +41,19 @@ export class ChatService {
     }
 
 
-    await this.redisService.publishMessage(`room:${broadcasterId}`, {
-      type: 'chat',
-      broadcaster_id: broadcaster.user_id,
-      chatter_idx: user.idx,
-      chatter_user_id: user.user_id,
-      chatter_nickname: user.nickname,
-      chatter_message: message,
-      grade: grade,
-      color: color,
-      role: role,
-    });
+    await this.redisService.publishMessage(
+      `room:${broadcasterId}`, 
+      RedisMessages.chat(
+        broadcaster.user_id,
+        user.idx,
+        user.user_id,
+        user.nickname,
+        message,
+        grade,
+        color,
+        role
+      )
+    );
     return {
       message: '성공적으로 채팅을 전송하였습니다.',
     };

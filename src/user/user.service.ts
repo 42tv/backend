@@ -22,6 +22,7 @@ import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { BlacklistWithBlocked } from 'src/blacklist/entities/blacklist.entity';
 import { RedisService } from 'src/redis/redis.service';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 @Injectable()
 export class UserService {
@@ -478,12 +479,10 @@ export class UserService {
     }
     await this.bookmarkService.addBookmark(user.idx, bookmarkedUser.idx);
 
-    await this.redisService.publishMessage(`room:${bookmarkedUser.user_id}`, {
-      type: 'bookmark',
-      action: 'add',
-      user_idx: user.idx,
-      broadcaster_id: bookmarkedUser.user_id,
-    })
+    await this.redisService.publishMessage(
+      `room:${bookmarkedUser.user_id}`, 
+      RedisMessages.bookmark(bookmarkedUser.user_id, 'add', user.idx)
+    )
     return {
       message: '북마크 추가 완료',
     };
@@ -503,12 +502,10 @@ export class UserService {
       throw new NotFoundException('삭제할 유저가 존재하지 않습니다.');
     }
     await this.bookmarkService.removeBookmark(user.idx, deletedUser.idx);
-    await this.redisService.publishMessage(`room:${deletedUser.user_id}`, {
-      type: 'bookmark',
-      action: 'delete',
-      user_idx: user.idx,
-      broadcaster_id: deletedUser.user_id,
-    });
+    await this.redisService.publishMessage(
+      `room:${deletedUser.user_id}`, 
+      RedisMessages.bookmark(deletedUser.user_id, 'delete', user.idx)
+    );
     return {
       message: '북마크 삭제 완료',
     };
