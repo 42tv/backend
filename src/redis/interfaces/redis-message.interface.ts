@@ -36,20 +36,21 @@ export interface BookmarkMessage extends BaseRedisMessage {
   user_idx: number;
 }
 
+// 사용자 입장/퇴장 메시지 타입
+export interface UserJoinLeaveMessage extends BaseRedisMessage {
+  type: 'join' | 'leave';
+  user_id: string;
+  user_idx: number;
+  nickname: string;
+  role: string;
+}
+
 // 서버 커맨드 메시지 타입
 export interface ServerCommandMessage {
   command: 'delete';
   prev_server_id: number;
   room_id: string;
   user_id: string;
-}
-
-// 사용자 입장/퇴장 메시지 타입
-export interface UserJoinLeaveMessage {
-  user_id: string;
-  user_idx: number;
-  nickname: string;
-  role: string;
 }
 
 // 시청자 정보 타입
@@ -65,6 +66,7 @@ export type RoomMessage =
   | RoomChatMessage 
   | ViewerCountMessage 
   | RecommendMessage 
-  | BookmarkMessage;
+  | BookmarkMessage
+  | UserJoinLeaveMessage;
 
 export type RedisMessage = RoomMessage | ServerCommandMessage;

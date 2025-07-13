@@ -170,17 +170,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // redis에 connection을 자신으로 덮어씌우고, 만약 다른서버에 존재한다면 해당 서버에 없애라고 pub날림
     await this.redisService.registConnection(broadcaster.user_id, registerId);
     await this.redisService.registViewer(broadcaster.user_id, registerId, user.idx, user.nickname, user.role);
-    await this.sendToSpecificUserTypes(
-      broadcaster.user_id,
-      'join',
-      {
-        user_id: registerId,
-        user_idx: user.idx,
-        nickname: user.nickname,
-        role: user.role,
-      },
-      ['manager', 'broadcaster'],
-    )
+    
+    // Redis를 통해 모든 서버의 해당 room에 사용자 입장 알림
+    await this.redisService.publishMessage(
+      `room:${broadcaster.user_id}`, 
+      RedisMessages.userJoinLeave('join', broadcaster.user_id, registerId, user.idx, user.nickname, user.role)
+    );
     // 재생 수 증가 - 각 접속마다 증가
     if (broadcaster.idx) {
       try {
@@ -222,17 +217,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    // 사용자가 나갔다는 알림을 다른 사용자들에게 전송
-    await this.sendToSpecificUserTypes(
-      broadcaster.user_id,
-      'leave',
-      {
-        user_id: registerId,
-        user_idx: user.idx,
-        nickname: user.nickname,
-        role: user.role,
-      },
-      ['manager', 'broadcaster'],
+    // 사용자가 나갔다는 알림을 Redis를 통해 모든 서버의 해당 room에 전송
+    await this.redisService.publishMessage(
+      `room:${broadcaster.user_id}`, 
+      RedisMessages.userJoinLeave('leave', broadcaster.user_id, registerId, user.idx, user.nickname, user.role)
     );
 
     const viewerCount = await this.redisService.getHashFieldCount(

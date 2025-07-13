@@ -11,15 +11,9 @@ import {
   RecommendMessage,
   BookmarkMessage,
   ViewerInfo,
+  UserJoinLeaveMessage,
 } from './interfaces/redis-message.interface';
 import { RedisMessages } from './interfaces/message-namespace';
-import { BookmarkEvent } from 'src/bookmark/entities/bookmark.entity';
-import {
-  RoomChatEvent,
-  RoomRecommendEvent,
-  RoomUpdateEvent,
-  ServerCommand,
-} from 'src/utils/utils';
 
 @Injectable()
 export class RedisService {
@@ -98,6 +92,10 @@ export class RedisService {
       case 'bookmark':
         await this.handleBookmarkMessage(message as BookmarkMessage);
         break;
+      case 'join':
+      case 'leave':
+        await this.handleUserJoinLeaveMessage(message as UserJoinLeaveMessage);
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${messageType}`);
     }
@@ -154,6 +152,25 @@ export class RedisService {
       message.broadcaster_id,
       message.type,
       message,
+    );
+  }
+
+  /**
+   * 사용자 입장/퇴장 메시지 처리
+   * @param message 사용자 입장/퇴장 메시지
+   */
+  private async handleUserJoinLeaveMessage(message: UserJoinLeaveMessage) {
+    console.log(`[User${message.type === 'join' ? 'Join' : 'Leave'}] received:`, message);
+    await this.eventsGateway.sendToSpecificUserTypes(
+      message.broadcaster_id,
+      message.type,
+      {
+        user_id: message.user_id,
+        user_idx: message.user_idx,
+        nickname: message.nickname,
+        role: message.role,
+      },
+      ['manager', 'broadcaster'],
     );
   }
 

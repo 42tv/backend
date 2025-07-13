@@ -4,6 +4,7 @@ import {
   BookmarkMessage,
   RoomChatMessage,
   ServerCommandMessage,
+  UserJoinLeaveMessage,
 } from './redis-message.interface';
 
 export namespace RedisMessages {
@@ -74,6 +75,24 @@ export namespace RedisMessages {
       prev_server_id,
       room_id,
       user_id,
+    };
+  }
+
+  export function userJoinLeave(
+    type: 'join' | 'leave',
+    broadcaster_id: string,
+    user_id: string,
+    user_idx: number,
+    nickname: string,
+    role: string
+  ): UserJoinLeaveMessage {
+    return {
+      type,
+      broadcaster_id,
+      user_id,
+      user_idx,
+      nickname,
+      role,
     };
   }
 }
