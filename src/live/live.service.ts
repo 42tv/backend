@@ -3,6 +3,7 @@ import { ManagerService } from 'src/manager/manager.service';
 import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 @Injectable()
 export class LiveService {
@@ -69,12 +70,14 @@ export class LiveService {
     );
     // 추천 수 증가
     await this.streamService.increaseRecommend(broadcaster_idx);
-    await this.redisService.publishMessage(`room:${broadCaster.user_id}`, {
-      type: 'recommend',
-      broadcaster_id: broadCaster.user_id,
-      recommender_idx: recommender_idx,
-      recommender_nickname: recommender.nickname,
-    });
+    await this.redisService.publishMessage(
+      `room:${broadCaster.user_id}`, 
+      RedisMessages.recommend(
+        broadCaster.user_id,
+        recommender_idx,
+        recommender.nickname
+      )
+    );
     return;
   }
 

@@ -1,7 +1,18 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
+import { Redis } from 'ioredis';
+import {
+  RedisMessage,
+  RoomMessage,
+  ServerCommandMessage,
+  ViewerCountMessage,
+  RoomChatMessage,
+  RecommendMessage,
+  BookmarkMessage,
+  ViewerInfo,
+} from './interfaces/redis-message.interface';
+import { RedisMessages } from './interfaces/message-namespace';
 import { BookmarkEvent } from 'src/bookmark/entities/bookmark.entity';
 import {
   RoomChatEvent,
@@ -62,31 +73,30 @@ export class RedisService {
    * 서버 커맨드 메시지 처리
    * @param message 서버 커맨드 메시지
    */
-  private async handleServerCommand(message: any) {
-    const command = message as ServerCommand;
-    console.log(`[Server Command] received:`, command);
-    await this.eventsGateway.handleServerCommmand(command);
+  private async handleServerCommand(message: ServerCommandMessage) {
+    console.log(`[Server Command] received:`, message);
+    await this.eventsGateway.handleServerCommmand(message);
   }
 
   /**
    * 룸 메시지 처리 (chat, recommend, viewer_count 등)
    * @param message 룸 메시지
    */
-  private async handleRoomMessage(message: any) {
+  private async handleRoomMessage(message: RoomMessage) {
     const messageType = message.type;
 
     switch (messageType) {
       case 'viewer_count':
-        await this.handleViewerCountMessage(message as RoomUpdateEvent);
+        await this.handleViewerCountMessage(message as ViewerCountMessage);
         break;
       case 'chat':
-        await this.handleChatMessage(message as RoomChatEvent);
+        await this.handleChatMessage(message as RoomChatMessage);
         break;
       case 'recommend':
-        await this.handleRecommendMessage(message as RoomRecommendEvent);
+        await this.handleRecommendMessage(message as RecommendMessage);
         break;
       case 'bookmark':
-        await this.handleBookmarkMessage(message as BookmarkEvent)
+        await this.handleBookmarkMessage(message as BookmarkMessage);
         break;
       default:
         console.warn(`[Redis] Unknown room message type: ${messageType}`);
@@ -97,7 +107,7 @@ export class RedisService {
    * 시청자 수 업데이트 메시지 처리
    * @param message 시청자 수 업데이트 메시지
    */
-  private async handleViewerCountMessage(message: RoomUpdateEvent) {
+  private async handleViewerCountMessage(message: ViewerCountMessage) {
     const enrichedMessage = {
       ...message,
       viewer_cnt: message.viewer_cnt,
@@ -113,7 +123,7 @@ export class RedisService {
    * 채팅 메시지 처리
    * @param message 채팅 메시지
    */
-  private async handleChatMessage(message: RoomChatEvent) {
+  private async handleChatMessage(message: RoomChatMessage) {
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.type,
@@ -125,7 +135,7 @@ export class RedisService {
    * 추천 메시지 처리
    * @param message 추천 메시지
    */
-  private async handleRecommendMessage(message: RoomRecommendEvent) {
+  private async handleRecommendMessage(message: RecommendMessage) {
     console.log(`[Recommend] received:`, message);
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
@@ -138,12 +148,12 @@ export class RedisService {
    * 북마크 메시지 처리
    * @param message 북마크 메시지
    */
-  private async handleBookmarkMessage(message: BookmarkEvent) {
+  private async handleBookmarkMessage(message: BookmarkMessage) {
     console.log(`[Bookmark] received:`, message);
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.type,
-      message
+      message,
     );
   }
 
@@ -180,7 +190,7 @@ export class RedisService {
    * @param channel 발행할 채널
    * @param message 발행할 메시지
    */
-  async publishMessage(channel: string, message: any): Promise<void> {
+  async publishMessage(channel: string, message: RedisMessage): Promise<void> {
     try {
       await this.redis.publish(channel, JSON.stringify(message));
     } catch (error) {
@@ -207,12 +217,11 @@ export class RedisService {
         `Connection already exists on server ${previousServerId}: ${key}`,
       );
 
-      const deleteCommand: ServerCommand = {
-        command: 'delete',
-        prev_server_id: parseInt(previousServerId),
-        room_id: roomId,
-        user_id: userId,
-      };
+      const deleteCommand = RedisMessages.serverCommand(
+        parseInt(previousServerId),
+        roomId,
+        userId,
+      );
 
       await this.publishMessage(
         `server_command:${previousServerId}`,
@@ -238,7 +247,13 @@ export class RedisService {
    * @param broadcasterId 방송자 ID
    * @param userId 시청자 ID
    */
-  async registViewer(broadcasterId: string, userId: string, userIdx, nickname, role): Promise<void> {
+  async registViewer(
+    broadcasterId: string,
+    userId: string,
+    userIdx,
+    nickname,
+    role,
+  ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
     await this.hset(key, userId, JSON.stringify({
       user_id: userId,
@@ -293,7 +308,7 @@ export class RedisService {
    * @param broadcasterId 방송자의 user_id
    * @returns 시청자 정보 배열
    */
-  async getViewersList(broadcasterId: string): Promise<any[]> {
+  async getViewersList(broadcasterId: string): Promise<ViewerInfo[]> {
     const viewerKey = `viewer:${broadcasterId}`;
     const viewerData = await this.getHashAll(viewerKey);
 

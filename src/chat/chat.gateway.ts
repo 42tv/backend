@@ -8,9 +8,10 @@ import {
 import { Server, Socket } from 'socket.io';
 import { AuthService } from 'src/auth/auth.service';
 import { RedisService } from 'src/redis/redis.service';
-import { ServerCommand } from 'src/utils/utils';
 import { StreamService } from 'src/stream/stream.service';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
+import { ServerCommandMessage } from 'src/redis/interfaces/redis-message.interface';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 interface AuthenticatedSocket extends Socket {
   user: WebsocketJwt;
@@ -188,11 +189,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           `viewer:${broadcaster.user_id}`,
         );
         // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
-        await this.redisService.publishMessage(`room:${broadcaster.user_id}`, {
-          broadcaster_id: broadcaster.user_id,
-          type: 'viewer_count',
-          viewer_cnt: viewerCount,
-        });
+        await this.redisService.publishMessage(
+          `room:${broadcaster.user_id}`, 
+          RedisMessages.viewerCount(broadcaster.user_id, viewerCount)
+        );
       } catch (error) {
         console.error(`Failed to increase play count: ${error.message}`);
       }
@@ -239,11 +239,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       `viewer:${broadcaster.user_id}`,
     );
     // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
-    await this.redisService.publishMessage(`room:${broadcaster.user_id}`, {
-      broadcaster_id: broadcaster.user_id,
-      type: 'viewer_count',
-      viewer_cnt: viewerCount,
-    });
+    await this.redisService.publishMessage(
+      `room:${broadcaster.user_id}`, 
+      RedisMessages.viewerCount(broadcaster.user_id, viewerCount)
+    );
     await this.deleteChatRoomUser(broadcaster.user_id, registerId);
   }
 
@@ -301,7 +300,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Redis로부터 받은 Server Command를 처리한다.
    * 다른 서버를 통해 중복처리 되었을때만 ServerCommand의 'delete'로 제거한다
    */
-  async handleServerCommmand(message: ServerCommand) {
+  async handleServerCommmand(message: ServerCommandMessage) {
     console.log(message.command == 'delete');
     if (message.command == 'delete') {
       const { prev_server_id, room_id, user_id } = message;
