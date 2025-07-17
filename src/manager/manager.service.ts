@@ -3,6 +3,7 @@ import { AddManagerDto } from './dto/add.manager.dto';
 import { RemoveManagerDto } from './dto/remove.manager.dto';
 import { ManagerRepository } from './manager.repository';
 import { RedisService } from 'src/redis/redis.service';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 @Injectable()
 export class ManagerService {
@@ -59,6 +60,21 @@ export class ManagerService {
       managerUser.idx,
     );
 
+    // Redis를 통해 모든 서버의 해당 room에 role 변경 알림
+    await this.redisService.publishMessage(
+      `room:${broadcaster.user_id}`,
+      RedisMessages.roleChange(
+        broadcaster.user_id,
+        managerUser.user_id,
+        managerUser.idx,
+        managerUser.nickname,
+        'viewer', // 이전 역할 (기본값으로 viewer 또는 member로 가정)
+        'manager', // 새로운 역할
+        broadcasterIdx,
+        broadcaster.nickname
+      )
+    );
+
     return {
       success: true,
       message: '매니저가 성공적으로 추가되었습니다.',
@@ -74,6 +90,7 @@ export class ManagerService {
    */
   async removeManager(broadcasterIdx: number, removeManagerDto: RemoveManagerDto) {
     // 제거할 매니저 사용자가 존재하는지 확인
+    const broadcaster = await this.managerRepository.findUserByIdx(broadcasterIdx);
     const managerUser = await this.managerRepository.findUserByUserId(removeManagerDto.userId);
 
     if (!managerUser) {
@@ -92,6 +109,21 @@ export class ManagerService {
 
     // 매니저 관계 삭제
     await this.managerRepository.deleteManager(broadcasterIdx, managerUser.idx);
+
+    // Redis를 통해 모든 서버의 해당 room에 role 변경 알림
+    await this.redisService.publishMessage(
+      `room:${broadcaster.user_id}`,
+      RedisMessages.roleChange(
+        broadcaster.user_id,
+        managerUser.user_id,
+        managerUser.idx,
+        managerUser.nickname,
+        'manager', // 이전 역할
+        'viewer', // 새로운 역할 (기본값으로 viewer로 변경)
+        broadcasterIdx,
+        broadcaster.nickname
+      )
+    );
 
     return {
       success: true,

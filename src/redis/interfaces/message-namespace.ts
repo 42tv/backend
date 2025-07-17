@@ -5,6 +5,8 @@ import {
   RoomChatMessage,
   ServerCommandMessage,
   UserJoinLeaveMessage,
+  RoleChangeMessage,
+  GradeChangeMessage,
 } from './redis-message.interface';
 
 export namespace RedisMessages {
@@ -93,6 +95,48 @@ export namespace RedisMessages {
       user_idx,
       nickname,
       role,
+    };
+  }
+
+  export function roleChange(
+    broadcaster_id: string,
+    target_user_id: string,
+    target_user_idx: number,
+    target_nickname: string,
+    previous_role: string,
+    new_role: string,
+    changed_by_idx: number,
+    changed_by_nickname: string
+  ): RoleChangeMessage {
+    return {
+      type: 'role_change',
+      broadcaster_id,
+      target_user_id,
+      target_user_idx,
+      target_nickname,
+      previous_role,
+      new_role,
+      changed_by_idx,
+      changed_by_nickname,
+    };
+  }
+
+  export function gradeChange(
+    broadcaster_id: string,
+    target_user_id: string,
+    target_user_idx: number,
+    target_nickname: string,
+    previous_grade: string,
+    new_grade: string
+  ): GradeChangeMessage {
+    return {
+      type: 'grade_change',
+      broadcaster_id,
+      target_user_id,
+      target_user_idx,
+      target_nickname,
+      previous_grade,
+      new_grade,
     };
   }
 }

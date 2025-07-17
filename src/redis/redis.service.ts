@@ -12,6 +12,8 @@ import {
   BookmarkMessage,
   ViewerInfo,
   UserJoinLeaveMessage,
+  RoleChangeMessage,
+  GradeChangeMessage,
 } from './interfaces/redis-message.interface';
 import { RedisMessages } from './interfaces/message-namespace';
 
@@ -96,6 +98,12 @@ export class RedisService {
       case 'leave':
         await this.handleUserJoinLeaveMessage(message as UserJoinLeaveMessage);
         break;
+      case 'role_change':
+        await this.handleRoleChangeMessage(message as RoleChangeMessage);
+        break;
+      case 'grade_change':
+        await this.handleGradeChangeMessage(message as GradeChangeMessage);
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${messageType}`);
     }
@@ -160,7 +168,7 @@ export class RedisService {
    * @param message 사용자 입장/퇴장 메시지
    */
   private async handleUserJoinLeaveMessage(message: UserJoinLeaveMessage) {
-    console.log(`[User${message.type === 'join' ? 'Join' : 'Leave'}] received:`, message);
+    // 입장/퇴장 메시지를 관리자 및 방송자에게만 전송
     await this.eventsGateway.sendToSpecificUserTypes(
       message.broadcaster_id,
       message.type,
@@ -172,6 +180,64 @@ export class RedisService {
       },
       ['manager', 'broadcaster'],
     );
+  }
+
+  /**
+   * 역할 변경 메시지 처리
+   * @param message 역할 변경 메시지
+   */
+  private async handleRoleChangeMessage(message: RoleChangeMessage) {
+    console.log(
+      `[RoleChange] - room: ${message.broadcaster_id}, target: ${message.target_nickname}(${message.target_user_id}), ${message.previous_role} -> ${message.new_role}, changed by: ${message.changed_by_nickname}`,
+    );
+
+    // 역할 변경 메시지를 해당 방의 모든 사용자에게 전송
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      'role_change',
+      {
+        target_user_id: message.target_user_id,
+        target_user_idx: message.target_user_idx,
+        target_nickname: message.target_nickname,
+        previous_role: message.previous_role,
+        new_role: message.new_role,
+        changed_by_idx: message.changed_by_idx,
+        changed_by_nickname: message.changed_by_nickname,
+      },
+    );
+
+    // Redis의 viewer 정보도 업데이트
+    await this.updateViewerRole(
+      message.broadcaster_id,
+      message.target_user_id,
+      message.new_role,
+    );
+  }
+
+  /**
+   * 등급 변경 메시지 처리
+   * @param message 등급 변경 메시지
+   */
+  private async handleGradeChangeMessage(message: GradeChangeMessage) {
+    console.log(
+      `[GradeChange] - room: ${message.broadcaster_id}, target: ${message.target_nickname}(${message.target_user_id}), ${message.previous_grade} -> ${message.new_grade}`,
+    );
+
+    // 등급 변경 메시지를 해당 방의 모든 사용자에게 전송
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      'grade_change',
+      {
+        target_user_id: message.target_user_id,
+        target_user_idx: message.target_user_idx,
+        target_nickname: message.target_nickname,
+        previous_grade: message.previous_grade,
+        new_grade: message.new_grade,
+      },
+    );
+
+    // Redis의 viewer 정보에서 grade는 저장하지 않으므로 별도 업데이트 불필요
+    // 필요하다면 향후 updateViewerGrade 메서드를 구현할 수 있음
   }
 
   /**
@@ -289,6 +355,24 @@ export class RedisService {
     const key = `viewer:${broadcasterId}`;
     console.log(`[Remove Viewer] ${userId} from ${broadcasterId}`);
     await this.hdel(key, userId);
+  }
+
+  /**
+   * 시청자 역할 업데이트
+   * @param broadcasterId 방송자 ID
+   * @param userId 사용자 ID
+   * @param newRole 새로운 역할
+   */
+  async updateViewerRole(broadcasterId: string, userId: string, newRole: string): Promise<void> {
+    const key = `viewer:${broadcasterId}`;
+    const viewerData = await this.hget(key, userId);
+    
+    if (viewerData) {
+      const viewer = JSON.parse(viewerData);
+      viewer.role = newRole;
+      await this.hset(key, userId, JSON.stringify(viewer));
+      console.log(`[Update Viewer Role] ${userId} role changed to ${newRole} in ${broadcasterId}`);
+    }
   }
 
   /**

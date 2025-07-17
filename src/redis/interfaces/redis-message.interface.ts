@@ -45,6 +45,29 @@ export interface UserJoinLeaveMessage extends BaseRedisMessage {
   role: string;
 }
 
+// 사용자 변경 기본 메시지
+export interface BaseUserChangeMessage extends BaseRedisMessage {
+  target_user_id: string;
+  target_user_idx: number;
+  target_nickname: string;
+}
+
+// 사용자 역할 변경 메시지 타입
+export interface RoleChangeMessage extends BaseUserChangeMessage {
+  type: 'role_change';
+  previous_role: string;
+  new_role: string;
+  changed_by_idx: number;
+  changed_by_nickname: string;
+}
+
+// 사용자 등급 변경 메시지 타입
+export interface GradeChangeMessage extends BaseUserChangeMessage {
+  type: 'grade_change';
+  previous_grade: string;
+  new_grade: string;
+}
+
 // 서버 커맨드 메시지 타입
 export interface ServerCommandMessage {
   command: 'delete';
@@ -67,6 +90,8 @@ export type RoomMessage =
   | ViewerCountMessage 
   | RecommendMessage 
   | BookmarkMessage
-  | UserJoinLeaveMessage;
+  | UserJoinLeaveMessage
+  | RoleChangeMessage
+  | GradeChangeMessage;
 
 export type RedisMessage = RoomMessage | ServerCommandMessage;
