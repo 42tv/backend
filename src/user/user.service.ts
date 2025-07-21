@@ -479,7 +479,7 @@ export class UserService {
     }
     await this.bookmarkService.addBookmark(user.idx, bookmarkedUser.idx);
 
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${bookmarkedUser.user_id}`, 
       RedisMessages.bookmark(bookmarkedUser.user_id, 'add', user.idx)
     )
@@ -502,7 +502,7 @@ export class UserService {
       throw new NotFoundException('삭제할 유저가 존재하지 않습니다.');
     }
     await this.bookmarkService.removeBookmark(user.idx, deletedUser.idx);
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${deletedUser.user_id}`, 
       RedisMessages.bookmark(deletedUser.user_id, 'delete', user.idx)
     );

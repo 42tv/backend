@@ -10,7 +10,6 @@ import { AuthService } from 'src/auth/auth.service';
 import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
-import { ServerCommandMessage } from 'src/redis/interfaces/redis-message.interface';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 interface AuthenticatedSocket extends Socket {
@@ -172,7 +171,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.redisService.registViewer(broadcaster.user_id, registerId, user.idx, user.nickname, user.role);
     
     // Redis를 통해 모든 서버의 해당 room에 사용자 입장 알림
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`, 
       RedisMessages.userJoinLeave('join', broadcaster.user_id, registerId, user.idx, user.nickname, user.role)
     );
@@ -184,7 +183,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           `viewer:${broadcaster.user_id}`,
         );
         // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
-        await this.redisService.publishMessage(
+        await this.redisService.publishRoomMessage(
           `room:${broadcaster.user_id}`, 
           RedisMessages.viewerCount(broadcaster.user_id, viewerCount)
         );
@@ -218,7 +217,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // 사용자가 나갔다는 알림을 Redis를 통해 모든 서버의 해당 room에 전송
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`, 
       RedisMessages.userJoinLeave('leave', broadcaster.user_id, registerId, user.idx, user.nickname, user.role)
     );
@@ -227,7 +226,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       `viewer:${broadcaster.user_id}`,
     );
     // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`, 
       RedisMessages.viewerCount(broadcaster.user_id, viewerCount)
     );
@@ -288,20 +287,20 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Redis로부터 받은 Server Command를 처리한다.
    * 다른 서버를 통해 중복처리 되었을때만 ServerCommand의 'delete'로 제거한다
    */
-  async handleServerCommmand(message: ServerCommandMessage) {
-    console.log(message.command == 'delete');
-    if (message.command == 'delete') {
-      const { prev_server_id, room_id, user_id } = message;
-      if (this.chatRooms.has(room_id)) {
-        console.log(`[ServerCommand Delete] - chatRoom[${room_id}]:${user_id}`);
-        this.chatRooms.get(room_id).get(user_id).emit('duplicate_connection', {
-          message: '다른 클라이언트에서 접속하였습니다',
-        });
-      }
-      // 해당 채팅방에서 사용자 제거
-      await this.deleteChatRoomUser(room_id, user_id);
-    }
-  }
+  // async handleServerCommmand(message: ServerCommandMessage) {
+  //   console.log(message.command == 'delete');
+  //   if (message.command == 'delete') {
+  //     const { prev_server_id, room_id, user_id } = message;
+  //     if (this.chatRooms.has(room_id)) {
+  //       console.log(`[ServerCommand Delete] - chatRoom[${room_id}]:${user_id}`);
+  //       this.chatRooms.get(room_id).get(user_id).emit('duplicate_connection', {
+  //         message: '다른 클라이언트에서 접속하였습니다',
+  //       });
+  //     }
+  //     // 해당 채팅방에서 사용자 제거
+  //     await this.deleteChatRoomUser(room_id, user_id);
+  //   }
+  // }
 
   /**
    * chatRooms에 저장된 AuthenticatedSocket의 user.user 속성만 교체하는 함수

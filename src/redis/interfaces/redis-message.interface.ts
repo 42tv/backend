@@ -97,6 +97,14 @@ export interface BanPayload {
   };
 }
 
+// 시청자 정보 타입
+export interface ViewerInfo {
+  user_id: string;
+  user_idx: number;
+  nickname: string;
+  role: string;
+}
+
 // // 서버 커맨드 메시지 타입
 // export interface ServerCommandMessage {
 //   command: 'delete';

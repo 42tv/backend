@@ -41,7 +41,7 @@ export class ChatService {
     }
 
 
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${broadcasterId}`, 
       RedisMessages.chat(
         broadcaster.user_id,

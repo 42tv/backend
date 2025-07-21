@@ -3,7 +3,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
 import { Redis } from 'ioredis';
 import { RedisMessages } from './interfaces/message-namespace';
-import { ChatRoomMessage, OpCode, ViewerCountPayload } from './interfaces/redis-message.interface';
+import { ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/redis-message.interface';
 
 @Injectable()
 export class RedisService {
@@ -43,7 +43,7 @@ export class RedisService {
     try {
       const parsedMessage = JSON.parse(message);
       if (channel === `server_command:${this.serverId}`) {
-        await this.handleServerCommand(parsedMessage);
+        // await this.handleServerCommand(parsedMessage);
       } else if (channel.startsWith('room:')) {
         await this.handleRoomMessage(parsedMessage);
       }
@@ -52,14 +52,14 @@ export class RedisService {
     }
   }
 
-  /**
-   * 서버 커맨드 메시지 처리
-   * @param message 서버 커맨드 메시지
-   */
-  private async handleServerCommand(message: ServerCommandMessage) {
-    console.log(`[Server Command] received:`, message);
-    await this.eventsGateway.handleServerCommmand(message);
-  }
+  // /**
+  //  * 서버 커맨드 메시지 처리
+  //  * @param message 서버 커맨드 메시지
+  //  */
+  // private async handleServerCommand(message: ServerCommandMessage) {
+  //   console.log(`[Server Command] received:`, message);
+  //   await this.eventsGateway.handleServerCommmand(message);
+  // }
 
   /**
    * 룸 메시지 처리 (chat, recommend, viewer_count 등)
@@ -70,23 +70,25 @@ export class RedisService {
 
     switch (opCode) {
       case OpCode.VIEWER_COUNT:
-        await this.handleViewerCountMessage();
+        await this.handleViewerCountMessage(message);
         break;
       case OpCode.CHAT:
-        await this.handleChatMessage(message as RoomChatMessage);
+        await this.handleChatMessage(message);
         break;
       case OpCode.RECOMMEND:
-        await this.handleRecommendMessage(message as RecommendMessage);
+        await this.handleRecommendMessage(message);
         break;
       case OpCode.BOOKMARK:
-        await this.handleBookmarkMessage(message as BookmarkMessage);
+        await this.handleBookmarkMessage(message);
         break;
       case OpCode.USER_JOIN:
+        await this.handleUserJoinMessage(message);
+        break;
       case OpCode.USER_LEAVE:
-        await this.handleUserJoinLeaveMessage(message as UserJoinLeaveMessage);
+        await this.handleUserLeaveMessage(message);
         break;
       case OpCode.ROLE_CHANGE:
-        await this.handleRoleChangeMessage(message as RoleChangeMessage);
+        await this.handleRoleChangeMessage(message);
         break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
@@ -110,11 +112,11 @@ export class RedisService {
    * 채팅 메시지 처리
    * @param message 채팅 메시지
    */
-  private async handleChatMessage(message: RoomChatMessage) {
+  private async handleChatMessage(message: ChatRoomMessage) {
     await this.eventsGateway.sendToRoom(
-      message.broadcaster_id,
-      message.type,
-      message,
+      message.broadcasterId,
+      message.op,
+      message.payload
     );
   }
 
@@ -122,12 +124,12 @@ export class RedisService {
    * 추천 메시지 처리
    * @param message 추천 메시지
    */
-  private async handleRecommendMessage(message: RecommendMessage) {
+  private async handleRecommendMessage(message: ChatRoomMessage) {
     console.log(`[Recommend] received:`, message);
     await this.eventsGateway.sendToRoom(
-      message.broadcaster_id,
-      message.type,
-      message,
+      message.broadcasterId,
+      message.op,
+      message.payload
     );
   }
 
@@ -135,12 +137,12 @@ export class RedisService {
    * 북마크 메시지 처리
    * @param message 북마크 메시지
    */
-  private async handleBookmarkMessage(message: BookmarkMessage) {
+  private async handleBookmarkMessage(message: ChatRoomMessage) {
     console.log(`[Bookmark] received:`, message);
     await this.eventsGateway.sendToRoom(
-      message.broadcaster_id,
-      message.type,
-      message,
+      message.broadcasterId,
+      message.op,
+      message.payload
     );
   }
 
@@ -148,16 +150,37 @@ export class RedisService {
    * 사용자 입장/퇴장 메시지 처리
    * @param message 사용자 입장/퇴장 메시지
    */
-  private async handleUserJoinLeaveMessage(message: UserJoinLeaveMessage) {
+  private async handleUserJoinMessage(message: ChatRoomMessage) {
     // 입장/퇴장 메시지를 관리자 및 방송자에게만 전송
+    const payload = message.payload as UserJoinPayload;
     await this.eventsGateway.sendToSpecificUserTypes(
-      message.broadcaster_id,
-      message.type,
+      message.broadcasterId,
+      message.op,
       {
-        user_id: message.user_id,
-        user_idx: message.user_idx,
-        nickname: message.nickname,
-        role: message.role,
+        user_id: payload.userId,
+        user_idx: payload.userIdx,
+        nickname: payload.nickname,
+        role: payload.role,
+      },
+      ['manager', 'broadcaster'],
+    );
+  }
+
+  /**
+   * 사용자 입장/퇴장 메시지 처리
+   * @param message 사용자 입장/퇴장 메시지
+   */
+  private async handleUserLeaveMessage(message: ChatRoomMessage) {
+    // 입장/퇴장 메시지를 관리자 및 방송자에게만 전송
+    const payload = message.payload as UserLeavePayload;
+    await this.eventsGateway.sendToSpecificUserTypes(
+      message.broadcasterId,
+      message.op,
+      {
+        user_id: payload.userId,
+        user_idx: payload.userIdx,
+        nickname: payload.nickname,
+        role: payload.role,
       },
       ['manager', 'broadcaster'],
     );
@@ -167,58 +190,33 @@ export class RedisService {
    * 역할 변경 메시지 처리
    * @param message 역할 변경 메시지
    */
-  private async handleRoleChangeMessage(message: RoleChangeMessage) {
-    console.log(
-      `[RoleChange] - room: ${message.broadcaster_id}, target: ${message.target_nickname}(${message.target_user_id}), ${message.previous_role} -> ${message.new_role}, changed by: ${message.changed_by_nickname}`,
-    );
+  private async handleRoleChangeMessage(message: ChatRoomMessage) {
+    const payload = message.payload as RoleChangePayload;
+    // console.log(
+    //   `[RoleChange] - room: ${message.broadcasterId}, target: ${message.targetNickname}(${message.targetUserId}), ${message.previousRole} -> ${message.newRole}, changed by: ${message.changedByNickname}`,
+    // );
 
-    // 역할 변경 메시지를 해당 방의 모든 사용자에게 전송
-    await this.eventsGateway.sendToRoom(
-      message.broadcaster_id,
-      'role_change',
-      {
-        target_user_id: message.target_user_id,
-        target_user_idx: message.target_user_idx,
-        target_nickname: message.target_nickname,
-        previous_role: message.previous_role,
-        new_role: message.new_role,
-        changed_by_idx: message.changed_by_idx,
-        changed_by_nickname: message.changed_by_nickname,
-      },
-    );
+    // // 역할 변경 메시지를 해당 방의 모든 사용자에게 전송
+    // await this.eventsGateway.sendToRoom(
+    //   message.broadcasterId,
+    //   'role_change',
+    //   {
+    //     target_user_id: payload.user,
+    //     target_user_idx: payload.targetUserIdx,
+    //     target_nickname: payload.targetNickname,
+    //     previous_role: payload.previousRole,
+    //     new_role: payload.newRole,
+    //     changed_by_idx: payload.changedByIdx,
+    //     changed_by_nickname: payload.changedByNickname,
+    //   },
+    // );
 
-    // Redis의 viewer 정보도 업데이트
-    await this.updateViewerRole(
-      message.broadcaster_id,
-      message.target_user_id,
-      message.new_role,
-    );
-  }
-
-  /**
-   * 등급 변경 메시지 처리
-   * @param message 등급 변경 메시지
-   */
-  private async handleGradeChangeMessage(message: GradeChangeMessage) {
-    console.log(
-      `[GradeChange] - room: ${message.broadcaster_id}, target: ${message.target_nickname}(${message.target_user_id}), ${message.previous_grade} -> ${message.new_grade}`,
-    );
-
-    // 등급 변경 메시지를 해당 방의 모든 사용자에게 전송
-    await this.eventsGateway.sendToRoom(
-      message.broadcaster_id,
-      'grade_change',
-      {
-        target_user_id: message.target_user_id,
-        target_user_idx: message.target_user_idx,
-        target_nickname: message.target_nickname,
-        previous_grade: message.previous_grade,
-        new_grade: message.new_grade,
-      },
-    );
-
-    // Redis의 viewer 정보에서 grade는 저장하지 않으므로 별도 업데이트 불필요
-    // 필요하다면 향후 updateViewerGrade 메서드를 구현할 수 있음
+    // // Redis의 viewer 정보도 업데이트
+    // await this.updateViewerRole(
+    //   message.broadcasterId,
+    //   payload.role.user_id,
+    //   payload.role
+    // );
   }
 
   /**
@@ -254,7 +252,7 @@ export class RedisService {
    * @param channel 발행할 채널
    * @param message 발행할 메시지
    */
-  async publishMessage(channel: string, message: RedisMessage): Promise<void> {
+  async publishRoomMessage(channel: string, message: ChatRoomMessage): Promise<void> {
     try {
       await this.redis.publish(channel, JSON.stringify(message));
     } catch (error) {
@@ -287,7 +285,7 @@ export class RedisService {
         userId,
       );
 
-      await this.publishMessage(
+      await this.publishRoomMessage(
         `server_command:${previousServerId}`,
         deleteCommand,
       );
@@ -344,17 +342,17 @@ export class RedisService {
    * @param userId 사용자 ID
    * @param newRole 새로운 역할
    */
-  async updateViewerRole(broadcasterId: string, userId: string, newRole: string): Promise<void> {
-    const key = `viewer:${broadcasterId}`;
-    const viewerData = await this.hget(key, userId);
+  // async updateViewerRole(broadcasterId: string, userId: string, newRole: string): Promise<void> {
+  //   const key = `viewer:${broadcasterId}`;
+  //   const viewerData = await this.hget(key, userId);
     
-    if (viewerData) {
-      const viewer = JSON.parse(viewerData);
-      viewer.role = newRole;
-      await this.hset(key, userId, JSON.stringify(viewer));
-      console.log(`[Update Viewer Role] ${userId} role changed to ${newRole} in ${broadcasterId}`);
-    }
-  }
+  //   if (viewerData) {
+  //     const viewer = JSON.parse(viewerData);
+  //     viewer.role = newRole;
+  //     await this.hset(key, userId, JSON.stringify(viewer));
+  //     console.log(`[Update Viewer Role] ${userId} role changed to ${newRole} in ${broadcasterId}`);
+  //   }
+  // }
 
   /**
    * 방송 종료시 viewer 해시 키 전체 삭제

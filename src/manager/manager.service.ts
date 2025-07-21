@@ -61,7 +61,7 @@ export class ManagerService {
     );
 
     // Redis를 통해 모든 서버의 해당 room에 role 변경 알림
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`,
       RedisMessages.roleChange(
         broadcaster.user_id,
@@ -111,7 +111,7 @@ export class ManagerService {
     await this.managerRepository.deleteManager(broadcasterIdx, managerUser.idx);
 
     // Redis를 통해 모든 서버의 해당 room에 role 변경 알림
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`,
       RedisMessages.roleChange(
         broadcaster.user_id,

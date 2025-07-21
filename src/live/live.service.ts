@@ -70,7 +70,7 @@ export class LiveService {
     );
     // 추천 수 증가
     await this.streamService.increaseRecommend(broadcaster_idx);
-    await this.redisService.publishMessage(
+    await this.redisService.publishRoomMessage(
       `room:${broadCaster.user_id}`, 
       RedisMessages.recommend(
         broadCaster.user_id,
