@@ -302,4 +302,21 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       await this.deleteChatRoomUser(room_id, user_id);
     }
   }
+
+  /**
+   * chatRooms에 저장된 AuthenticatedSocket의 user.user 속성만 교체하는 함수
+   * @param broadcasterId
+   * @param userId
+   * @param newUserInfo WebsocketJwt['user'] 타입의 새로운 값
+   */
+  async replaceChatRoomUserInfo(
+    broadcasterId: string,
+    userId: string,
+    newUserInfo: WebsocketJwt['user']
+  ) {
+    const roomMap = this.chatRooms.get(broadcasterId);
+    if (roomMap && roomMap.has(userId)) {
+      roomMap.get(userId).user.user = newUserInfo;
+    }
+  }
 }
