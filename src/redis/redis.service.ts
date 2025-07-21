@@ -2,20 +2,8 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
 import { Redis } from 'ioredis';
-import {
-  RedisMessage,
-  RoomMessage,
-  ServerCommandMessage,
-  ViewerCountMessage,
-  RoomChatMessage,
-  RecommendMessage,
-  BookmarkMessage,
-  ViewerInfo,
-  UserJoinLeaveMessage,
-  RoleChangeMessage,
-  GradeChangeMessage,
-} from './interfaces/redis-message.interface';
 import { RedisMessages } from './interfaces/message-namespace';
+import { ChatRoomMessage, OpCode, ViewerCountPayload } from './interfaces/redis-message.interface';
 
 @Injectable()
 export class RedisService {
@@ -54,7 +42,6 @@ export class RedisService {
   private async handleMessage(channel: string, message: string) {
     try {
       const parsedMessage = JSON.parse(message);
-
       if (channel === `server_command:${this.serverId}`) {
         await this.handleServerCommand(parsedMessage);
       } else if (channel.startsWith('room:')) {
@@ -78,34 +65,31 @@ export class RedisService {
    * 룸 메시지 처리 (chat, recommend, viewer_count 등)
    * @param message 룸 메시지
    */
-  private async handleRoomMessage(message: RoomMessage) {
-    const messageType = message.type;
+  private async handleRoomMessage(message: ChatRoomMessage) {
+    const opCode = message.op;
 
-    switch (messageType) {
-      case 'viewer_count':
-        await this.handleViewerCountMessage(message as ViewerCountMessage);
+    switch (opCode) {
+      case OpCode.VIEWER_COUNT:
+        await this.handleViewerCountMessage();
         break;
-      case 'chat':
+      case OpCode.CHAT:
         await this.handleChatMessage(message as RoomChatMessage);
         break;
-      case 'recommend':
+      case OpCode.RECOMMEND:
         await this.handleRecommendMessage(message as RecommendMessage);
         break;
-      case 'bookmark':
+      case OpCode.BOOKMARK:
         await this.handleBookmarkMessage(message as BookmarkMessage);
         break;
-      case 'join':
-      case 'leave':
+      case OpCode.USER_JOIN:
+      case OpCode.USER_LEAVE:
         await this.handleUserJoinLeaveMessage(message as UserJoinLeaveMessage);
         break;
-      case 'role_change':
+      case OpCode.ROLE_CHANGE:
         await this.handleRoleChangeMessage(message as RoleChangeMessage);
         break;
-      case 'grade_change':
-        await this.handleGradeChangeMessage(message as GradeChangeMessage);
-        break;
       default:
-        console.warn(`[Redis] Unknown room message type: ${messageType}`);
+        console.warn(`[Redis] Unknown room message type: ${opCode}`);
     }
   }
 
@@ -113,15 +97,12 @@ export class RedisService {
    * 시청자 수 업데이트 메시지 처리
    * @param message 시청자 수 업데이트 메시지
    */
-  private async handleViewerCountMessage(message: ViewerCountMessage) {
-    const enrichedMessage = {
-      ...message,
-      viewer_cnt: message.viewer_cnt,
-    };
+  private async handleViewerCountMessage(message: ChatRoomMessage) {
+    const payload = message.payload as ViewerCountPayload;
     await this.eventsGateway.sendToRoom(
-      message.broadcaster_id,
-      message.type,
-      enrichedMessage,
+      message.broadcasterId,
+      message.op,
+      message.payload 
     );
   }
 
