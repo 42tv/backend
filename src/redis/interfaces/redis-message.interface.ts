@@ -5,17 +5,71 @@ export enum OpCode {
   USER_JOIN = 'join',
   USER_LEAVE = 'leave',
   ROLE_CHANGE = 'role_change',
-  GRADE_CHANGE = 'grade_change',
   VIEWER_COUNT = 'viewer_count',
-
 }
 
 // Redis 메시지의 기본 인터페이스
-export interface ChatRoomMessage {
+export interface ChatRoomMessage<T> {
   op: OpCode;
-  type: string;
-  broadcaster_id: string;
+  broadcasterId: string;
+  payload: T;
 }
+
+export interface ChatPayLoad {
+  userIdx: number;
+  userId: string;
+  nickname: string;
+  message: string;
+  grade: string;
+  color: string;
+  role: string;
+}
+
+export interface RecommendPayload {
+  userIdx: number;
+  nickname: string;
+}
+
+export interface ViewerCountPayload {
+  viewerCount: number;
+}
+
+export interface BookmarkPayload {
+  action: 'add' | 'delete';
+  userIdx: number;
+}
+
+export interface UserJoinPayload {
+  userId: string;
+  userIdx: number;
+  nickname: string;
+  role: string;
+}
+
+export interface UserLeavePayload {
+  userId: string;
+  userIdx: number;
+  nickname: string;
+  role: string;
+}
+
+export interface RoleChangePayload {
+  userId: string;
+  userIdx: number;
+  nickname: string;
+  role: {
+    idx: number;
+    user_id: string;
+    nickname: string;
+    role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
+    profile_img: string;
+    is_guest: boolean;
+    guest_id?: string;
+  }
+}
+
+
+
 
 // // 채팅 메시지 타입
 // export interface RoomChatMessage extends BaseRedisMessage {
