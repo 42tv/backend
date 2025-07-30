@@ -227,7 +227,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 사용자가 나갔다는 알림을 Redis를 통해 모든 서버의 해당 room에 전송
     await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`, 
-      RedisMessages.userJoin(broadcaster.user_id, registerId, user.idx, user.nickname, {
+      RedisMessages.userLeave(broadcaster.user_id, registerId, user.idx, user.nickname, {
         idx: user.idx,
         user_id: user.user_id,
         nickname: user.nickname,
