@@ -173,7 +173,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Redis를 통해 모든 서버의 해당 room에 사용자 입장 알림
     await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`, 
-      RedisMessages.userJoinLeave('join', broadcaster.user_id, registerId, user.idx, user.nickname, user.role)
+      RedisMessages.userJoin(broadcaster.user_id, registerId, user.idx, user.nickname, {
+        idx: user.idx,
+        user_id: user.user_id,
+        nickname: user.nickname,
+        role: user.role,
+        profile_img: user.profile_img,
+        is_guest: user.is_guest,
+        guest_id: user.guest_id,
+      })
     );
     // 재생 수 증가 - 각 접속마다 증가
     if (broadcaster.idx) {
@@ -219,7 +227,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 사용자가 나갔다는 알림을 Redis를 통해 모든 서버의 해당 room에 전송
     await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`, 
-      RedisMessages.userJoinLeave('leave', broadcaster.user_id, registerId, user.idx, user.nickname, user.role)
+      RedisMessages.userJoin(broadcaster.user_id, registerId, user.idx, user.nickname, {
+        idx: user.idx,
+        user_id: user.user_id,
+        nickname: user.nickname,
+        role: user.role,
+        profile_img: user.profile_img,
+        is_guest: user.is_guest,
+        guest_id: user.guest_id,
+      })
     );
 
     const viewerCount = await this.redisService.getHashFieldCount(

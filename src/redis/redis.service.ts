@@ -3,7 +3,8 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
 import { Redis } from 'ioredis';
 import { RedisMessages } from './interfaces/message-namespace';
-import { ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/redis-message.interface';
+import { ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/room.message';
+import { ServerMessage } from './interfaces/server.message';
 
 @Injectable()
 export class RedisService {
@@ -102,7 +103,7 @@ export class RedisService {
   private async handleViewerCountMessage(message: ChatRoomMessage) {
     const payload = message.payload as ViewerCountPayload;
     await this.eventsGateway.sendToRoom(
-      message.broadcasterId,
+      message.broadcaster_id,
       message.op,
       message.payload 
     );
@@ -114,7 +115,7 @@ export class RedisService {
    */
   private async handleChatMessage(message: ChatRoomMessage) {
     await this.eventsGateway.sendToRoom(
-      message.broadcasterId,
+      message.broadcaster_id,
       message.op,
       message.payload
     );
@@ -127,7 +128,7 @@ export class RedisService {
   private async handleRecommendMessage(message: ChatRoomMessage) {
     console.log(`[Recommend] received:`, message);
     await this.eventsGateway.sendToRoom(
-      message.broadcasterId,
+      message.broadcaster_id,
       message.op,
       message.payload
     );
@@ -140,7 +141,7 @@ export class RedisService {
   private async handleBookmarkMessage(message: ChatRoomMessage) {
     console.log(`[Bookmark] received:`, message);
     await this.eventsGateway.sendToRoom(
-      message.broadcasterId,
+      message.broadcaster_id,
       message.op,
       message.payload
     );
@@ -154,14 +155,9 @@ export class RedisService {
     // 입장/퇴장 메시지를 관리자 및 방송자에게만 전송
     const payload = message.payload as UserJoinPayload;
     await this.eventsGateway.sendToSpecificUserTypes(
-      message.broadcasterId,
+      message.broadcaster_id,
       message.op,
-      {
-        user_id: payload.userId,
-        user_idx: payload.userIdx,
-        nickname: payload.nickname,
-        role: payload.role,
-      },
+      message.payload,
       ['manager', 'broadcaster'],
     );
   }
@@ -174,14 +170,9 @@ export class RedisService {
     // 입장/퇴장 메시지를 관리자 및 방송자에게만 전송
     const payload = message.payload as UserLeavePayload;
     await this.eventsGateway.sendToSpecificUserTypes(
-      message.broadcasterId,
+      message.broadcaster_id,
       message.op,
-      {
-        user_id: payload.userId,
-        user_idx: payload.userIdx,
-        nickname: payload.nickname,
-        role: payload.role,
-      },
+      message.payload,
       ['manager', 'broadcaster'],
     );
   }
@@ -252,7 +243,7 @@ export class RedisService {
    * @param channel 발행할 채널
    * @param message 발행할 메시지
    */
-  async publishRoomMessage(channel: string, message: ChatRoomMessage): Promise<void> {
+  async publishRoomMessage(channel: string, message: ChatRoomMessage | ServerMessage): Promise<void> {
     try {
       await this.redis.publish(channel, JSON.stringify(message));
     } catch (error) {
@@ -279,7 +270,7 @@ export class RedisService {
         `Connection already exists on server ${previousServerId}: ${key}`,
       );
 
-      const deleteCommand = RedisMessages.serverCommand(
+      const duplicateConnect = RedisMessages.duplicateConnect(
         parseInt(previousServerId),
         roomId,
         userId,
@@ -287,7 +278,7 @@ export class RedisService {
 
       await this.publishRoomMessage(
         `server_command:${previousServerId}`,
-        deleteCommand,
+        duplicateConnect,
       );
     }
   }

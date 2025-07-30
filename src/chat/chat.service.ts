@@ -51,7 +51,14 @@ export class ChatService {
         message,
         grade,
         color,
-        role
+        {
+          idx: user.idx,
+          user_id: user.user_id,
+          nickname: user.nickname,
+          role: role,
+          profile_img: user.profile_img,
+          is_guest: false,
+        }
       )
     );
     return {

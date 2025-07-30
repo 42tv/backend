@@ -1,142 +1,173 @@
-import {
-  ViewerCountMessage,
-  RecommendMessage,
-  BookmarkMessage,
-  RoomChatMessage,
-  ServerCommandMessage,
-  UserJoinLeaveMessage,
-  RoleChangeMessage,
-  GradeChangeMessage,
-} from './redis-message.interface';
+import { 
+  OpCode, 
+  ChatRoomMessage, 
+  ChatPayload, 
+  RecommendPayload, 
+  ViewerCountPayload, 
+  BookmarkPayload, 
+  UserJoinPayload, 
+  UserLeavePayload, 
+  RoleChangePayload, 
+  KickPayload, 
+  BanPayload,
+  JwtDecode, 
+} from './room.message';
+import { DuplicateConnectPayload, ServerMessage, ServerOpCode } from './server.message';
 
 export namespace RedisMessages {
-  export function viewerCount(broadcaster_id: string, viewer_cnt: number): ViewerCountMessage {
+  export function viewerCount(broadcasterId: string, viewerCount: number): ChatRoomMessage {
     return {
-      type: 'viewer_count',
-      broadcaster_id,
-      viewer_cnt,
+      op: OpCode.VIEWER_COUNT,
+      broadcaster_id: broadcasterId,
+      payload: { viewer_count: viewerCount } as ViewerCountPayload,
     };
   }
 
-  export function recommend(
-    broadcaster_id: string,
-    recommender_idx: number,
-    recommender_nickname: string
-  ): RecommendMessage {
+  export function recommend(broadcasterId: string, user_idx: number, nickname: string): ChatRoomMessage {
     return {
-      type: 'recommend',
-      broadcaster_id,
-      recommender_idx,
-      recommender_nickname,
+      op: OpCode.RECOMMEND,
+      broadcaster_id: broadcasterId,
+      payload: { user_idx, nickname } as RecommendPayload,
     };
   }
 
   export function bookmark(
-    broadcaster_id: string,
+    broadcasterId: string,
     action: 'add' | 'delete',
-    user_idx: number
-  ): BookmarkMessage {
+    userIdx: number
+  ): ChatRoomMessage {
     return {
-      type: 'bookmark',
-      broadcaster_id,
-      action,
-      user_idx,
+      op: OpCode.BOOKMARK,
+      broadcaster_id: broadcasterId,
+      payload: { action, user_idx: userIdx } as BookmarkPayload,
     };
   }
 
   export function chat(
-    broadcaster_id: string,
-    chatter_idx: number,
-    chatter_user_id: string,
-    chatter_nickname: string,
-    chatter_message: string,
+    broadcasterId: string,
+    userIdx: number,
+    userId: string,
+    nickname: string,
+    message: string,
     grade: string,
     color: string,
-    role: string
-  ): RoomChatMessage {
+    jwtDecode: JwtDecode,
+  ): ChatRoomMessage {
     return {
-      type: 'chat',
-      broadcaster_id,
-      chatter_idx,
-      chatter_user_id,
-      chatter_nickname,
-      chatter_message,
-      grade,
-      color,
-      role,
+      op: OpCode.CHAT,
+      broadcaster_id: broadcasterId,
+      payload: {
+        user_idx: userIdx,
+        user_id: userId,
+        nickname,
+        message,
+        grade,
+        color,
+        jwt_decode: jwtDecode,
+      } as ChatPayload,
     };
   }
 
-  export function serverCommand(
-    prev_server_id: number,
-    room_id: string,
-    user_id: string
-  ): ServerCommandMessage {
-    return {
-      command: 'delete',
-      prev_server_id,
-      room_id,
-      user_id,
-    };
-  }
-
-  export function userJoinLeave(
-    type: 'join' | 'leave',
-    broadcaster_id: string,
-    user_id: string,
-    user_idx: number,
+  export function userJoin(
+    broadcasterId: string,
+    userId: string,
+    userIdx: number,
     nickname: string,
-    role: string
-  ): UserJoinLeaveMessage {
+    jwtDecode: JwtDecode
+  ): ChatRoomMessage {
     return {
-      type,
-      broadcaster_id,
-      user_id,
-      user_idx,
-      nickname,
-      role,
+      op: OpCode.USER_JOIN,
+      broadcaster_id: broadcasterId,
+      payload: { user_id: userId, user_idx: userIdx, nickname, jwt_decode: jwtDecode } as UserJoinPayload,
+    };
+  }
+
+  export function userLeave(
+    broadcasterId: string,
+    userId: string,
+    userIdx: number,
+    nickname: string,
+    jwtDecode: JwtDecode
+  ): ChatRoomMessage {
+    return {
+      op: OpCode.USER_LEAVE,
+      broadcaster_id: broadcasterId,
+      payload: { user_id: userId, user_idx: userIdx, nickname, jwt_decode: jwtDecode } as UserLeavePayload,
     };
   }
 
   export function roleChange(
-    broadcaster_id: string,
-    target_user_id: string,
-    target_user_idx: number,
-    target_nickname: string,
-    previous_role: string,
-    new_role: string,
-    changed_by_idx: number,
-    changed_by_nickname: string
-  ): RoleChangeMessage {
+    broadcasterId: string,
+    userId: string,
+    userIdx: number,
+    nickname: string,
+    jwtDecode: JwtDecode,
+    changedBy: RoleChangePayload['changed_by']
+  ): ChatRoomMessage {
     return {
-      type: 'role_change',
-      broadcaster_id,
-      target_user_id,
-      target_user_idx,
-      target_nickname,
-      previous_role,
-      new_role,
-      changed_by_idx,
-      changed_by_nickname,
+      op: OpCode.ROLE_CHANGE,
+      broadcaster_id: broadcasterId,
+      payload: {
+        user_id: userId,
+        user_idx: userIdx,
+        nickname,
+        jwt_decode: jwtDecode,
+        changed_by: changedBy,
+      } as RoleChangePayload,
     };
   }
 
-  export function gradeChange(
-    broadcaster_id: string,
-    target_user_id: string,
-    target_user_idx: number,
-    target_nickname: string,
-    previous_grade: string,
-    new_grade: string
-  ): GradeChangeMessage {
+  export function kick(
+    broadcasterId: string,
+    userId: string,
+    userIdx: number,
+    nickname: string,
+    kickedBy: KickPayload['kicked_by']
+  ): ChatRoomMessage {
     return {
-      type: 'grade_change',
-      broadcaster_id,
-      target_user_id,
-      target_user_idx,
-      target_nickname,
-      previous_grade,
-      new_grade,
+      op: OpCode.KICK,
+      broadcaster_id: broadcasterId,
+      payload: {
+        user_id: userId,
+        user_idx: userIdx,
+        nickname,
+        kicked_by: kickedBy,
+      } as KickPayload,
+    };
+  }
+
+  export function ban(
+    broadcasterId: string,
+    userId: string,
+    userIdx: number,
+    nickname: string,
+    bannedBy: BanPayload['banned_by']
+  ): ChatRoomMessage {
+    return {
+      op: OpCode.BAN,
+      broadcaster_id: broadcasterId,
+      payload: {
+        user_id: userId,
+        user_idx: userIdx,
+        nickname,
+        banned_by: bannedBy,
+      } as BanPayload,
+    };
+  }
+
+  export function duplicateConnect(
+    serverId: number,
+    roomId: string,
+    disconnectId: string,
+  ): ServerMessage {
+    return {
+      op: ServerOpCode.DUPLICATE_CONNECT,
+      serverId,
+      payload: {
+        roomId: roomId,
+        disconnectId: disconnectId,
+      } as DuplicateConnectPayload,
     };
   }
 }
+  

@@ -68,10 +68,19 @@ export class ManagerService {
         managerUser.user_id,
         managerUser.idx,
         managerUser.nickname,
-        'viewer', // 이전 역할 (기본값으로 viewer 또는 member로 가정)
-        'manager', // 새로운 역할
-        broadcasterIdx,
-        broadcaster.nickname
+        {
+          idx: managerUser.idx,
+          user_id: managerUser.user_id,
+          nickname: managerUser.nickname,
+          role: 'manager',
+          profile_img: managerUser.profile_img,
+          is_guest: false,
+        },
+        {
+          idx: broadcaster.idx,
+          user_id: broadcaster.user_id,
+          nickname: broadcaster.nickname,
+        }
       )
     );
 
@@ -118,10 +127,20 @@ export class ManagerService {
         managerUser.user_id,
         managerUser.idx,
         managerUser.nickname,
-        'manager', // 이전 역할
-        'viewer', // 새로운 역할 (기본값으로 viewer로 변경)
-        broadcasterIdx,
-        broadcaster.nickname
+        // 이 코드는 수정이 필요함, role이 viewer가 아닐 수 있음. 즉 알맞는 롤을 찾은 후 변경해주어야함
+        {
+          idx: managerUser.idx,
+          user_id: managerUser.user_id,
+          nickname: managerUser.nickname,
+          role: 'viewer', //
+          profile_img: managerUser.profile_img,
+          is_guest: false,
+        },
+        {
+          idx: broadcaster.idx,
+          user_id: broadcaster.user_id,
+          nickname: broadcaster.nickname,
+        }
       )
     );
 

@@ -10,65 +10,67 @@ export enum OpCode {
   VIEWER_COUNT = 'viewer_count',
 }
 
+export interface JwtDecode {
+  idx: number;
+  user_id: string;
+  nickname: string;
+  role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
+  profile_img: string;
+  is_guest: boolean;
+  guest_id?: string;
+}
+
 // Redis 메시지의 기본 인터페이스
 export interface ChatRoomMessage{
   op: OpCode;
-  broadcasterId: string;
-  payload: ChatPayLoad | RecommendPayload | ViewerCountPayload | BookmarkPayload | UserJoinPayload | UserLeavePayload | RoleChangePayload | KickPayload | BanPayload;
+  broadcaster_id: string;
+  payload: ChatPayload | RecommendPayload | ViewerCountPayload | BookmarkPayload | UserJoinPayload | UserLeavePayload | RoleChangePayload | KickPayload | BanPayload;
 }
 
-export interface ChatPayLoad {
-  userIdx: number;
-  userId: string;
+export interface ChatPayload {
+  user_idx: number;
+  user_id: string;
   nickname: string;
   message: string;
   grade: string;
   color: string;
-  role: string;
+  jwt_decode: JwtDecode;
 }
 
 export interface RecommendPayload {
-  userIdx: number;
+  user_idx: number;
   nickname: string;
 }
 
 export interface ViewerCountPayload {
-  viewerCount: number;
+  viewer_count: number;
 }
 
 export interface BookmarkPayload {
   action: 'add' | 'delete';
-  userIdx: number;
+  user_idx: number;
 }
 
 export interface UserJoinPayload {
-  userId: string;
-  userIdx: number;
+  user_id: string;
+  user_idx: number;
   nickname: string;
-  role: string;
+  jwt_decode: JwtDecode;
 }
 
 export interface UserLeavePayload {
-  userId: string;
-  userIdx: number;
+  user_id: string;
+  user_idx: number;
   nickname: string;
-  role: string;
+  jwt_decode: JwtDecode;
 }
 
 export interface RoleChangePayload {
-  userId: string;
-  userIdx: number;
+  user_id: string;
+  user_idx: number;
   nickname: string;
-  role: {
-    idx: number;
-    user_id: string;
-    nickname: string;
-    role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
-    profile_img: string;
-    is_guest: boolean;
-    guest_id?: string;
-  }
-  changedBy: {
+  jwt_decode: JwtDecode;
+  changed_by: {
     idx: number;
     user_id: string;
     nickname: string;
@@ -76,10 +78,10 @@ export interface RoleChangePayload {
 }
 
 export interface KickPayload {
-  userId: string;
-  userIdx: number;
+  user_id: string;
+  user_idx: number;
   nickname: string;
-  kickedBy: {
+  kicked_by: {
     idx: number;
     user_id: string;
     nickname: string;
@@ -87,10 +89,10 @@ export interface KickPayload {
 }
 
 export interface BanPayload {
-  userId: string;
-  userIdx: number;
+  user_id: string;
+  user_idx: number;
   nickname: string;
-  bannedBy: {
+  banned_by: {
     idx: number;
     user_id: string;
     nickname: string;
@@ -102,7 +104,7 @@ export interface ViewerInfo {
   user_id: string;
   user_idx: number;
   nickname: string;
-  role: string;
+  jwtDecode: JwtDecode;
 }
 
 // // 서버 커맨드 메시지 타입
