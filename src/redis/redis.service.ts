@@ -4,7 +4,7 @@ import { EventsGateway } from 'src/chat/chat.gateway';
 import { Redis } from 'ioredis';
 import { RedisMessages } from './interfaces/message-namespace';
 import { ChatPayload, ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/room.message';
-import { ServerMessage } from './interfaces/server.message';
+import { ServerMessage, ServerOpCode, DuplicateConnectPayload } from './interfaces/server.message';
 
 @Injectable()
 export class RedisService {
@@ -44,13 +44,38 @@ export class RedisService {
     try {
       const parsedMessage = JSON.parse(message);
       if (channel === `server_command:${this.serverId}`) {
-        // await this.handleServerCommand(parsedMessage);
+        await this.handleServerMessage(parsedMessage);
       } else if (channel.startsWith('room:')) {
         await this.handleRoomMessage(parsedMessage);
       }
     } catch (error) {
       console.error(`[Redis] Failed to handle message:`, error);
     }
+  }
+
+  /**
+   * 서버 메시지 처리
+   * @param message 서버 메시지
+   */
+  private async handleServerMessage(message: ServerMessage) {
+    const opCode = message.op;
+
+    switch (opCode) {
+      case ServerOpCode.DUPLICATE_CONNECT:
+        await this.handleDuplicateConnectMessage(message);
+        break;
+      default:
+        console.warn(`[Redis] Unknown server message op: ${opCode}`);
+    }
+  }
+
+  /**
+   * 중복 연결 메시지 처리
+   * @param message 중복 연결 메시지
+   */
+  private async handleDuplicateConnectMessage(message: ServerMessage) {
+    const payload = message.payload as DuplicateConnectPayload;
+    console.log(`[Duplicate Connect] received:`, message);
   }
 
   // /**
