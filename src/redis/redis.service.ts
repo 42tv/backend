@@ -275,16 +275,16 @@ export class RedisService {
    * @param userId 사용자 ID
    */
   async registConnection(roomId: string, userId: string): Promise<void> {
-    const key = `con:${roomId}:${userId}`;
-    const previousServerId = await this.redis.getset(
-      key,
-      this.serverId.toString(),
-    );
+    const key = `con:${roomId}`;
+    const previousServerId = await this.hget(key, userId);
+
+    // 새로운 서버 ID를 해시에 저장
+    await this.hset(key, userId, this.serverId.toString());
 
     // 이미 다른 서버에 연결되어 있는 경우
     if (previousServerId && previousServerId !== this.serverId.toString()) {
       console.log(
-        `Connection already exists on server ${previousServerId}: ${key}`,
+        `Connection already exists on server ${previousServerId}: ${key}:${userId}`,
       );
 
       const duplicateConnect = RedisMessages.duplicateConnect(
@@ -304,12 +304,12 @@ export class RedisService {
    * Redis에서 연결 정보를 제거합니다.
    * @param roomId 채팅방 ID (broadcaster_id)
    * @param userId 사용자 ID
-   * @returns 삭제된 키의 개수
+   * @returns 삭제된 필드의 개수
    */
   async removeConnection(roomId: string, userId: string): Promise<number> {
-    const key = `con:${roomId}:${userId}`;
-    console.log(`Removing redis connection: ${key}`);
-    return await this.del(key);
+    const key = `con:${roomId}`;
+    console.log(`Removing redis connection: ${key}:${userId}`);
+    return await this.hdel(key, userId);
   }
 
   /**
