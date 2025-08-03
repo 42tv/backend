@@ -3,7 +3,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
 import { Redis } from 'ioredis';
 import { RedisMessages } from './interfaces/message-namespace';
-import { ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/room.message';
+import { ChatPayload, ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/room.message';
 import { ServerMessage } from './interfaces/server.message';
 
 @Injectable()
@@ -109,15 +109,27 @@ export class RedisService {
     );
   }
 
+
   /**
    * 채팅 메시지 처리
+   * 여기서 프론트엔드의 인터페이스에 맞추어 변경해줌
    * @param message 채팅 메시지
    */
   private async handleChatMessage(message: ChatRoomMessage) {
+    const chatPayload = message.payload as ChatPayload;
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,
-      message.payload
+      {
+        type: OpCode.CHAT,
+        user_idx: chatPayload.user_idx,
+        user_id: chatPayload.user_id,
+        nickname: chatPayload.nickname,
+        message: chatPayload.message,
+        grade: chatPayload.grade,
+        color: chatPayload.color,
+        jwt_decode: chatPayload.jwt_decode,
+      }
     );
   }
 
@@ -157,7 +169,12 @@ export class RedisService {
     await this.eventsGateway.sendToSpecificUserTypes(
       message.broadcaster_id,
       message.op,
-      message.payload,
+      {
+        user_idx: payload.user_idx,
+        user_id: payload.user_id,
+        nickname: payload.nickname,
+        role: payload.jwt_decode
+      },
       ['manager', 'broadcaster'],
     );
   }
