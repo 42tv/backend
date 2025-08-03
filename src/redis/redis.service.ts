@@ -78,15 +78,6 @@ export class RedisService {
     console.log(`[Duplicate Connect] received:`, message);
   }
 
-  // /**
-  //  * 서버 커맨드 메시지 처리
-  //  * @param message 서버 커맨드 메시지
-  //  */
-  // private async handleServerCommand(message: ServerCommandMessage) {
-  //   console.log(`[Server Command] received:`, message);
-  //   await this.eventsGateway.handleServerCommmand(message);
-  // }
-
   /**
    * 룸 메시지 처리 (chat, recommend, viewer_count 등)
    * @param message 룸 메시지
