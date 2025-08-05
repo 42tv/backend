@@ -140,20 +140,45 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const registerId = user.user_id || user.guest_id;
 
-    // 자기 서버에 이미 접속중이라면 클라이언트에 중복 접속금지 알림
-    if (this.chatRooms.has(broadcaster.user_id)) {
-      const roomMap = this.chatRooms.get(broadcaster.user_id);
-      if (roomMap.has(registerId)) {
-        const existingClient = roomMap.get(registerId);
-        if (existingClient) {
-          console.log(
-            `Duplicate user(${existingClient.id}) leaved ${broadcaster.user_id}`,
-          );
-          existingClient.emit('duplicate_connection', {
-            message: '다른 클라이언트에서 접속하였습니다',
-          });
-          existingClient.leave(broadcaster.user_id); // 기존 소켓을 룸에서 제거
-          roomMap.delete(registerId); // 기존 소켓 제거
+    // Redis에서 중복 접속 확인
+    const existingServerId = await this.redisService.getConnection(broadcaster.user_id, registerId);
+    if (existingServerId) {
+      const currentServerId = this.redisService.getServerId().toString();
+      
+      // 다른 서버에 이미 접속중인 경우
+      if (existingServerId !== currentServerId) {
+        console.log(
+          `User ${registerId} already connected on server ${existingServerId}, sending disconnect command`,
+        );
+        
+        // 기존 접속된 서버에 disconnect 명령 전송
+        const duplicateConnect = RedisMessages.duplicateConnect(
+          parseInt(existingServerId),
+          broadcaster.user_id,
+          registerId,
+        );
+        
+        await this.redisService.publishRoomMessage(
+          `server_command:${existingServerId}`,
+          duplicateConnect,
+        );
+      } else {
+        // 같은 서버에 이미 접속중인 경우 (기존 로직 유지)
+        if (this.chatRooms.has(broadcaster.user_id)) {
+          const roomMap = this.chatRooms.get(broadcaster.user_id);
+          if (roomMap.has(registerId)) {
+            const existingClient = roomMap.get(registerId);
+            if (existingClient) {
+              console.log(
+                `Duplicate user(${existingClient.id}) leaved ${broadcaster.user_id}`,
+              );
+              existingClient.emit('duplicate_connection', {
+                message: '다른 클라이언트에서 접속하였습니다',
+              });
+              existingClient.leave(broadcaster.user_id); // 기존 소켓을 룸에서 제거
+              roomMap.delete(registerId); // 기존 소켓 제거
+            }
+          }
         }
       }
     }
@@ -332,6 +357,29 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomMap = this.chatRooms.get(broadcasterId);
     if (roomMap && roomMap.has(userId)) {
       roomMap.get(userId).user.user = newUserInfo;
+    }
+  }
+
+  /**
+   * 중복 접속으로 인한 연결 해제 처리
+   * @param broadcasterId 방송자 ID
+   * @param userId 사용자 ID
+   */
+  async handleDuplicateDisconnect(broadcasterId: string, userId: string) {
+    console.log(`[Duplicate Disconnect] - room: ${broadcasterId}, user: ${userId}`);
+    
+    if (this.chatRooms.has(broadcasterId)) {
+      const roomMap = this.chatRooms.get(broadcasterId);
+      if (roomMap.has(userId)) {
+        const existingClient = roomMap.get(userId);
+        if (existingClient) {
+          console.log(`Disconnecting duplicate user: ${existingClient.id}`);
+          existingClient.emit('duplicate_connection', {
+            message: '다른 클라이언트에서 접속하였습니다',
+          });
+          existingClient.disconnect(true);
+        }
+      }
     }
   }
 }
