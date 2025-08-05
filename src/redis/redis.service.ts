@@ -75,7 +75,10 @@ export class RedisService {
    */
   private async handleDuplicateConnectMessage(message: ServerMessage) {
     const payload = message.payload as DuplicateConnectPayload;
-    console.log(`[Duplicate Connect] received:`, message);
+    console.log(`[Duplicate Connect] received:`, payload);
+    
+    // EventsGateway를 통해 기존 연결을 끊는다
+    await this.eventsGateway.handleDuplicateDisconnect(payload.roomId, payload.disconnectId);
   }
 
   /**
@@ -324,8 +327,19 @@ export class RedisService {
    */
   async removeConnection(roomId: string, userId: string): Promise<number> {
     const key = `con:${roomId}`;
-    console.log(`Removing redis connection: ${key}:${userId}`);
+    console.log(`Removing redis connection: ${key}, hash key:${userId}`);
     return await this.hdel(key, userId);
+  }
+
+  /**
+   * Redis에서 연결 정보를 확인합니다.
+   * @param roomId 채팅방 ID (broadcaster_id)
+   * @param userId 사용자 ID
+   * @returns 연결된 서버 ID 또는 null
+   */
+  async getConnection(roomId: string, userId: string): Promise<string | null> {
+    const key = `con:${roomId}`;
+    return await this.hget(key, userId);
   }
 
   /**
