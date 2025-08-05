@@ -327,7 +327,7 @@ export class RedisService {
    */
   async removeConnection(roomId: string, userId: string): Promise<number> {
     const key = `con:${roomId}`;
-    console.log(`Removing redis connection: ${key}:${userId}`);
+    console.log(`Removing redis connection: ${key}, hash key:${userId}`);
     return await this.hdel(key, userId);
   }
 
