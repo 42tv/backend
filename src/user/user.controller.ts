@@ -20,7 +20,7 @@ import {
   AddToBlacklistDto,
   RemoveFromBlacklistDto,
   RemoveMultipleFromBlacklistDto,
-} from 'src/blacklist/dto/blacklist.dto';
+} from './dto/blacklist.dto';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -35,15 +35,28 @@ import {
 } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
 import {
-  CustomBadRequestResponse,
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
-import { BroadcastSettingDto } from 'src/broadcast-setting/dto/broadcast-setting.dto';
+import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
-// AWS S3 관련 Swagger Entity imports
-import { ProfileImageUploadResponse, ProfileImageUploadEntity } from './entities/profile-upload.entity';
+// Profile upload DTO import
+import { ProfileImageUploadDto } from './dto/profile-upload.dto';
+// User 응답/요청 DTO imports
+import {
+  GetUserResponseDto,
+  UpdateNicknameResponseDto,
+  UpdatePasswordResponseDto,
+  ProfileImageUploadResponseDto,
+  CreateUserResponseDto,
+  GetUserProfileResponseDto,
+  UserErrorResponseDto,
+} from './dto/user-response.dto';
+import {
+  UpdateNicknameRequestDto,
+  UpdatePasswordRequestDto,
+} from './dto/user-request.dto';
 
 @ApiTags('User - 사용자 관리 API (AWS S3 파일 업로드 포함)')
 @Controller('user')
@@ -58,15 +71,11 @@ export class UserController {
   @ApiResponse({
     status: 200,
     description: '사용자 정보 조회 성공',
-    schema: {
-      type: 'object',
-      properties: {
-        idx: { type: 'number', example: 1 },
-        user_id: { type: 'string', example: 'user123' },
-        profile_img: { type: 'string', example: 'https://profile-image-url' },
-        nickname: { type: 'string', example: '사용자닉네임' },
-      },
-    },
+    type: GetUserResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: '사용자 조회 실패',
+    type: UserErrorResponseDto,
   })
   async getUser(@Req() req) {
     const user = await this.userService.findByUserIdx(req.user.idx);
@@ -83,49 +92,39 @@ export class UserController {
   @UseGuards(MemberGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '닉네임 변경' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['nickname'],
-      properties: {
-        nickname: { type: 'string', example: '새닉네임' },
-      },
-    },
-  })
+  @ApiBody({ type: UpdateNicknameRequestDto })
   @ApiCreatedResponse({
-    description: '변경 성공',
-    type: User,
+    description: '닉네임 변경 성공',
+    type: UpdateNicknameResponseDto,
   })
   @ApiBadRequestResponse({
     description: '이미 존재하는 닉네임입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
     type: CustomInternalServerErrorResponse,
   })
-  async updateNickname(@Req() req, @Body('nickname') nickname) {
-    return await this.userService.updateNickname(req.user.idx, nickname);
+  async updateNickname(@Req() req, @Body() updateNicknameDto: UpdateNicknameRequestDto) {
+    await this.userService.updateNickname(req.user.idx, updateNicknameDto.nickname);
+    return {
+      message: '닉네임이 성공적으로 변경되었습니다.',
+      nickname: updateNicknameDto.nickname,
+    };
   }
 
   @Patch('password')
   @UseGuards(MemberGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '비밀번호 변경' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['password', 'new_password'],
-      properties: {
-        password: { type: 'string', example: 'current_password' },
-        new_password: { type: 'string', example: 'new_password123' },
-      },
-    },
+  @ApiBody({ type: UpdatePasswordRequestDto })
+  @ApiCreatedResponse({ 
+    description: '비밀번호 변경 성공', 
+    type: UpdatePasswordResponseDto 
   })
-  @ApiCreatedResponse({ description: '변경 성공', type: User })
   @ApiBadRequestResponse({
     description: '비밀번호가 틀렸습니다 | 존재하지 않는 유저',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -133,14 +132,16 @@ export class UserController {
   })
   async updatePassword(
     @Req() req,
-    @Body('password') password,
-    @Body('new_password') new_password,
+    @Body() updatePasswordDto: UpdatePasswordRequestDto,
   ) {
-    return await this.userService.updatePassword(
+    await this.userService.updatePassword(
       req.user.idx,
-      password,
-      new_password,
+      updatePasswordDto.currentPassword,
+      updatePasswordDto.newPassword,
     );
+    return {
+      message: '비밀번호가 성공적으로 변경되었습니다.',
+    };
   }
 
   @Post('profile')
@@ -161,15 +162,15 @@ export class UserController {
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'AWS S3 업로드용 프로필 이미지 (Swagger용)',
-    type: ProfileImageUploadEntity,
+    type: ProfileImageUploadDto,
   })
   @ApiCreatedResponse({
     description: 'AWS S3 업로드 성공',
-    type: ProfileImageUploadResponse,
+    type: ProfileImageUploadResponseDto,
   })
   @ApiBadRequestResponse({
     description: '파일 형식 불일치 | 파일 크기 초과 | 존재하지 않는 유저',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: 'AWS S3 업로드 실패 또는 서버 에러',
@@ -183,15 +184,21 @@ export class UserController {
       req.user.idx,
       file,
     );
-    return { imageUrl: profileImageUrl };
+    return { 
+      message: '프로필 이미지가 성공적으로 업로드되었습니다.',
+      imageUrl: profileImageUrl 
+    };
   }
 
   @Post('')
   @ApiOperation({ summary: '유저생성' })
-  @ApiCreatedResponse({ description: '생성 성공', type: User })
+  @ApiCreatedResponse({ 
+    description: '사용자 생성 성공', 
+    type: CreateUserResponseDto 
+  })
   @ApiBadRequestResponse({
     description: '이미 존재하는 아이디입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -199,7 +206,16 @@ export class UserController {
   })
   @ApiBody({ description: 'Body 데이터', type: CreateUserDto, required: true })
   async createUser(@Body() createUserDto: CreateUserDto) {
-    return await this.userService.createUser(createUserDto);
+    const newUser = await this.userService.createUser(createUserDto);
+    return {
+      message: '사용자가 성공적으로 생성되었습니다.',
+      user: {
+        idx: newUser.idx,
+        user_id: newUser.user_id,
+        profile_img: newUser.profile_img,
+        nickname: newUser.nickname,
+      },
+    };
   }
 
   @Get('broadcast-setting')
@@ -212,7 +228,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: '존재하지 않는 프리셋입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -243,7 +259,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: '존재하지 않는 프리셋입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -389,7 +405,7 @@ export class UserController {
   @ApiBadRequestResponse({
     description:
       '자기 자신을 차단할 수 없습니다. | 이미 차단된 사용자입니다. | 존재하지 않는 사용자입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   async addToBlacklist(@Req() req, @Body() dto: AddToBlacklistDto) {
     return await this.userService.addToBlacklist(
@@ -409,7 +425,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: '차단되지 않은 사용자입니다. | 존재하지 않는 사용자입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   async removeFromBlacklist(@Req() req, @Body() dto: RemoveFromBlacklistDto) {
     return await this.userService.removeFromBlacklist(
@@ -436,7 +452,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: '유효한 사용자가 없습니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   async removeMultipleFromBlacklist(@Req() req, @Body() dto: RemoveMultipleFromBlacklistDto) {
     return await this.userService.removeMultipleFromBlacklist(
@@ -455,22 +471,12 @@ export class UserController {
   @ApiResponse({
     status: 200,
     description: '사용자 프로필 조회 성공',
-    schema: {
-      type: 'object',
-      properties: {
-        idx: { type: 'number', example: 1 },
-        user_id: { type: 'string', example: 'user123' },
-        nickname: { type: 'string', example: 'nickname123' },
-        profile_img: { type: 'string', example: 'https://example.com/profile.jpg' },
-        created_at: { type: 'string', format: 'date-time' },
-        updated_at: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: GetUserProfileResponseDto,
   })
   @ApiResponse({
     status: 404,
     description: '존재하지 않는 사용자입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 오류',

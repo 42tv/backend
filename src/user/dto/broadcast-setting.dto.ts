@@ -11,6 +11,9 @@ import {
   IsOptional,
 } from 'class-validator';
 
+/**
+ * 방송 설정 DTO
+ */
 export class BroadcastSettingDto {
   @IsNotEmpty()
   @IsString()
@@ -67,6 +70,9 @@ export class BroadcastSettingDto {
   password: string;
 }
 
+/**
+ * 방송 설정 업데이트 DTO
+ */
 export class UpdateBroadcastSettingDto {
   @IsOptional()
   @IsString()

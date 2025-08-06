@@ -1,20 +1,35 @@
 import { IsNotEmpty, IsString, IsArray, ArrayMinSize } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * 블랙리스트 추가 요청 DTO
+ */
 export class AddToBlacklistDto {
-  @ApiProperty({ description: '차단할 사용자의 ID', example: 'user123' })
+  @ApiProperty({ 
+    description: '차단할 사용자의 ID', 
+    example: 'user123' 
+  })
   @IsString()
   @IsNotEmpty()
   blocked_user_id: string;
 }
 
+/**
+ * 블랙리스트 제거 요청 DTO
+ */
 export class RemoveFromBlacklistDto {
-  @ApiProperty({ description: '차단 해제할 사용자의 ID', example: 'user123' })
+  @ApiProperty({ 
+    description: '차단 해제할 사용자의 ID', 
+    example: 'user123' 
+  })
   @IsString()
   @IsNotEmpty()
   blocked_user_id: string;
 }
 
+/**
+ * 블랙리스트 다중 제거 요청 DTO
+ */
 export class RemoveMultipleFromBlacklistDto {
   @ApiProperty({ 
     description: '차단 해제할 사용자 ID 목록', 
