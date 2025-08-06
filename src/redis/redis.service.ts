@@ -305,13 +305,12 @@ export class RedisService {
       console.log(
         `Connection already exists on server ${previousServerId}: ${key}:${userId}`,
       );
-
+      // 해당 서버에 중복 연결이라는 redis 이벤트 발행
       const duplicateConnect = RedisMessages.duplicateConnect(
         parseInt(previousServerId),
         roomId,
         userId,
       );
-
       await this.publishRoomMessage(
         `server_command:${previousServerId}`,
         duplicateConnect,
