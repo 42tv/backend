@@ -51,7 +51,6 @@ export namespace RedisMessages {
     message: string,
     grade: string,
     color: string,
-    jwtDecode: JwtDecode,
   ): ChatRoomMessage {
     return {
       op: OpCode.CHAT,
@@ -63,7 +62,6 @@ export namespace RedisMessages {
         message,
         grade,
         color,
-        jwt_decode: jwtDecode,
       } as ChatPayload,
     };
   }

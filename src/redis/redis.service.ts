@@ -6,6 +6,7 @@ import { RedisMessages } from './interfaces/message-namespace';
 import { ChatPayload, ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/room.message';
 import { ServerMessage, ServerOpCode, DuplicateConnectPayload } from './interfaces/server.message';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
+import { getUserRoleColor } from 'src/constants/chat-colors';
 
 @Injectable()
 export class RedisService {
@@ -148,7 +149,6 @@ export class RedisService {
         message: chatPayload.message,
         grade: chatPayload.grade,
         color: chatPayload.color,
-        jwt_decode: chatPayload.jwt_decode,
       }
     );
   }
@@ -353,11 +353,22 @@ export class RedisService {
     jwt: WebsocketJwt
   ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
+
+    // fan_level이 있으면 사용하고, 없으면 역할에 따른 기본 색상 사용
+    const fanLevel = (jwt.user.fan_level && !jwt.user.is_guest) ? {
+      name: jwt.user.fan_level.name,
+      color: jwt.user.fan_level.color,
+    } : {
+      name: jwt.user.role,
+      color: getUserRoleColor(jwt.user.role),
+    };
+
     await this.hset(key, userId, JSON.stringify({
       user_id: userId,
       user_idx: jwt.user.idx,
       nickname: jwt.user.nickname,
       role: jwt.user.role,
+      fan_level: fanLevel
     }));
   }
 
@@ -370,6 +381,17 @@ export class RedisService {
     const key = `viewer:${broadcasterId}`;
     console.log(`[Remove Viewer] ${userId} from ${broadcasterId}`);
     await this.hdel(key, userId);
+  }
+
+  /**
+   * 특정 시청자 정보 조회
+   * @param broadcasterId 방송자 ID
+   * @param userId 시청자 ID
+   * @returns 시청자 정보 JSON 문자열 또는 null
+   */
+  async getViewerInfo(broadcasterId: string, userId: string): Promise<string | null> {
+    const key = `viewer:${broadcasterId}`;
+    return await this.hget(key, userId);
   }
 
   /**

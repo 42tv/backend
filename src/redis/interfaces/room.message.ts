@@ -37,9 +37,9 @@ export interface ChatPayload {
   user_id: string;
   nickname: string;
   message: string;
+  role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
   grade: string;
   color: string;
-  jwt_decode: JwtDecode;
 }
 
 export interface RecommendPayload {
