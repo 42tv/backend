@@ -5,6 +5,7 @@ import { Redis } from 'ioredis';
 import { RedisMessages } from './interfaces/message-namespace';
 import { ChatPayload, ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/room.message';
 import { ServerMessage, ServerOpCode, DuplicateConnectPayload } from './interfaces/server.message';
+import { WebsocketJwt } from 'src/play/interfaces/websocket';
 
 @Injectable()
 export class RedisService {
@@ -349,16 +350,14 @@ export class RedisService {
   async registViewer(
     broadcasterId: string,
     userId: string,
-    userIdx,
-    nickname,
-    role,
+    jwt: WebsocketJwt
   ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
     await this.hset(key, userId, JSON.stringify({
       user_id: userId,
-      user_idx: userIdx,
-      nickname: nickname,
-      role: role,
+      user_idx: jwt.user.idx,
+      nickname: jwt.user.nickname,
+      role: jwt.user.role,
     }));
   }
 
