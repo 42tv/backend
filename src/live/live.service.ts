@@ -3,6 +3,7 @@ import { ManagerService } from 'src/manager/manager.service';
 import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 @Injectable()
 export class LiveService {
@@ -69,12 +70,14 @@ export class LiveService {
     );
     // 추천 수 증가
     await this.streamService.increaseRecommend(broadcaster_idx);
-    await this.redisService.publishMessage(`room:${broadCaster.user_id}`, {
-      type: 'recommend',
-      broadcaster_id: broadCaster.user_id,
-      recommender_idx: recommender_idx,
-      recommender_nickname: recommender.nickname,
-    });
+    await this.redisService.publishRoomMessage(
+      `room:${broadCaster.user_id}`, 
+      RedisMessages.recommend(
+        broadCaster.user_id,
+        recommender_idx,
+        recommender.nickname
+      )
+    );
     return;
   }
 
@@ -95,24 +98,7 @@ export class LiveService {
       throw new BadRequestException('해당 방송자의 시청자 목록을 조회할 권한이 없습니다.');
     }
 
-    const viewerKey = `viewer:${broadcasterId}`;
-    const viewerData = await this.redisService.getHashAll(viewerKey);
-
-    // viewerData를 순회하여 value 값을 객체로 만들어 배열로 변환
-    const viewers = Object.entries(viewerData).map(([key, value]) => {
-      try {
-        // value가 JSON 문자열인 경우 파싱
-        return typeof value === 'string' ? JSON.parse(value) : value;
-      } catch (error) {
-        // JSON 파싱에 실패한 경우 원본 value 반환
-        return {
-          user_id: key,
-          user_idx: -1,
-          nickname: 'guest',
-          role: 'guest',
-        };
-      }
-    });
+    const viewers = await this.redisService.getViewersList(broadcasterId);
     console.log(viewers);
     return viewers;
   }

@@ -162,7 +162,7 @@ export class PlayService {
       user: {
         idx: 0, // 게스트는 idx가 없음
         user_id: '',
-        nickname: '',
+        nickname: `guest_${guestId.substring(0, 8)}`, // 게스트 닉네임 생성
         role: 'guest',
         profile_img: '',
         is_guest: true,

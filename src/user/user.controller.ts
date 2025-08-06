@@ -35,15 +35,14 @@ import {
 } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
 import {
-  CustomBadRequestResponse,
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
-// AWS S3 관련 Swagger Entity imports
-import { ProfileImageUploadResponse, ProfileImageUploadEntity } from './entities/profile-upload.entity';
+// Profile upload DTO import
+import { ProfileImageUploadDto } from './dto/profile-upload.dto';
 // User 응답/요청 DTO imports
 import {
   GetUserResponseDto,
@@ -163,7 +162,7 @@ export class UserController {
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'AWS S3 업로드용 프로필 이미지 (Swagger용)',
-    type: ProfileImageUploadEntity,
+    type: ProfileImageUploadDto,
   })
   @ApiCreatedResponse({
     description: 'AWS S3 업로드 성공',
@@ -229,7 +228,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: '존재하지 않는 프리셋입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -260,7 +259,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: '존재하지 않는 프리셋입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -406,7 +405,7 @@ export class UserController {
   @ApiBadRequestResponse({
     description:
       '자기 자신을 차단할 수 없습니다. | 이미 차단된 사용자입니다. | 존재하지 않는 사용자입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   async addToBlacklist(@Req() req, @Body() dto: AddToBlacklistDto) {
     return await this.userService.addToBlacklist(
@@ -426,7 +425,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: '차단되지 않은 사용자입니다. | 존재하지 않는 사용자입니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   async removeFromBlacklist(@Req() req, @Body() dto: RemoveFromBlacklistDto) {
     return await this.userService.removeFromBlacklist(
@@ -453,7 +452,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: '유효한 사용자가 없습니다.',
-    type: CustomBadRequestResponse,
+    type: UserErrorResponseDto,
   })
   async removeMultipleFromBlacklist(@Req() req, @Body() dto: RemoveMultipleFromBlacklistDto) {
     return await this.userService.removeMultipleFromBlacklist(

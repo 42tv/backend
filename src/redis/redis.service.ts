@@ -1,14 +1,10 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
-import { BookmarkEvent } from 'src/bookmark/entities/bookmark.entity';
-import {
-  RoomChatEvent,
-  RoomRecommendEvent,
-  RoomUpdateEvent,
-  ServerCommand,
-} from 'src/utils/utils';
+import { Redis } from 'ioredis';
+import { RedisMessages } from './interfaces/message-namespace';
+import { ChatPayload, ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/room.message';
+import { ServerMessage, ServerOpCode, DuplicateConnectPayload } from './interfaces/server.message';
 
 @Injectable()
 export class RedisService {
@@ -47,9 +43,8 @@ export class RedisService {
   private async handleMessage(channel: string, message: string) {
     try {
       const parsedMessage = JSON.parse(message);
-
       if (channel === `server_command:${this.serverId}`) {
-        await this.handleServerCommand(parsedMessage);
+        await this.handleServerMessage(parsedMessage);
       } else if (channel.startsWith('room:')) {
         await this.handleRoomMessage(parsedMessage);
       }
@@ -59,37 +54,64 @@ export class RedisService {
   }
 
   /**
-   * 서버 커맨드 메시지 처리
-   * @param message 서버 커맨드 메시지
+   * 서버 메시지 처리
+   * @param message 서버 메시지
    */
-  private async handleServerCommand(message: any) {
-    const command = message as ServerCommand;
-    console.log(`[Server Command] received:`, command);
-    await this.eventsGateway.handleServerCommmand(command);
+  private async handleServerMessage(message: ServerMessage) {
+    const opCode = message.op;
+
+    switch (opCode) {
+      case ServerOpCode.DUPLICATE_CONNECT:
+        await this.handleDuplicateConnectMessage(message);
+        break;
+      default:
+        console.warn(`[Redis] Unknown server message op: ${opCode}`);
+    }
+  }
+
+  /**
+   * 중복 연결 메시지 처리
+   * @param message 중복 연결 메시지
+   */
+  private async handleDuplicateConnectMessage(message: ServerMessage) {
+    const payload = message.payload as DuplicateConnectPayload;
+    console.log(`[Duplicate Connect] received:`, payload);
+    
+    // EventsGateway를 통해 기존 연결을 끊는다
+    await this.eventsGateway.handleDuplicateDisconnect(payload.roomId, payload.disconnectId);
   }
 
   /**
    * 룸 메시지 처리 (chat, recommend, viewer_count 등)
    * @param message 룸 메시지
    */
-  private async handleRoomMessage(message: any) {
-    const messageType = message.type;
+  private async handleRoomMessage(message: ChatRoomMessage) {
+    const opCode = message.op;
 
-    switch (messageType) {
-      case 'viewer_count':
-        await this.handleViewerCountMessage(message as RoomUpdateEvent);
+    switch (opCode) {
+      case OpCode.VIEWER_COUNT:
+        await this.handleViewerCountMessage(message);
         break;
-      case 'chat':
-        await this.handleChatMessage(message as RoomChatEvent);
+      case OpCode.CHAT:
+        await this.handleChatMessage(message);
         break;
-      case 'recommend':
-        await this.handleRecommendMessage(message as RoomRecommendEvent);
+      case OpCode.RECOMMEND:
+        await this.handleRecommendMessage(message);
         break;
-      case 'bookmark':
-        await this.handleBookmarkMessage(message as BookmarkEvent)
+      case OpCode.BOOKMARK:
+        await this.handleBookmarkMessage(message);
+        break;
+      case OpCode.USER_JOIN:
+        await this.handleUserJoinMessage(message);
+        break;
+      case OpCode.USER_LEAVE:
+        await this.handleUserLeaveMessage(message);
+        break;
+      case OpCode.ROLE_CHANGE:
+        await this.handleRoleChangeMessage(message);
         break;
       default:
-        console.warn(`[Redis] Unknown room message type: ${messageType}`);
+        console.warn(`[Redis] Unknown room message type: ${opCode}`);
     }
   }
 
@@ -97,27 +119,36 @@ export class RedisService {
    * 시청자 수 업데이트 메시지 처리
    * @param message 시청자 수 업데이트 메시지
    */
-  private async handleViewerCountMessage(message: RoomUpdateEvent) {
-    const enrichedMessage = {
-      ...message,
-      viewer_cnt: message.viewer_cnt,
-    };
+  private async handleViewerCountMessage(message: ChatRoomMessage) {
+    const payload = message.payload as ViewerCountPayload;
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
-      message.type,
-      enrichedMessage,
+      message.op,
+      message.payload 
     );
   }
 
+
   /**
    * 채팅 메시지 처리
+   * 여기서 프론트엔드의 인터페이스에 맞추어 변경해줌
    * @param message 채팅 메시지
    */
-  private async handleChatMessage(message: RoomChatEvent) {
+  private async handleChatMessage(message: ChatRoomMessage) {
+    const chatPayload = message.payload as ChatPayload;
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
-      message.type,
-      message,
+      message.op,
+      {
+        type: OpCode.CHAT,
+        user_idx: chatPayload.user_idx,
+        user_id: chatPayload.user_id,
+        nickname: chatPayload.nickname,
+        message: chatPayload.message,
+        grade: chatPayload.grade,
+        color: chatPayload.color,
+        jwt_decode: chatPayload.jwt_decode,
+      }
     );
   }
 
@@ -125,12 +156,12 @@ export class RedisService {
    * 추천 메시지 처리
    * @param message 추천 메시지
    */
-  private async handleRecommendMessage(message: RoomRecommendEvent) {
+  private async handleRecommendMessage(message: ChatRoomMessage) {
     console.log(`[Recommend] received:`, message);
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
-      message.type,
-      message,
+      message.op,
+      message.payload
     );
   }
 
@@ -138,13 +169,81 @@ export class RedisService {
    * 북마크 메시지 처리
    * @param message 북마크 메시지
    */
-  private async handleBookmarkMessage(message: BookmarkEvent) {
+  private async handleBookmarkMessage(message: ChatRoomMessage) {
     console.log(`[Bookmark] received:`, message);
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
-      message.type,
-      message
+      message.op,
+      message.payload
     );
+  }
+
+  /**
+   * 사용자 입장/퇴장 메시지 처리
+   * @param message 사용자 입장/퇴장 메시지
+   */
+  private async handleUserJoinMessage(message: ChatRoomMessage) {
+    // 입장/퇴장 메시지를 관리자 및 방송자에게만 전송
+    const payload = message.payload as UserJoinPayload;
+    await this.eventsGateway.sendToSpecificUserTypes(
+      message.broadcaster_id,
+      message.op,
+      {
+        user_idx: payload.user_idx,
+        user_id: payload.user_id,
+        nickname: payload.nickname,
+        role: payload.jwt_decode
+      },
+      ['manager', 'broadcaster'],
+    );
+  }
+
+  /**
+   * 사용자 입장/퇴장 메시지 처리
+   * @param message 사용자 입장/퇴장 메시지
+   */
+  private async handleUserLeaveMessage(message: ChatRoomMessage) {
+    // 입장/퇴장 메시지를 관리자 및 방송자에게만 전송
+    const payload = message.payload as UserLeavePayload;
+    await this.eventsGateway.sendToSpecificUserTypes(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
+      ['manager', 'broadcaster'],
+    );
+  }
+
+  /**
+   * 역할 변경 메시지 처리
+   * @param message 역할 변경 메시지
+   */
+  private async handleRoleChangeMessage(message: ChatRoomMessage) {
+    const payload = message.payload as RoleChangePayload;
+    // console.log(
+    //   `[RoleChange] - room: ${message.broadcasterId}, target: ${message.targetNickname}(${message.targetUserId}), ${message.previousRole} -> ${message.newRole}, changed by: ${message.changedByNickname}`,
+    // );
+
+    // // 역할 변경 메시지를 해당 방의 모든 사용자에게 전송
+    // await this.eventsGateway.sendToRoom(
+    //   message.broadcasterId,
+    //   'role_change',
+    //   {
+    //     target_user_id: payload.user,
+    //     target_user_idx: payload.targetUserIdx,
+    //     target_nickname: payload.targetNickname,
+    //     previous_role: payload.previousRole,
+    //     new_role: payload.newRole,
+    //     changed_by_idx: payload.changedByIdx,
+    //     changed_by_nickname: payload.changedByNickname,
+    //   },
+    // );
+
+    // // Redis의 viewer 정보도 업데이트
+    // await this.updateViewerRole(
+    //   message.broadcasterId,
+    //   payload.role.user_id,
+    //   payload.role
+    // );
   }
 
   /**
@@ -180,7 +279,7 @@ export class RedisService {
    * @param channel 발행할 채널
    * @param message 발행할 메시지
    */
-  async publishMessage(channel: string, message: any): Promise<void> {
+  async publishRoomMessage(channel: string, message: ChatRoomMessage | ServerMessage): Promise<void> {
     try {
       await this.redis.publish(channel, JSON.stringify(message));
     } catch (error) {
@@ -195,28 +294,26 @@ export class RedisService {
    * @param userId 사용자 ID
    */
   async registConnection(roomId: string, userId: string): Promise<void> {
-    const key = `con:${roomId}:${userId}`;
-    const previousServerId = await this.redis.getset(
-      key,
-      this.serverId.toString(),
-    );
+    const key = `con:${roomId}`;
+    const previousServerId = await this.hget(key, userId);
+
+    // 새로운 서버 ID를 해시에 저장
+    await this.hset(key, userId, this.serverId.toString());
 
     // 이미 다른 서버에 연결되어 있는 경우
     if (previousServerId && previousServerId !== this.serverId.toString()) {
       console.log(
-        `Connection already exists on server ${previousServerId}: ${key}`,
+        `Connection already exists on server ${previousServerId}: ${key}:${userId}`,
       );
-
-      const deleteCommand: ServerCommand = {
-        command: 'delete',
-        prev_server_id: parseInt(previousServerId),
-        room_id: roomId,
-        user_id: userId,
-      };
-
-      await this.publishMessage(
+      // 해당 서버에 중복 연결이라는 redis 이벤트 발행
+      const duplicateConnect = RedisMessages.duplicateConnect(
+        parseInt(previousServerId),
+        roomId,
+        userId,
+      );
+      await this.publishRoomMessage(
         `server_command:${previousServerId}`,
-        deleteCommand,
+        duplicateConnect,
       );
     }
   }
@@ -225,12 +322,23 @@ export class RedisService {
    * Redis에서 연결 정보를 제거합니다.
    * @param roomId 채팅방 ID (broadcaster_id)
    * @param userId 사용자 ID
-   * @returns 삭제된 키의 개수
+   * @returns 삭제된 필드의 개수
    */
   async removeConnection(roomId: string, userId: string): Promise<number> {
-    const key = `con:${roomId}:${userId}`;
-    console.log(`Removing redis connection: ${key}`);
-    return await this.del(key);
+    const key = `con:${roomId}`;
+    console.log(`Removing redis connection: ${key}, hash key:${userId}`);
+    return await this.hdel(key, userId);
+  }
+
+  /**
+   * Redis에서 연결 정보를 확인합니다.
+   * @param roomId 채팅방 ID (broadcaster_id)
+   * @param userId 사용자 ID
+   * @returns 연결된 서버 ID 또는 null
+   */
+  async getConnection(roomId: string, userId: string): Promise<string | null> {
+    const key = `con:${roomId}`;
+    return await this.hget(key, userId);
   }
 
   /**
@@ -238,7 +346,13 @@ export class RedisService {
    * @param broadcasterId 방송자 ID
    * @param userId 시청자 ID
    */
-  async registViewer(broadcasterId: string, userId: string, userIdx, nickname, role): Promise<void> {
+  async registViewer(
+    broadcasterId: string,
+    userId: string,
+    userIdx,
+    nickname,
+    role,
+  ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
     await this.hset(key, userId, JSON.stringify({
       user_id: userId,
@@ -258,6 +372,24 @@ export class RedisService {
     console.log(`[Remove Viewer] ${userId} from ${broadcasterId}`);
     await this.hdel(key, userId);
   }
+
+  /**
+   * 시청자 역할 업데이트
+   * @param broadcasterId 방송자 ID
+   * @param userId 사용자 ID
+   * @param newRole 새로운 역할
+   */
+  // async updateViewerRole(broadcasterId: string, userId: string, newRole: string): Promise<void> {
+  //   const key = `viewer:${broadcasterId}`;
+  //   const viewerData = await this.hget(key, userId);
+    
+  //   if (viewerData) {
+  //     const viewer = JSON.parse(viewerData);
+  //     viewer.role = newRole;
+  //     await this.hset(key, userId, JSON.stringify(viewer));
+  //     console.log(`[Update Viewer Role] ${userId} role changed to ${newRole} in ${broadcasterId}`);
+  //   }
+  // }
 
   /**
    * 방송 종료시 viewer 해시 키 전체 삭제
@@ -286,6 +418,34 @@ export class RedisService {
    */
   async getHashAll(key: string): Promise<{ [field: string]: string }> {
     return await this.redis.hgetall(key);
+  }
+
+  /**
+   * 특정 방송자의 시청자 목록을 조회합니다.
+   * @param broadcasterId 방송자의 user_id
+   * @returns 시청자 정보 배열
+   */
+  async getViewersList(broadcasterId: string): Promise<ViewerInfo[]> {
+    const viewerKey = `viewer:${broadcasterId}`;
+    const viewerData = await this.getHashAll(viewerKey);
+
+    // viewerData를 순회하여 value 값을 객체로 만들어 배열로 변환
+    const viewers = Object.entries(viewerData).map(([key, value]) => {
+      try {
+        // value가 JSON 문자열인 경우 파싱
+        return typeof value === 'string' ? JSON.parse(value) : value;
+      } catch (error) {
+        // JSON 파싱에 실패한 경우 원본 value 반환
+        return {
+          user_id: key,
+          user_idx: -1,
+          nickname: 'guest',
+          role: 'guest',
+        };
+      }
+    });
+
+    return viewers;
   }
 
   /**
