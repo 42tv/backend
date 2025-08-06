@@ -71,6 +71,29 @@ export class StreamInfoDto {
 }
 
 /**
+ * 팬 레벨 정보 DTO
+ */
+export class FanLevelDto {
+  @ApiProperty({ 
+    description: '팬 레벨 이름', 
+    example: '골드팬' 
+  })
+  name: string;
+
+  @ApiProperty({ 
+    description: '팬 레벨 색상', 
+    example: '#FFD700' 
+  })
+  color: string;
+
+  @ApiProperty({ 
+    description: '총 후원 금액', 
+    example: 50000 
+  })
+  total_donation: number;
+}
+
+/**
  * 사용자 정보 DTO
  */
 export class UserInfoDto {
@@ -129,6 +152,13 @@ export class UserInfoDto {
     required: false 
   })
   guest_id?: string;
+
+  @ApiProperty({ 
+    description: '팬 레벨 정보 (게스트가 아닌 경우에만)', 
+    type: FanLevelDto,
+    required: false 
+  })
+  fan_level?: FanLevelDto;
 }
 
 /**

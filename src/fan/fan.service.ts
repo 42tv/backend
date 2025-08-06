@@ -39,25 +39,30 @@ export class FanService {
 
   /**
    * 맞는 팬 레벨을 찾는 함수
-   * @param fanLevels 방송인의 팬 레벨 배열
-   * @param totalDonation 팬의 총 후원 금액
+   * @param fan_idx 팬의 user idx
+   * @param broadcaster_idx 방송인의 user idx
    * @returns 해당하는 팬 레벨 정보
    */
-  async matchFanLevel(fan_idx, broadcaster_idx) {
+  async matchFanLevel(fan_idx: number, broadcaster_idx: number) {
+    // 팬 정보 조회
     const fan = await this.findFan(fan_idx, broadcaster_idx);
+    if (!fan) {
+      return null;
+    }
+
+    // 방송인의 팬 레벨 목록을 높은 금액순으로 조회
+    const fanLevels = await this.fanLevelService.findByUserIdx(broadcaster_idx, 'desc');
+    
     // 높은 금액부터 내림차순으로 정렬된 팬 레벨에서 맞는 레벨 찾기
-    // for (const level of fanLevels) {
-    //   if (totalDonation >= level.min_donation) {
-    //     return {
-    //       level: {
-    //         name: level.name,
-    //         color: level.color,
-    //       },
-    //       totalDonation: totalDonation,
-    //       isManager: false,
-    //     };
-    //   }
-    // }
+    for (const level of fanLevels) {
+      if (fan.total_donation >= level.min_donation) {
+        return {
+          name: level.name,
+          color: level.color,
+          total_donation: fan.total_donation,
+        };
+      }
+    }
     
     // 어떤 레벨에도 도달하지 못한 경우 null 반환
     return null;
