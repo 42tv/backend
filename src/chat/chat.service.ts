@@ -22,72 +22,42 @@ export class ChatService {
     broadcasterId: string,
     message: string,
   ) {
-    const user = await this.userService.getUserWithRelations(userIdx, {});
-    const broadcaster = await this.userService.getUserByUserIdWithRelations(broadcasterId, {
-      fan_level: true,
-    });
-    if (!broadcaster) {
-      throw new BadRequestException('방송인을 찾을 수 없습니다');
-    }
-    const fan = await this.fanService.findFan(user.idx, broadcaster.idx);
-    const donation = fan ? fan.total_donation : 0;
-    const fanLevels = broadcaster.fanLevel;
-    let { grade, color } = this.getGradeAndColor(fanLevels, donation);
-    const role = await this.getRole(user, broadcaster);
-    if (role === 'broadcaster') {
-    }
-    else if (role === 'manager') {
-      color = '#3EB350';
+    // 1. 해당 사용자 정보 조회
+    const user = await this.userService.findByUserIdx(userIdx);
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 사용자입니다.');
     }
 
+    // 2. Redis에서 해당 사용자의 시청자 정보 확인 (방송 참여 여부 및 방송 중인지 확인)
+    const viewerInfo = await this.redisService.getViewerInfo(broadcasterId, user.user_id);
+    if (!viewerInfo) {
+      throw new BadRequestException('방송에 참여하지 않았거나 방송이 진행 중이지 않습니다.');
+    }
 
+    // 3. Redis에서 가져온 시청자 정보 파싱
+    let parsedViewerInfo;
+    try {
+      parsedViewerInfo = JSON.parse(viewerInfo);
+    } catch (error) {
+      throw new BadRequestException('시청자 정보를 불러올 수 없습니다.');
+    }
+
+    // 4. 채팅 메시지 발송
     await this.redisService.publishRoomMessage(
       `room:${broadcasterId}`, 
       RedisMessages.chat(
-        broadcaster.user_id,
+        broadcasterId,
         user.idx,
         user.user_id,
         user.nickname,
         message,
-        grade,
-        color,
-        {
-          idx: user.idx,
-          user_id: user.user_id,
-          nickname: user.nickname,
-          role: role,
-          profile_img: user.profile_img,
-          is_guest: false,
-        }
+        parsedViewerInfo.fan_level.name,
+        parsedViewerInfo.fan_level.color,
       )
     );
+    
     return {
       message: '성공적으로 채팅을 전송하였습니다.',
     };
   }
-  
-  getGradeAndColor(fanLevels: FanLevel[], min_donation: number) {
-    let grade='normal';
-    let color='#6B7280'
-    for (const level of fanLevels) {
-      if (min_donation >= level.min_donation) {
-        grade = level.name;
-        color = level.color;
-        break;
-      }
-    }
-    return { grade, color };
-  }
-
-  async getRole(user: User, broadcaster: User): Promise<'broadcaster' | 'manager' | 'viewer'> {
-    if (user.idx === broadcaster.idx) {
-      return 'broadcaster';
-    }
-    const isManager = await this.managerService.isManager(user.idx, broadcaster.idx);
-    if (isManager) {
-      return 'manager';
-    }
-    return 'viewer';
-  }
-
 }

@@ -13,7 +13,7 @@ import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 interface AuthenticatedSocket extends Socket {
-  user: WebsocketJwt;
+  jwt: WebsocketJwt;
 }
 
 type UserType = 'manager' | 'broadcaster' | 'member' | 'guest' | 'viewer';
@@ -56,7 +56,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
         const payload: WebsocketJwt = await this.authService.validate(token);
         // TypeScript 용으로 socket에 프로퍼티 추가
-        (socket as any).user = payload;
+        (socket as any).jwt = payload;
         next();
       } catch (err) {
         // authService.validate에서 발생한 오류 또는 기타 오류 처리
@@ -111,11 +111,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       
       // room의 모든 사용자를 순회하면서 지정된 type들에게만 메시지 전송
       roomMap.forEach((client: AuthenticatedSocket, userId: string) => {
-        if (targetTypes.includes(client.user.user.role as UserType)) {
+        if (targetTypes.includes(client.jwt.user.role as UserType)) {
           client.emit(eventName, data);
           sentCount++;
           console.log(
-            `[SendToSpecificUserTypes] - room: ${broadcasterId}, user: ${userId}, role: ${client.user.user.role}, event: ${eventName}`,
+            `[SendToSpecificUserTypes] - room: ${broadcasterId}, user: ${userId}, role: ${client.jwt.user.role}, event: ${eventName}`,
           );
         }
       });
@@ -134,7 +134,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async handleConnection(client: AuthenticatedSocket) {
     // 구조분해 할당
-    const { broadcaster, user, stream } = client.user;
+    const { broadcaster, user, stream } = client.jwt;
     
     console.log(broadcaster.user_id, stream.idx, user.role, user.idx, user.guest_id, user.nickname);
 
@@ -188,7 +188,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   async handleDisconnect(client: AuthenticatedSocket) {
     // 구조분해 할당
-    const { broadcaster, user } = client.user;
+    const { broadcaster, user } = client.jwt;
     
     const registerId = user.user_id || user.guest_id;
 
@@ -285,7 +285,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     userId: string,
     client: AuthenticatedSocket,
   ) {
-    const { user } = client.user;
+    const { user } = client.jwt;
     // 자기가 관리하는 채팅방에 broadcasterId가 없다면 새로 생성 및 이벤트 구독 추가
     if (!this.chatRooms.has(broadcasterId)) {
       console.log(`[Create] - chatRoom[${broadcasterId}]: ${broadcasterId}`);
@@ -296,7 +296,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.chatRooms.get(broadcasterId).set(userId, client);
     // Redis에 con, viewer 추가
     await this.redisService.registConnection(broadcasterId, userId);
-    await this.redisService.registViewer(broadcasterId, userId, user.idx, user.nickname, user.role);
+    await this.redisService.registViewer(broadcasterId, userId, client.jwt);
     client.join(broadcasterId);
   }
 
@@ -350,7 +350,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const roomMap = this.chatRooms.get(broadcasterId);
     if (roomMap && roomMap.has(userId)) {
-      roomMap.get(userId).user.user = newUserInfo;
+      roomMap.get(userId).jwt.user = newUserInfo;
     }
   }
 }

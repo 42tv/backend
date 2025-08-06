@@ -9,7 +9,7 @@ import { UserService } from 'src/user/user.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
 import { ManagerService } from 'src/manager/manager.service';
-import { Stream, User } from '@prisma/client';
+import { Stream } from '@prisma/client';
 import { PlayResponse } from './interfaces/response';
 import { WebsocketJwt } from './interfaces/websocket';
 import { FanService } from 'src/fan/fan.service';
@@ -212,6 +212,12 @@ export class PlayService {
     user: any,
     role: 'broadcaster' | 'manager' | 'member' | 'viewer',
   ): Promise<PlayResponse> {
+    // 팬 레벨 정보 조회 (본인이 아닌 경우에만)
+    let fanLevel = null;
+    if (user.idx !== broadcaster.idx) {
+      fanLevel = await this.fanService.matchFanLevel(user.idx, broadcaster.idx);
+    }
+
     const payload: WebsocketJwt = {
       broadcaster: {
         idx: broadcaster.idx,
@@ -233,7 +239,8 @@ export class PlayService {
       },
     };
     const playToken = this.authService.generatePlayToken(payload);
-    return {
+    
+    const response: PlayResponse = {
       broadcaster: {
         idx: broadcaster.idx,
         user_id: broadcaster.user_id,
@@ -259,5 +266,12 @@ export class PlayService {
         is_guest: false,
       },
     };
+
+    // 팬 레벨 정보가 있으면 추가
+    if (fanLevel) {
+      response.user.fan_level = fanLevel;
+    }
+
+    return response;
   }
 }
