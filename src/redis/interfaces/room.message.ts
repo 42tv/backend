@@ -8,6 +8,12 @@ export enum OpCode {
   USER_LEAVE = 'leave',
   ROLE_CHANGE = 'role_change',
   VIEWER_COUNT = 'viewer_count',
+  VIEWER_LIST = 'viewer_list',
+}
+
+export enum RoleChangeType {
+  MANAGER_GRANT = 'manager_grant',
+  MANAGER_REVOKE = 'manager_revoke',
 }
 
 export interface JwtDecode {
@@ -26,10 +32,20 @@ export interface JwtDecode {
 }
 
 // Redis 메시지의 기본 인터페이스
-export interface ChatRoomMessage{
+export interface ChatRoomMessage {
   op: OpCode;
   broadcaster_id: string;
-  payload: ChatPayload | RecommendPayload | ViewerCountPayload | BookmarkPayload | UserJoinPayload | UserLeavePayload | RoleChangePayload | KickPayload | BanPayload;
+  payload:
+    | ChatPayload
+    | RecommendPayload
+    | ViewerCountPayload
+    | BookmarkPayload
+    | UserJoinPayload
+    | UserLeavePayload
+    | RoleChangePayload
+    | KickPayload
+    | BanPayload
+    | ViewerListPayload;
 }
 
 export interface ChatPayload {
@@ -52,6 +68,10 @@ export interface ViewerCountPayload {
   viewer_count: number;
 }
 
+export interface ViewerListPayload {
+  viewers: ViewerInfo[];
+}
+
 export interface BookmarkPayload {
   action: 'add' | 'delete';
   user_idx: number;
@@ -72,15 +92,13 @@ export interface UserLeavePayload {
 }
 
 export interface RoleChangePayload {
-  user_id: string;
+  type: RoleChangeType;
   user_idx: number;
+  user_id: string;
   nickname: string;
-  jwt_decode: JwtDecode;
-  changed_by: {
-    idx: number;
-    user_id: string;
-    nickname: string;
-  }
+  from_role: 'manager' | 'member' | 'viewer';
+  to_role: 'manager' | 'member' | 'viewer';
+  to_color: string;
 }
 
 export interface KickPayload {
@@ -120,5 +138,3 @@ export interface ViewerInfo {
 //   room_id: string;
 //   user_id: string;
 // }
-
-

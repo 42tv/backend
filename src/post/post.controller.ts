@@ -41,7 +41,6 @@ import {
   GetPostSettingsResponseDto,
   UpdatePostSettingsResponseDto,
   PostErrorResponseDto,
-  PostUnauthorizedResponseDto,
 } from './dto/post-response.dto';
 
 @ApiTags('post')
@@ -148,9 +147,15 @@ export class PostController {
   @ApiBearerAuth()
   async deletePosts(@Req() req, @Body() deletePostsDto: DeletePostsDto) {
     if (deletePostsDto.type === 'sent') {
-      await this.postService.deleteSentPosts(req.user.idx, deletePostsDto.postIds);
+      await this.postService.deleteSentPosts(
+        req.user.idx,
+        deletePostsDto.postIds,
+      );
     } else {
-      await this.postService.deleteReceivedPosts(req.user.idx, deletePostsDto.postIds);
+      await this.postService.deleteReceivedPosts(
+        req.user.idx,
+        deletePostsDto.postIds,
+      );
     }
     return {
       message: '쪽지를 삭제했습니다.',
@@ -185,7 +190,11 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async deletePost(@Req() req, @Param('postId') postId, @Query('type') type: 'sent' | 'received') {
+  async deletePost(
+    @Req() req,
+    @Param('postId') postId,
+    @Query('type') type: 'sent' | 'received',
+  ) {
     if (type === 'sent') {
       await this.postService.deleteSentPost(req.user.idx, postId);
     } else {
@@ -350,8 +359,14 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async updatePostSettings(@Req() req, @Body() updateData: UpdatePostSettingsDto) {
+  async updatePostSettings(
+    @Req() req,
+    @Body() updateData: UpdatePostSettingsDto,
+  ) {
     console.log(updateData);
-    return await this.postService.updatePostSettings(req.user.idx, updateData.minFanLevel);
+    return await this.postService.updatePostSettings(
+      req.user.idx,
+      updateData.minFanLevel,
+    );
   }
 }

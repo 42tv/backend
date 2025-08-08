@@ -6,17 +6,20 @@ import { RemoveManagerDto } from './dto/remove.manager.dto';
 
 @Controller('manager')
 export class ManagerController {
-    constructor(private readonly managerService: ManagerService) {}
+  constructor(private readonly managerService: ManagerService) {}
 
-    @Post()
-    @UseGuards(MemberGuard)
-    async addManager(@Req() req, @Body() addManagerDto: AddManagerDto) {
-        return await this.managerService.addManager(req.user.idx, addManagerDto);
-    }
+  @Post()
+  @UseGuards(MemberGuard)
+  async addManager(@Req() req, @Body() addManagerDto: AddManagerDto) {
+    return await this.managerService.addManager(req.user.idx, addManagerDto);
+  }
 
-    @Delete()
-    @UseGuards(MemberGuard)
-    async removeManager(@Req() req, @Body() removeManagerDto: RemoveManagerDto) {
-        return await this.managerService.removeManager(req.user.idx, removeManagerDto);
-    }
+  @Delete()
+  @UseGuards(MemberGuard)
+  async removeManager(@Req() req, @Body() removeManagerDto: RemoveManagerDto) {
+    return await this.managerService.removeManager(
+      req.user.idx,
+      removeManagerDto,
+    );
+  }
 }

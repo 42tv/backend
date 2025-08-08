@@ -1,9 +1,18 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { AddManagerDto } from './dto/add.manager.dto';
 import { RemoveManagerDto } from './dto/remove.manager.dto';
 import { ManagerRepository } from './manager.repository';
 import { RedisService } from 'src/redis/redis.service';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
+import { RoleChangeType } from 'src/redis/interfaces/room.message';
+import { FanService } from 'src/fan/fan.service';
+import { getUserRoleColor } from 'src/constants/chat-colors';
 
 @Injectable()
 export class ManagerService {
@@ -11,6 +20,8 @@ export class ManagerService {
     private readonly managerRepository: ManagerRepository,
     @Inject(forwardRef(() => RedisService))
     private readonly redisService: RedisService,
+    @Inject(forwardRef(() => FanService))
+    private readonly fanService: FanService,
   ) {}
 
   /**
@@ -20,8 +31,52 @@ export class ManagerService {
    * @returns 매니저 관계 정보 또는 null
    */
   async isManager(managerIdx: number, broadcasterIdx: number) {
-    const manager = await this.managerRepository.findManager(managerIdx, broadcasterIdx);
+    const manager = await this.managerRepository.findManager(
+      managerIdx,
+      broadcasterIdx,
+    );
     return manager ? true : false;
+  }
+
+  /**
+   * 사용자의 적절한 역할을 결정합니다.
+   * 매니저가 해임된 경우 적절한 역할(member/viewer)과 팬 레벨을 반환합니다.
+   * @param userIdx 사용자 ID
+   * @param broadcasterIdx 방송자 ID
+   * @returns 사용자 역할 정보
+   */
+  private async determineUserRole(
+    userIdx: number,
+    broadcasterIdx: number,
+  ): Promise<{
+    role: 'member' | 'viewer';
+    fanLevel?: { name: string; color: string };
+  }> {
+    // 팬 레벨 확인
+    const fanLevel = await this.fanService.matchFanLevel(
+      userIdx,
+      broadcasterIdx,
+    );
+
+    if (fanLevel) {
+      // 팬 레벨이 있으면 member
+      return {
+        role: 'member',
+        fanLevel: {
+          name: fanLevel.name,
+          color: fanLevel.color,
+        },
+      };
+    } else {
+      // 팬 레벨이 없으면 viewer
+      return {
+        role: 'viewer',
+        fanLevel: {
+          name: 'viewer',
+          color: getUserRoleColor('viewer'),
+        },
+      };
+    }
   }
 
   /**
@@ -32,11 +87,16 @@ export class ManagerService {
    */
   async addManager(broadcasterIdx: number, addManagerDto: AddManagerDto) {
     // 매니저로 추가할 사용자가 존재하는지 확인
-    const broadcaster = await this.managerRepository.findUserByIdx(broadcasterIdx);
-    const managerUser = await this.managerRepository.findUserByUserId(addManagerDto.userId);
+    const broadcaster =
+      await this.managerRepository.findUserByIdx(broadcasterIdx);
+    const managerUser = await this.managerRepository.findUserByUserId(
+      addManagerDto.userId,
+    );
 
     if (!managerUser) {
-      throw new NotFoundException('해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.');
+      throw new NotFoundException(
+        '해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.',
+      );
     }
 
     // 자기 자신을 매니저로 추가하려는 경우 방지
@@ -54,10 +114,27 @@ export class ManagerService {
       throw new BadRequestException('이미 매니저로 등록된 사용자입니다.');
     }
 
+    // 기존 사용자 역할 확인
+    const currentUserRole = await this.determineUserRole(
+      managerUser.idx,
+      broadcasterIdx,
+    );
+
     // 매니저 관계 생성
     const manager = await this.managerRepository.createManager(
       broadcasterIdx,
       managerUser.idx,
+    );
+
+    // Redis의 viewer 정보 업데이트 (manager role로 변경)
+    await this.redisService.updateViewerRole(
+      broadcaster.user_id,
+      managerUser.user_id,
+      'manager',
+      {
+        name: 'manager',
+        color: getUserRoleColor('manager'),
+      },
     );
 
     // Redis를 통해 모든 서버의 해당 room에 role 변경 알림
@@ -65,29 +142,20 @@ export class ManagerService {
       `room:${broadcaster.user_id}`,
       RedisMessages.roleChange(
         broadcaster.user_id,
-        managerUser.user_id,
+        RoleChangeType.MANAGER_GRANT,
         managerUser.idx,
+        managerUser.user_id,
         managerUser.nickname,
-        {
-          idx: managerUser.idx,
-          user_id: managerUser.user_id,
-          nickname: managerUser.nickname,
-          role: 'manager',
-          profile_img: managerUser.profile_img,
-          is_guest: false,
-        },
-        {
-          idx: broadcaster.idx,
-          user_id: broadcaster.user_id,
-          nickname: broadcaster.nickname,
-        }
-      )
+        currentUserRole.role,
+        'manager',
+        getUserRoleColor('manager'),
+      ),
     );
 
     return {
       success: true,
       message: '매니저가 성공적으로 추가되었습니다.',
-      data: manager
+      data: manager,
     };
   }
 
@@ -97,13 +165,21 @@ export class ManagerService {
    * @param removeManagerDto 제거할 매니저 정보
    * @returns 제거 결과
    */
-  async removeManager(broadcasterIdx: number, removeManagerDto: RemoveManagerDto) {
+  async removeManager(
+    broadcasterIdx: number,
+    removeManagerDto: RemoveManagerDto,
+  ) {
     // 제거할 매니저 사용자가 존재하는지 확인
-    const broadcaster = await this.managerRepository.findUserByIdx(broadcasterIdx);
-    const managerUser = await this.managerRepository.findUserByUserId(removeManagerDto.userId);
+    const broadcaster =
+      await this.managerRepository.findUserByIdx(broadcasterIdx);
+    const managerUser = await this.managerRepository.findUserByUserId(
+      removeManagerDto.userId,
+    );
 
     if (!managerUser) {
-      throw new NotFoundException('해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.');
+      throw new NotFoundException(
+        '해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.',
+      );
     }
 
     // 매니저 관계가 존재하는지 확인
@@ -119,34 +195,38 @@ export class ManagerService {
     // 매니저 관계 삭제
     await this.managerRepository.deleteManager(broadcasterIdx, managerUser.idx);
 
+    // 해임된 사용자의 적절한 역할 결정
+    const userRole = await this.determineUserRole(
+      managerUser.idx,
+      broadcasterIdx,
+    );
+
+    // Redis의 viewer 정보 업데이트 (적절한 role로 변경)
+    await this.redisService.updateViewerRole(
+      broadcaster.user_id,
+      managerUser.user_id,
+      userRole.role,
+      userRole.fanLevel,
+    );
+
     // Redis를 통해 모든 서버의 해당 room에 role 변경 알림
     await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`,
       RedisMessages.roleChange(
         broadcaster.user_id,
-        managerUser.user_id,
+        RoleChangeType.MANAGER_REVOKE,
         managerUser.idx,
+        managerUser.user_id,
         managerUser.nickname,
-        // 이 코드는 수정이 필요함, role이 viewer가 아닐 수 있음. 즉 알맞는 롤을 찾은 후 변경해주어야함
-        {
-          idx: managerUser.idx,
-          user_id: managerUser.user_id,
-          nickname: managerUser.nickname,
-          role: 'viewer', //
-          profile_img: managerUser.profile_img,
-          is_guest: false,
-        },
-        {
-          idx: broadcaster.idx,
-          user_id: broadcaster.user_id,
-          nickname: broadcaster.nickname,
-        }
-      )
+        'manager',
+        userRole.role,
+        userRole.fanLevel?.color || getUserRoleColor(userRole.role),
+      ),
     );
 
     return {
       success: true,
-      message: '매니저가 성공적으로 제거되었습니다.'
+      message: '매니저가 성공적으로 제거되었습니다.',
     };
   }
 }

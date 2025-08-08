@@ -10,7 +10,11 @@ import {
 } from '@nestjs/swagger';
 import { PlayResponse } from './interfaces/response';
 import { PlayStreamDto } from './dto/play-request.dto';
-import { PlayStreamResponseDto, PlayErrorResponseDto, PlayForbiddenResponseDto } from './dto/play-response.dto';
+import {
+  PlayStreamResponseDto,
+  PlayErrorResponseDto,
+  PlayForbiddenResponseDto,
+} from './dto/play-response.dto';
 
 @ApiTags('play')
 @Controller('play')

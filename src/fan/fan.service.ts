@@ -3,7 +3,6 @@ import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { FanRepository } from './fan.repository';
 import { ManagerService } from 'src/manager/manager.service';
 
-
 @Injectable()
 export class FanService {
   constructor(
@@ -24,16 +23,20 @@ export class FanService {
     return fan;
   }
 
-
-
   /**
    * 팬이 방송인에게 후원한 총 금액을 조회하는 함수
    * @param fan_idx 팬의 user idx
    * @param broadcaster_idx 방송인의 user idx
    * @returns 팬이 방송인에게 후원한 총 금액
    */
-  async getTotalDonation(fan_idx: number, broadcaster_idx: number): Promise<number> {
-    const fanRelation = await this.fanRepository.findFan(fan_idx, broadcaster_idx);
+  async getTotalDonation(
+    fan_idx: number,
+    broadcaster_idx: number,
+  ): Promise<number> {
+    const fanRelation = await this.fanRepository.findFan(
+      fan_idx,
+      broadcaster_idx,
+    );
     return fanRelation ? fanRelation.total_donation : 0;
   }
 
@@ -51,8 +54,11 @@ export class FanService {
     }
 
     // 방송인의 팬 레벨 목록을 높은 금액순으로 조회
-    const fanLevels = await this.fanLevelService.findByUserIdx(broadcaster_idx, 'desc');
-    
+    const fanLevels = await this.fanLevelService.findByUserIdx(
+      broadcaster_idx,
+      'desc',
+    );
+
     // 높은 금액부터 내림차순으로 정렬된 팬 레벨에서 맞는 레벨 찾기
     for (const level of fanLevels) {
       if (fan.total_donation >= level.min_donation) {
@@ -63,7 +69,7 @@ export class FanService {
         };
       }
     }
-    
+
     // 어떤 레벨에도 도달하지 못한 경우 null 반환
     return null;
   }

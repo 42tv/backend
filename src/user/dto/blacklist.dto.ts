@@ -5,9 +5,9 @@ import { ApiProperty } from '@nestjs/swagger';
  * 블랙리스트 추가 요청 DTO
  */
 export class AddToBlacklistDto {
-  @ApiProperty({ 
-    description: '차단할 사용자의 ID', 
-    example: 'user123' 
+  @ApiProperty({
+    description: '차단할 사용자의 ID',
+    example: 'user123',
   })
   @IsString()
   @IsNotEmpty()
@@ -18,9 +18,9 @@ export class AddToBlacklistDto {
  * 블랙리스트 제거 요청 DTO
  */
 export class RemoveFromBlacklistDto {
-  @ApiProperty({ 
-    description: '차단 해제할 사용자의 ID', 
-    example: 'user123' 
+  @ApiProperty({
+    description: '차단 해제할 사용자의 ID',
+    example: 'user123',
   })
   @IsString()
   @IsNotEmpty()
@@ -31,10 +31,10 @@ export class RemoveFromBlacklistDto {
  * 블랙리스트 다중 제거 요청 DTO
  */
 export class RemoveMultipleFromBlacklistDto {
-  @ApiProperty({ 
-    description: '차단 해제할 사용자 ID 목록', 
+  @ApiProperty({
+    description: '차단 해제할 사용자 ID 목록',
     example: ['user1', 'user2', 'user3'],
-    type: [String]
+    type: [String],
   })
   @IsArray()
   @ArrayMinSize(1)

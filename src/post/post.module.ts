@@ -8,7 +8,12 @@ import { FanModule } from 'src/fan/fan.module';
 import { FanLevelModule } from 'src/fan-level/fan-level.module';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => UserModule), FanModule, FanLevelModule],
+  imports: [
+    PrismaModule,
+    forwardRef(() => UserModule),
+    FanModule,
+    FanLevelModule,
+  ],
   controllers: [PostController],
   providers: [PostService, PostRepository],
   exports: [PostService],

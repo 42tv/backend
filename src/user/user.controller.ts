@@ -33,10 +33,7 @@ import {
   ApiConsumes,
   ApiParam,
 } from '@nestjs/swagger';
-import { User } from './entities/user.entity';
-import {
-  CustomInternalServerErrorResponse,
-} from 'src/utils/utils';
+import { CustomInternalServerErrorResponse } from 'src/utils/utils';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -105,8 +102,14 @@ export class UserController {
     description: '서버 에러',
     type: CustomInternalServerErrorResponse,
   })
-  async updateNickname(@Req() req, @Body() updateNicknameDto: UpdateNicknameRequestDto) {
-    await this.userService.updateNickname(req.user.idx, updateNicknameDto.nickname);
+  async updateNickname(
+    @Req() req,
+    @Body() updateNicknameDto: UpdateNicknameRequestDto,
+  ) {
+    await this.userService.updateNickname(
+      req.user.idx,
+      updateNicknameDto.nickname,
+    );
     return {
       message: '닉네임이 성공적으로 변경되었습니다.',
       nickname: updateNicknameDto.nickname,
@@ -118,9 +121,9 @@ export class UserController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '비밀번호 변경' })
   @ApiBody({ type: UpdatePasswordRequestDto })
-  @ApiCreatedResponse({ 
-    description: '비밀번호 변경 성공', 
-    type: UpdatePasswordResponseDto 
+  @ApiCreatedResponse({
+    description: '비밀번호 변경 성공',
+    type: UpdatePasswordResponseDto,
   })
   @ApiBadRequestResponse({
     description: '비밀번호가 틀렸습니다 | 존재하지 않는 유저',
@@ -155,9 +158,10 @@ export class UserController {
   )
   @UseGuards(MemberGuard)
   @ApiBearerAuth()
-  @ApiOperation({ 
-    summary: '프로필 이미지 업로드', 
-    description: '사용자의 프로필 이미지를 AWS S3에 업로드합니다. 최대 5MB까지 지원합니다.' 
+  @ApiOperation({
+    summary: '프로필 이미지 업로드',
+    description:
+      '사용자의 프로필 이미지를 AWS S3에 업로드합니다. 최대 5MB까지 지원합니다.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -184,17 +188,17 @@ export class UserController {
       req.user.idx,
       file,
     );
-    return { 
+    return {
       message: '프로필 이미지가 성공적으로 업로드되었습니다.',
-      imageUrl: profileImageUrl 
+      imageUrl: profileImageUrl,
     };
   }
 
   @Post('')
   @ApiOperation({ summary: '유저생성' })
-  @ApiCreatedResponse({ 
-    description: '사용자 생성 성공', 
-    type: CreateUserResponseDto 
+  @ApiCreatedResponse({
+    description: '사용자 생성 성공',
+    type: CreateUserResponseDto,
   })
   @ApiBadRequestResponse({
     description: '이미 존재하는 아이디입니다.',
@@ -433,7 +437,7 @@ export class UserController {
       dto.blocked_user_id,
     );
   }
-  
+
   @Delete('blacklists')
   @UseGuards(MemberGuard)
   @ApiBearerAuth()
@@ -446,7 +450,10 @@ export class UserController {
       type: 'object',
       properties: {
         deletedCount: { type: 'number', example: 3 },
-        message: { type: 'string', example: '3명의 사용자를 블랙리스트에서 제거했습니다.' },
+        message: {
+          type: 'string',
+          example: '3명의 사용자를 블랙리스트에서 제거했습니다.',
+        },
       },
     },
   })
@@ -454,7 +461,10 @@ export class UserController {
     description: '유효한 사용자가 없습니다.',
     type: UserErrorResponseDto,
   })
-  async removeMultipleFromBlacklist(@Req() req, @Body() dto: RemoveMultipleFromBlacklistDto) {
+  async removeMultipleFromBlacklist(
+    @Req() req,
+    @Body() dto: RemoveMultipleFromBlacklistDto,
+  ) {
     return await this.userService.removeMultipleFromBlacklist(
       req.user.idx,
       dto.blocked_user_ids,

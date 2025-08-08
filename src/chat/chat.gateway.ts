@@ -11,6 +11,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
+import { OpCode } from 'src/redis/interfaces/room.message';
 
 interface AuthenticatedSocket extends Socket {
   jwt: WebsocketJwt;
@@ -99,16 +100,16 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param targetTypes - 메시지를 받을 사용자 타입들 ('manager', 'broadcaster', 'viewer' 중에서만 선택 가능)
    */
   async sendToSpecificUserTypes(
-    broadcasterId: string, 
-    eventName: string, 
-    data: any, 
-    targetTypes: UserType[]
+    broadcasterId: string,
+    eventName: string,
+    data: any,
+    targetTypes: UserType[],
   ) {
     // 해당 room이 이 서버에 존재하는지 확인
     if (this.chatRooms.has(broadcasterId)) {
       const roomMap = this.chatRooms.get(broadcasterId);
       let sentCount = 0;
-      
+
       // room의 모든 사용자를 순회하면서 지정된 type들에게만 메시지 전송
       roomMap.forEach((client: AuthenticatedSocket, userId: string) => {
         if (targetTypes.includes(client.jwt.user.role as UserType)) {
@@ -119,7 +120,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           );
         }
       });
-      
+
       console.log(
         `[SendToSpecificUserTypes] - room: ${broadcasterId}, event: ${eventName}, targetTypes: [${targetTypes.join(', ')}], sentCount: ${sentCount}, data:`,
         data,
@@ -135,32 +136,47 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: AuthenticatedSocket) {
     // 구조분해 할당
     const { broadcaster, user, stream } = client.jwt;
-    
-    console.log(broadcaster.user_id, stream.idx, user.role, user.idx, user.guest_id, user.nickname);
+
+    console.log(
+      broadcaster.user_id,
+      stream.idx,
+      user.role,
+      user.idx,
+      user.guest_id,
+      user.nickname,
+    );
 
     const registerId = user.user_id || user.guest_id;
 
     // 방송자 or 매니저가 웹소켓 연결시 시청자 목록을 보내주어야함.
     if (user.role === 'broadcaster' || user.role === 'manager') {
-      const viewers = await this.redisService.getViewersList(broadcaster.user_id);
-      client.emit('viewer_list', viewers);
+      const viewers = await this.redisService.getViewersList(
+        broadcaster.user_id,
+      );
+      client.emit(OpCode.VIEWER_LIST, { viewers });
     }
 
     // chatRoom에 사용자 추가
     await this.addChatRoomUser(broadcaster.user_id, registerId, client);
-    
+
     // Redis를 통해 모든 서버의 해당 room에 사용자 입장 알림
     await this.redisService.publishRoomMessage(
-      `room:${broadcaster.user_id}`, 
-      RedisMessages.userJoin(broadcaster.user_id, registerId, user.idx, user.nickname, {
-        idx: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-        role: user.role,
-        profile_img: user.profile_img,
-        is_guest: user.is_guest,
-        guest_id: user.guest_id,
-      })
+      `room:${broadcaster.user_id}`,
+      RedisMessages.userJoin(
+        broadcaster.user_id,
+        registerId,
+        user.idx,
+        user.nickname,
+        {
+          idx: user.idx,
+          user_id: user.user_id,
+          nickname: user.nickname,
+          role: user.role,
+          profile_img: user.profile_img,
+          is_guest: user.is_guest,
+          guest_id: user.guest_id,
+        },
+      ),
     );
 
     // 재생 수 증가 - 각 접속마다 증가
@@ -172,8 +188,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         );
         // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
         await this.redisService.publishRoomMessage(
-          `room:${broadcaster.user_id}`, 
-          RedisMessages.viewerCount(broadcaster.user_id, viewerCount)
+          `room:${broadcaster.user_id}`,
+          RedisMessages.viewerCount(broadcaster.user_id, viewerCount),
         );
       } catch (error) {
         console.error(`Failed to increase play count: ${error.message}`);
@@ -189,10 +205,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDisconnect(client: AuthenticatedSocket) {
     // 구조분해 할당
     const { broadcaster, user } = client.jwt;
-    
+
     const registerId = user.user_id || user.guest_id;
 
-    // 서버에 방이 존재하고 
+    // 서버에 방이 존재하고
     if (this.chatRooms.has(broadcaster.user_id)) {
       const roomMap = this.chatRooms.get(broadcaster.user_id);
       // 해당 userId가 방에 존재한다면
@@ -202,24 +218,30 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         await this.deleteChatRoomUser(broadcaster.user_id, registerId);
         // 사용자가 나갔다는 알림을 Redis를 통해 모든 서버의 해당 room에 전송
         await this.redisService.publishRoomMessage(
-          `room:${broadcaster.user_id}`, 
-          RedisMessages.userLeave(broadcaster.user_id, registerId, user.idx, user.nickname, {
-            idx: user.idx,
-            user_id: user.user_id,
-            nickname: user.nickname,
-            role: user.role,
-            profile_img: user.profile_img,
-            is_guest: user.is_guest,
-            guest_id: user.guest_id,
-          })
+          `room:${broadcaster.user_id}`,
+          RedisMessages.userLeave(
+            broadcaster.user_id,
+            registerId,
+            user.idx,
+            user.nickname,
+            {
+              idx: user.idx,
+              user_id: user.user_id,
+              nickname: user.nickname,
+              role: user.role,
+              profile_img: user.profile_img,
+              is_guest: user.is_guest,
+              guest_id: user.guest_id,
+            },
+          ),
         );
         const viewerCount = await this.redisService.getHashFieldCount(
           `viewer:${broadcaster.user_id}`,
         );
         // Redis를 통해 모든 서버의 해당 room에 재생 수 증가 알림
         await this.redisService.publishRoomMessage(
-          `room:${broadcaster.user_id}`, 
-          RedisMessages.viewerCount(broadcaster.user_id, viewerCount)
+          `room:${broadcaster.user_id}`,
+          RedisMessages.viewerCount(broadcaster.user_id, viewerCount),
         );
       }
     }
@@ -231,8 +253,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param userId - 사용자 ID
    */
   async handleDuplicateDisconnect(broadcasterId: string, userId: string) {
-    console.log(`[Duplicate Disconnect] - room: ${broadcasterId}, user: ${userId}`);
-    // 서버에 방이 존재하고 
+    console.log(
+      `[Duplicate Disconnect] - room: ${broadcasterId}, user: ${userId}`,
+    );
+    // 서버에 방이 존재하고
     if (this.chatRooms.has(broadcasterId)) {
       const roomMap = this.chatRooms.get(broadcasterId);
       // 해당 userId가 방에 존재한다면
@@ -259,13 +283,17 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param broadcasterId - 방송자 ID
    * @param registerId - 등록 ID
    */
-  private async publishDuplicateConnect(existingServerId: string, broadcasterId: string, registerId: string) {
+  private async publishDuplicateConnect(
+    existingServerId: string,
+    broadcasterId: string,
+    registerId: string,
+  ) {
     const duplicateConnect = RedisMessages.duplicateConnect(
       parseInt(existingServerId),
       broadcasterId,
       registerId,
     );
-    
+
     await this.redisService.publishRoomMessage(
       `server_command:${existingServerId}`,
       duplicateConnect,
@@ -285,7 +313,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     userId: string,
     client: AuthenticatedSocket,
   ) {
-    const { user } = client.jwt;
     // 자기가 관리하는 채팅방에 broadcasterId가 없다면 새로 생성 및 이벤트 구독 추가
     if (!this.chatRooms.has(broadcasterId)) {
       console.log(`[Create] - chatRoom[${broadcasterId}]: ${broadcasterId}`);
@@ -323,7 +350,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         roomMap.get(userId).leave(broadcasterId);
         // 채팅방에서 사용자 제거
         roomMap.delete(userId);
-        console.log(`redis에서 연결 정보 삭제: con:${broadcasterId}, hash key: ${userId}`);
+        console.log(
+          `redis에서 연결 정보 삭제: con:${broadcasterId}, hash key: ${userId}`,
+        );
         // Redis에서 연결 정보 삭제
         await this.redisService.removeConnection(broadcasterId, userId);
         await this.redisService.removeViewer(broadcasterId, userId);
@@ -346,7 +375,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async replaceChatRoomUserInfo(
     broadcasterId: string,
     userId: string,
-    newUserInfo: WebsocketJwt['user']
+    newUserInfo: WebsocketJwt['user'],
   ) {
     const roomMap = this.chatRooms.get(broadcasterId);
     if (roomMap && roomMap.has(userId)) {

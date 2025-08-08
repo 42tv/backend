@@ -181,7 +181,7 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    
+
     // 먼저 소프트 삭제
     await prismaClient.posts.update({
       where: {
@@ -210,7 +210,7 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    
+
     // 먼저 소프트 삭제
     await prismaClient.posts.update({
       where: {
@@ -239,7 +239,7 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    
+
     // 먼저 소프트 삭제
     await prismaClient.posts.updateMany({
       where: {
@@ -270,7 +270,7 @@ export class PostRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    
+
     // 먼저 소프트 삭제
     await prismaClient.posts.updateMany({
       where: {
@@ -322,7 +322,10 @@ export class PostRepository {
    * @param tx
    * @returns
    */
-  async checkAndHardDeletePosts(postIds: number[], tx?: Prisma.TransactionClient) {
+  async checkAndHardDeletePosts(
+    postIds: number[],
+    tx?: Prisma.TransactionClient,
+  ) {
     const prismaClient = tx ?? this.prisma;
 
     return await prismaClient.posts.deleteMany({

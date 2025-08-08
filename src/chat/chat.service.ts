@@ -3,7 +3,6 @@ import { EventsGateway } from './chat.gateway';
 import { UserService } from 'src/user/user.service';
 import { RedisService } from 'src/redis/redis.service';
 import { FanService } from 'src/fan/fan.service';
-import { FanLevel, User } from '@prisma/client';
 import { ManagerService } from 'src/manager/manager.service';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
@@ -29,9 +28,14 @@ export class ChatService {
     }
 
     // 2. Redis에서 해당 사용자의 시청자 정보 확인 (방송 참여 여부 및 방송 중인지 확인)
-    const viewerInfo = await this.redisService.getViewerInfo(broadcasterId, user.user_id);
+    const viewerInfo = await this.redisService.getViewerInfo(
+      broadcasterId,
+      user.user_id,
+    );
     if (!viewerInfo) {
-      throw new BadRequestException('방송에 참여하지 않았거나 방송이 진행 중이지 않습니다.');
+      throw new BadRequestException(
+        '방송에 참여하지 않았거나 방송이 진행 중이지 않습니다.',
+      );
     }
 
     // 3. Redis에서 가져온 시청자 정보 파싱
@@ -45,7 +49,7 @@ export class ChatService {
 
     // 4. 채팅 메시지 발송
     await this.redisService.publishRoomMessage(
-      `room:${broadcasterId}`, 
+      `room:${broadcasterId}`,
       RedisMessages.chat(
         broadcasterId,
         user.idx,
@@ -56,9 +60,9 @@ export class ChatService {
         parsedViewerInfo.role,
         parsedViewerInfo.fan_level.name,
         parsedViewerInfo.fan_level.color,
-      )
+      ),
     );
-    
+
     return {
       message: '성공적으로 채팅을 전송하였습니다.',
     };

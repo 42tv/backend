@@ -83,7 +83,11 @@ export class FanLevelRepository {
    * @param tx
    * @returns
    */
-  async findByUserIdx(user_idx, orderBy: 'asc' | 'desc' = 'desc', tx?: Prisma.TransactionClient) {
+  async findByUserIdx(
+    user_idx,
+    orderBy: 'asc' | 'desc' = 'desc',
+    tx?: Prisma.TransactionClient,
+  ) {
     const prismaClient = tx || this.prisma;
     return await prismaClient.fanLevel.findMany({
       where: {
@@ -96,8 +100,8 @@ export class FanLevelRepository {
         id: true,
         name: true,
         min_donation: true,
-        color: true
-      }
+        color: true,
+      },
     });
   }
 

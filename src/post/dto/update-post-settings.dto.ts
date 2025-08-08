@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { IsNumber, IsOptional, Min, Max } from 'class-validator';
 
 /**
  * 쪽지 설정 업데이트 요청 DTO

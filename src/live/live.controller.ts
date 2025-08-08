@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Header, Post, Req, UseGuards, Param } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  Post,
+  Req,
+  UseGuards,
+  Param,
+} from '@nestjs/common';
 import { LiveService } from './live.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import {
@@ -164,10 +173,10 @@ export class LiveController {
               user_id: { type: 'string', example: 'registerId123' },
               user_idx: { type: 'number', example: 1 },
               nickname: { type: 'string', example: '시청자닉네임' },
-              role: { 
-                type: 'string', 
+              role: {
+                type: 'string',
                 enum: ['broadcaster', 'manager', 'viewer'],
-                example: 'viewer' 
+                example: 'viewer',
               },
             },
           },
@@ -175,8 +184,14 @@ export class LiveController {
       },
     },
   })
-  async getBroadcasterViewers(@Req() req: any, @Param('broadcasterId') broadcasterId: string) {
-    const viewers = await this.liveService.getBroadcasterViewers(req.user.idx, broadcasterId);
+  async getBroadcasterViewers(
+    @Req() req: any,
+    @Param('broadcasterId') broadcasterId: string,
+  ) {
+    const viewers = await this.liveService.getBroadcasterViewers(
+      req.user.idx,
+      broadcasterId,
+    );
     return {
       code: 200,
       message: 'success',

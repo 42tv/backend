@@ -1,5 +1,5 @@
 export enum ServerOpCode {
-    DUPLICATE_CONNECT = 'duplicate_connect',
+  DUPLICATE_CONNECT = 'duplicate_connect',
 }
 
 export interface ServerMessage {
@@ -9,6 +9,6 @@ export interface ServerMessage {
 }
 
 export interface DuplicateConnectPayload {
-    roomId: string;
-    disconnectId: string;
+  roomId: string;
+  disconnectId: string;
 }
