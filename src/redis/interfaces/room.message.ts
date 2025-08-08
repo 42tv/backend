@@ -11,6 +11,11 @@ export enum OpCode {
   VIEWER_LIST = 'viewer_list',
 }
 
+export enum RoleChangeType {
+  MANAGER_GRANT = 'manager_grant',
+  MANAGER_REVOKE = 'manager_revoke',
+}
+
 export interface JwtDecode {
   idx: number;
   user_id: string;
@@ -87,15 +92,13 @@ export interface UserLeavePayload {
 }
 
 export interface RoleChangePayload {
-  user_id: string;
+  type: RoleChangeType;
   user_idx: number;
+  user_id: string;
   nickname: string;
-  jwt_decode: JwtDecode;
-  changed_by: {
-    idx: number;
-    user_id: string;
-    nickname: string;
-  };
+  from_role: 'manager' | 'member' | 'viewer';
+  to_role: 'manager' | 'member' | 'viewer';
+  to_color: string;
 }
 
 export interface KickPayload {

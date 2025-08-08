@@ -8,6 +8,7 @@ import {
   UserJoinPayload,
   UserLeavePayload,
   RoleChangePayload,
+  RoleChangeType,
   KickPayload,
   BanPayload,
   JwtDecode,
@@ -118,21 +119,25 @@ export const RedisMessages = {
 
   roleChange(
     broadcasterId: string,
-    userId: string,
+    type: RoleChangeType,
     userIdx: number,
+    userId: string,
     nickname: string,
-    jwtDecode: JwtDecode,
-    changedBy: RoleChangePayload['changed_by'],
+    fromRole: 'manager' | 'member' | 'viewer',
+    toRole: 'manager' | 'member' | 'viewer',
+    toColor: string,
   ): ChatRoomMessage {
     return {
       op: OpCode.ROLE_CHANGE,
       broadcaster_id: broadcasterId,
       payload: {
-        user_id: userId,
+        type,
         user_idx: userIdx,
+        user_id: userId,
         nickname,
-        jwt_decode: jwtDecode,
-        changed_by: changedBy,
+        from_role: fromRole,
+        to_role: toRole,
+        to_color: toColor,
       } as RoleChangePayload,
     };
   },

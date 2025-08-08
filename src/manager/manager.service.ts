@@ -10,6 +10,7 @@ import { RemoveManagerDto } from './dto/remove.manager.dto';
 import { ManagerRepository } from './manager.repository';
 import { RedisService } from 'src/redis/redis.service';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
+import { RoleChangeType } from 'src/redis/interfaces/room.message';
 import { FanService } from 'src/fan/fan.service';
 import { getUserRoleColor } from 'src/constants/chat-colors';
 
@@ -113,6 +114,12 @@ export class ManagerService {
       throw new BadRequestException('이미 매니저로 등록된 사용자입니다.');
     }
 
+    // 기존 사용자 역할 확인
+    const currentUserRole = await this.determineUserRole(
+      managerUser.idx,
+      broadcasterIdx,
+    );
+
     // 매니저 관계 생성
     const manager = await this.managerRepository.createManager(
       broadcasterIdx,
@@ -135,22 +142,13 @@ export class ManagerService {
       `room:${broadcaster.user_id}`,
       RedisMessages.roleChange(
         broadcaster.user_id,
-        managerUser.user_id,
+        RoleChangeType.MANAGER_GRANT,
         managerUser.idx,
+        managerUser.user_id,
         managerUser.nickname,
-        {
-          idx: managerUser.idx,
-          user_id: managerUser.user_id,
-          nickname: managerUser.nickname,
-          role: 'manager',
-          profile_img: managerUser.profile_img,
-          is_guest: false,
-        },
-        {
-          idx: broadcaster.idx,
-          user_id: broadcaster.user_id,
-          nickname: broadcaster.nickname,
-        },
+        currentUserRole.role,
+        'manager',
+        getUserRoleColor('manager'),
       ),
     );
 
@@ -216,22 +214,13 @@ export class ManagerService {
       `room:${broadcaster.user_id}`,
       RedisMessages.roleChange(
         broadcaster.user_id,
-        managerUser.user_id,
+        RoleChangeType.MANAGER_REVOKE,
         managerUser.idx,
+        managerUser.user_id,
         managerUser.nickname,
-        {
-          idx: managerUser.idx,
-          user_id: managerUser.user_id,
-          nickname: managerUser.nickname,
-          role: userRole.role,
-          profile_img: managerUser.profile_img,
-          is_guest: false,
-        },
-        {
-          idx: broadcaster.idx,
-          user_id: broadcaster.user_id,
-          nickname: broadcaster.nickname,
-        },
+        'manager',
+        userRole.role,
+        userRole.fanLevel?.color || getUserRoleColor(userRole.role),
       ),
     );
 
