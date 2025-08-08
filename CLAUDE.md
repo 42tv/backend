@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # 42TV Backend Project Guide
 
 ## 프로젝트 개요
@@ -6,7 +10,8 @@
 
 ## 빠른 시작
 - 개발 서버: `npm run start:dev`
-- 테스트: `npm test`
+- 프로덕션 빌드: `npm run build`
+- 프로덕션 실행: `npm run start:prod`
 - 린트: `npm run lint`
 - 타입체크: `npx tsc --noEmit`
 
@@ -17,12 +22,26 @@
 2. 개인정보는 반드시 암호화 (UserDetail 참고)
 3. API 추가 시 Swagger 데코레이터 필수
 
-## 주요 디렉토리 구조
-- `/src/auth` - 인증/인가
-- `/src/user` - 사용자 관리
-- `/src/ivs` - 라이브 스트리밍
-- `/src/chat` - 실시간 채팅
-- `/prisma/schema.prisma` - DB 스키마
+## 핵심 아키텍처
+
+### 실시간 시스템 (WebSocket + Redis)
+- WebSocket 네임스페이스: `/chat`
+- Redis Pub/Sub을 통한 서버 간 실시간 메시지 동기화
+- Redis를 통한 사용자 상태 관리 및 채팅 데이터 캐싱
+- JWT를 통한 WebSocket 연결 인증
+- 채팅 시마다 Redis에서 사용자 등급/정보 조회 (DB 조회 최소화)
+- 서버 ID 기반 분산 처리 (`server_id_counter`)
+
+### 모듈 구조
+- `/src/auth` - JWT 쿠키 인증/인가, MemberGuard/GuestGuard
+- `/src/user` - 사용자 관리, UserDetail (개인정보 암호화)
+- `/src/ivs` - AWS IVS 라이브 스트리밍 채널 관리
+- `/src/chat` - 실시간 채팅 WebSocket Gateway
+- `/src/redis` - 분산 메시징 및 실시간 데이터 동기화
+- `/src/fan` - 팬/팔로우 관계, FanLevel (등급 시스템)
+- `/src/post` - 게시물, 선물 시스템
+- `/src/aws` - S3 파일 업로드, IVS 통합
+- `/prisma/schema.prisma` - PostgreSQL 스키마 (pgcrypto 확장)
 
 ## 인증 방식
 - JWT 쿠키 기반 (httpOnly)
@@ -44,6 +63,18 @@
 - 파일 업로드는 5MB 제한
 
 ## 테스트 작성
-- 유닛 테스트: `*.spec.ts`
-- mockRepository 패턴 사용
+- 유닛 테스트: `*.spec.ts` (src 디렉토리 내)
+- E2E 테스트: `test/` 디렉토리
+- mockRepository 패턴 사용, PrismaService 트랜잭션 롤백
+- 테스트 모듈: `@nestjs/testing`의 `Test.createTestingModule()` 사용
 - 주요 비즈니스 로직 테스트 필수
+
+## 주요 기술 스택
+- **Framework**: NestJS (Node.js)
+- **Database**: PostgreSQL + Prisma ORM (pgcrypto 확장)
+- **Real-time**: Socket.IO + Redis
+- **Authentication**: JWT (httpOnly cookies) + Passport
+- **Cloud Services**: AWS IVS (라이브 스트리밍), AWS S3 (파일 업로드)
+- **Validation**: class-validator, class-transformer
+- **Documentation**: Swagger/OpenAPI
+- **Logging**: Graylog integration
