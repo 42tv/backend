@@ -8,6 +8,7 @@ export enum OpCode {
   USER_LEAVE = 'leave',
   ROLE_CHANGE = 'role_change',
   VIEWER_COUNT = 'viewer_count',
+  VIEWER_LIST = 'viewer_list',
 }
 
 export interface JwtDecode {
@@ -38,7 +39,8 @@ export interface ChatRoomMessage {
     | UserLeavePayload
     | RoleChangePayload
     | KickPayload
-    | BanPayload;
+    | BanPayload
+    | ViewerListPayload;
 }
 
 export interface ChatPayload {
@@ -59,6 +61,10 @@ export interface RecommendPayload {
 
 export interface ViewerCountPayload {
   viewer_count: number;
+}
+
+export interface ViewerListPayload {
+  viewers: ViewerInfo[];
 }
 
 export interface BookmarkPayload {

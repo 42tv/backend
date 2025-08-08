@@ -11,6 +11,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
+import { OpCode } from 'src/redis/interfaces/room.message';
 
 interface AuthenticatedSocket extends Socket {
   jwt: WebsocketJwt;
@@ -152,7 +153,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const viewers = await this.redisService.getViewersList(
         broadcaster.user_id,
       );
-      client.emit('viewer_list', viewers);
+      client.emit(OpCode.VIEWER_LIST, { viewers });
     }
 
     // chatRoom에 사용자 추가
