@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { PostDto } from './dto/create.post.dto';
+import { DeletePostsDto } from './dto/delete-posts.dto';
 import { UpdatePostSettingsDto } from './dto/update-post-settings.dto';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import {
@@ -30,14 +31,17 @@ import {
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
 import {
-  DeleteResponse,
-  GetResponse,
-  PostBlockBadRequestResponse,
-  PostBlockResponse,
-  PostResponse,
-  PostUnBlockResponse,
-  PutResponse,
-} from './swagger.entity/swagger.entity';
+  GetPostsResponseDto,
+  PostCreateResponseDto,
+  PostReadResponseDto,
+  PostDeleteResponseDto,
+  GetBlockedUsersResponseDto,
+  PostBlockResponseDto,
+  PostUnBlockResponseDto,
+  GetPostSettingsResponseDto,
+  UpdatePostSettingsResponseDto,
+  PostErrorResponseDto,
+} from './dto/post-response.dto';
 
 @ApiTags('post')
 @Controller('post')
@@ -61,7 +65,7 @@ export class PostController {
   })
   @ApiCreatedResponse({
     description: '쪽지 리스트',
-    type: GetResponse,
+    type: GetPostsResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -78,7 +82,7 @@ export class PostController {
   @ApiBody({ type: PostDto })
   @ApiCreatedResponse({
     description: '변경 성공',
-    type: PostResponse,
+    type: PostCreateResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
@@ -106,7 +110,7 @@ export class PostController {
   })
   @ApiCreatedResponse({
     description: '읽기 성공',
-    type: PutResponse,
+    type: PostReadResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
@@ -127,23 +131,10 @@ export class PostController {
   @Delete()
   @UseGuards(MemberGuard)
   @ApiOperation({ summary: '쪽지 일괄 삭제' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['postIds'],
-      properties: {
-        postIds: {
-          type: 'array',
-          items: { type: 'string' },
-          description: '삭제할 쪽지 ID 배열',
-          example: ['post1', 'post2', 'post3'],
-        },
-      },
-    },
-  })
+  @ApiBody({ type: DeletePostsDto })
   @ApiCreatedResponse({
     description: '삭제 성공',
-    type: DeleteResponse,
+    type: PostDeleteResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
@@ -154,8 +145,18 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async deletePosts(@Req() req, @Body('postIds') postIds) {
-    await this.postService.deletePosts(req.user.idx, postIds);
+  async deletePosts(@Req() req, @Body() deletePostsDto: DeletePostsDto) {
+    if (deletePostsDto.type === 'sent') {
+      await this.postService.deleteSentPosts(
+        req.user.idx,
+        deletePostsDto.postIds,
+      );
+    } else {
+      await this.postService.deleteReceivedPosts(
+        req.user.idx,
+        deletePostsDto.postIds,
+      );
+    }
     return {
       message: '쪽지를 삭제했습니다.',
     };
@@ -169,9 +170,16 @@ export class PostController {
     type: 'string',
     description: '삭제할 쪽지의 ID',
   })
+  @ApiQuery({
+    name: 'type',
+    required: true,
+    enum: ['sent', 'received'],
+    description: '삭제할 쪽지 타입 (sent: 보낸쪽지, received: 받은쪽지)',
+    example: 'received',
+  })
   @ApiCreatedResponse({
     description: '삭제 성공',
-    type: DeleteResponse,
+    type: PostDeleteResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
@@ -182,8 +190,16 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async deletePost(@Req() req, @Param('postId') postId) {
-    await this.postService.deletePost(req.user.idx, postId);
+  async deletePost(
+    @Req() req,
+    @Param('postId') postId,
+    @Query('type') type: 'sent' | 'received',
+  ) {
+    if (type === 'sent') {
+      await this.postService.deleteSentPost(req.user.idx, postId);
+    } else {
+      await this.postService.deleteReceivedPost(req.user.idx, postId);
+    }
     return {
       message: '쪽지를 삭제했습니다.',
     };
@@ -194,11 +210,11 @@ export class PostController {
   @ApiOperation({ summary: '차단된 유저 리스트 가져오기' })
   @ApiCreatedResponse({
     description: '차단된 유저 리스트',
-    type: GetResponse, // 수정 요망
+    type: GetBlockedUsersResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
-    type: GetResponse, // 수정 요망
+    type: PostErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -219,11 +235,11 @@ export class PostController {
   })
   @ApiCreatedResponse({
     description: '차단 성공',
-    type: PostBlockResponse,
+    type: PostBlockResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
-    type: PostBlockBadRequestResponse,
+    type: PostErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -256,11 +272,11 @@ export class PostController {
   })
   @ApiCreatedResponse({
     description: '차단 해제 성공',
-    type: PostUnBlockResponse,
+    type: PostUnBlockResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
-    type: PostBlockBadRequestResponse,
+    type: PostErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -285,11 +301,11 @@ export class PostController {
   })
   @ApiCreatedResponse({
     description: '차단 해제 성공',
-    type: PostUnBlockResponse,
+    type: PostUnBlockResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
-    type: PostBlockBadRequestResponse,
+    type: PostErrorResponseDto,
   })
   @ApiInternalServerErrorResponse({
     description: '서버 에러',
@@ -311,6 +327,7 @@ export class PostController {
   @ApiOperation({ summary: '쪽지 설정 조회' })
   @ApiCreatedResponse({
     description: '쪽지 설정 조회 성공',
+    type: GetPostSettingsResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
@@ -331,6 +348,7 @@ export class PostController {
   @ApiBody({ type: UpdatePostSettingsDto })
   @ApiCreatedResponse({
     description: '쪽지 설정 업데이트 성공',
+    type: UpdatePostSettingsResponseDto,
   })
   @ApiBadRequestResponse({
     description: '적절한 에러 안내 메세지',
@@ -341,8 +359,14 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async updatePostSettings(@Req() req, @Body() updateData: UpdatePostSettingsDto) {
+  async updatePostSettings(
+    @Req() req,
+    @Body() updateData: UpdatePostSettingsDto,
+  ) {
     console.log(updateData);
-    return await this.postService.updatePostSettings(req.user.idx, updateData.minFanLevel);
+    return await this.postService.updatePostSettings(
+      req.user.idx,
+      updateData.minFanLevel,
+    );
   }
 }

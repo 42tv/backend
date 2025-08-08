@@ -21,7 +21,10 @@ export class FanLevelController {
   @UseGuards(MemberGuard)
   @ApiOperation({ summary: '사용자의 팬 레벨 설정 업데이트' })
   @ApiResponse({ status: 201, description: '팬 레벨 설정 업데이트 성공' })
-  async updateFanLevels(@Req() req, @Body() updateFanLevelDto: UpdateFanLevelDto) {
+  async updateFanLevels(
+    @Req() req,
+    @Body() updateFanLevelDto: UpdateFanLevelDto,
+  ) {
     const { levels } = updateFanLevelDto;
     return await this.fanLevelService.updateFanLevels(req.user.idx, levels);
   }

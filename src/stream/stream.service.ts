@@ -7,15 +7,15 @@ export class StreamService {
   constructor(private readonly streamRepository: StreamRepository) {}
 
   /**
-   * user_idx의 방송중인 스트림 조회
+   * broadcaster_idx의 방송중인 스트림 조회
    */
-  async getStreamByUserIdx(user_idx: number) {
-    return await this.streamRepository.getStreamByUserIdx(user_idx);
+  async getStreamByUserIdx(broadcaster_idx: number) {
+    return await this.streamRepository.getStreamByUserIdx(broadcaster_idx);
   }
 
   /**
-   * 방송시작 콜백시 user_idx의 스트림 생성.
-   * @param user_idx
+   * 방송시작 콜백시 broadcaster_idx의 스트림 생성.
+   * @param broadcaster_idx
    * @param title
    * @param is_adult
    * @param is_private
@@ -26,7 +26,7 @@ export class StreamService {
    * @returns
    */
   async createStream(
-    user_idx: number,
+    broadcaster_idx: number,
     thumbnail_url: string,
     request_id: string,
     stream_id: string,
@@ -35,7 +35,7 @@ export class StreamService {
     tx?: Prisma.TransactionClient,
   ) {
     return await this.streamRepository.createStream(
-      user_idx,
+      broadcaster_idx,
       thumbnail_url,
       request_id,
       stream_id,
@@ -47,7 +47,7 @@ export class StreamService {
 
   /**
    * 스트림 삭제
-   * @param user_idx
+   * @param stream_id
    * @param tx
    * @returns
    */
@@ -77,7 +77,13 @@ export class StreamService {
    * @param broadcaster_idx 방송자의 user_idx
    * @returns 업데이트된 Stream 객체
    */
-  async increasePlayCount(broadcaster_idx: number) {
-    return await this.streamRepository.increasePlayCount(broadcaster_idx);
+  async increasePlayCountByBroadcaster(broadcaster_idx: number) {
+    return await this.streamRepository.increasePlayCountByBroadcaster(
+      broadcaster_idx,
+    );
+  }
+
+  async increasePlayCountByStreamId(stream_id: string) {
+    return await this.streamRepository.increasePlayCountByStreamId(stream_id);
   }
 }

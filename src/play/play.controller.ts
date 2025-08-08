@@ -8,6 +8,13 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { PlayResponse } from './interfaces/response';
+import { PlayStreamDto } from './dto/play-request.dto';
+import {
+  PlayStreamResponseDto,
+  PlayErrorResponseDto,
+  PlayForbiddenResponseDto,
+} from './dto/play-response.dto';
 
 @ApiTags('play')
 @Controller('play')
@@ -18,82 +25,23 @@ export class PlayController {
   @UseGuards(GuestGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '방송 시청 시작' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['stream_id'],
-      properties: {
-        stream_id: {
-          type: 'string',
-          description: '시청할 스트리머의 ID',
-          example: 'streamer123',
-        },
-        password: {
-          type: 'string',
-          description: '비밀번호가 설정된 방송의 경우 필요',
-          example: '1234',
-        },
-      },
-    },
-  })
+  @ApiBody({ type: PlayStreamDto })
   @ApiResponse({
     status: 201,
     description: '방송 시청 정보 조회 성공',
-    schema: {
-      type: 'object',
-      properties: {
-        broadcaster_idx: { type: 'number', example: 1 },
-        broadcaster_id: { type: 'string', example: 'streamer123' },
-        broadcaster_nickname: { type: 'string', example: '스트리머닉네임' },
-        playback_url: { type: 'string', example: 'https://ivs-playback-url' },
-        title: { type: 'string', example: '오늘의 방송' },
-        is_bookmarked: { type: 'boolean', example: false },
-        profile_img: { type: 'string', example: 'https://profile-image-url' },
-        nickname: { type: 'string', example: '스트리머닉네임' },
-        play_cnt: { type: 'number', example: 150 },
-        recommend_cnt: { type: 'number', example: 50 },
-        start_time: { type: 'string', example: '2024-01-15T10:00:00Z' },
-        play_token: { type: 'string', example: 'jwt-play-token' },
-      },
-    },
+    type: PlayStreamResponseDto,
   })
   @ApiResponse({
     status: 400,
     description: '잘못된 요청',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 400 },
-        message: {
-          type: 'string',
-          examples: [
-            '존재하지 않는 스트리머입니다.',
-            '방송중인 스트리머가 아닙니다.',
-            '게스트는 시청할 수 없습니다',
-            '비밀번호가 틀렸습니다',
-            '탈퇴한 유저입니다.',
-          ],
-        },
-        error: { type: 'string', example: 'Bad Request' },
-      },
-    },
+    type: PlayErrorResponseDto,
   })
   @ApiResponse({
     status: 403,
     description: '접근 금지',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 403 },
-        message: {
-          type: 'string',
-          example: '차단된 사용자입니다. 방송을 시청할 수 없습니다.',
-        },
-        error: { type: 'string', example: 'Forbidden' },
-      },
-    },
+    type: PlayForbiddenResponseDto,
   })
-  async play(@Req() req, @Body() body) {
+  async play(@Req() req, @Body() body: PlayStreamDto): Promise<PlayResponse> {
     const isGuest = req.user.is_guest;
     const userIdx = req.user.idx;
     const guestId = req.user.guest_id;

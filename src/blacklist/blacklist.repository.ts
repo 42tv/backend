@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Blacklist } from '@prisma/client';
-import { BlacklistWithBlocked } from './types/blacklist.type';
+import { BlacklistWithBlocked } from './entities/blacklist.entity';
 
 @Injectable()
 export class BlacklistRepository {
@@ -10,7 +10,7 @@ export class BlacklistRepository {
   async create(ownerIdx: number, blockedIdx: number): Promise<Blacklist> {
     return this.prisma.blacklist.create({
       data: {
-        owner_idx: ownerIdx,
+        broadcaster_idx: ownerIdx,
         blocked_idx: blockedIdx,
       },
     });
@@ -22,8 +22,8 @@ export class BlacklistRepository {
   ): Promise<Blacklist | null> {
     return this.prisma.blacklist.findUnique({
       where: {
-        owner_idx_blocked_idx: {
-          owner_idx: ownerIdx,
+        broadcaster_idx_blocked_idx: {
+          broadcaster_idx: ownerIdx,
           blocked_idx: blockedIdx,
         },
       },
@@ -32,7 +32,7 @@ export class BlacklistRepository {
 
   async findAllByOwner(ownerIdx: number): Promise<BlacklistWithBlocked[]> {
     return this.prisma.blacklist.findMany({
-      where: { owner_idx: ownerIdx },
+      where: { broadcaster_idx: ownerIdx },
       include: {
         blocked: {
           select: {
@@ -50,8 +50,8 @@ export class BlacklistRepository {
   async delete(ownerIdx: number, blockedIdx: number): Promise<Blacklist> {
     return this.prisma.blacklist.delete({
       where: {
-        owner_idx_blocked_idx: {
-          owner_idx: ownerIdx,
+        broadcaster_idx_blocked_idx: {
+          broadcaster_idx: ownerIdx,
           blocked_idx: blockedIdx,
         },
       },
@@ -66,7 +66,7 @@ export class BlacklistRepository {
   async deleteMany(ownerIdx: number, blockedIdxs: number[]): Promise<number> {
     const result = await this.prisma.blacklist.deleteMany({
       where: {
-        owner_idx: ownerIdx,
+        broadcaster_idx: ownerIdx,
         blocked_idx: {
           in: blockedIdxs,
         },

@@ -13,15 +13,15 @@ import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
-import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AwsService } from 'src/aws/aws.service';
 import * as sharp from 'sharp';
 import { UserIncludeOptions } from 'src/utils/utils';
 import { BookmarkService } from 'src/bookmark/bookmark.service';
 import { BlacklistService } from 'src/blacklist/blacklist.service';
-import { BlacklistWithBlocked } from 'src/blacklist/types/blacklist.type';
 import { RedisService } from 'src/redis/redis.service';
+import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 @Injectable()
 export class UserService {
@@ -306,9 +306,8 @@ export class UserService {
     // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.getUserWithRelations(user_idx, {
       ivs_channel: true,
-      braodcast_setting: true,
+      broadcast_setting: true,
     });
-    console.log(user);
     const sanitizedUser = {
       idx: user.idx,
       user_id: user.user_id,
@@ -336,7 +335,7 @@ export class UserService {
   ) {
     // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.getUserWithRelations(user_idx, {
-      braodcast_setting: true,
+      broadcast_setting: true,
     });
 
     try {
@@ -479,12 +478,10 @@ export class UserService {
     }
     await this.bookmarkService.addBookmark(user.idx, bookmarkedUser.idx);
 
-    await this.redisService.publishMessage(`room:${bookmarkedUser.user_id}`, {
-      type: 'bookmark',
-      action: 'add',
-      user_idx: user.idx,
-      broadcaster_id: bookmarkedUser.user_id,
-    })
+    await this.redisService.publishRoomMessage(
+      `room:${bookmarkedUser.user_id}`,
+      RedisMessages.bookmark(bookmarkedUser.user_id, 'add', user.idx),
+    );
     return {
       message: '북마크 추가 완료',
     };
@@ -504,12 +501,10 @@ export class UserService {
       throw new NotFoundException('삭제할 유저가 존재하지 않습니다.');
     }
     await this.bookmarkService.removeBookmark(user.idx, deletedUser.idx);
-    await this.redisService.publishMessage(`room:${deletedUser.user_id}`, {
-      type: 'bookmark',
-      action: 'delete',
-      user_idx: user.idx,
-      broadcaster_id: deletedUser.user_id,
-    });
+    await this.redisService.publishRoomMessage(
+      `room:${deletedUser.user_id}`,
+      RedisMessages.bookmark(deletedUser.user_id, 'delete', user.idx),
+    );
     return {
       message: '북마크 삭제 완료',
     };
@@ -544,13 +539,13 @@ export class UserService {
         user_id: blocked.user_id,
         nickname: blocked.nickname,
         profile_img: blocked.profile_img,
-        blocked_at: blacklist.created_at
+        blocked_at: blacklist.created_at,
       };
     });
     console.log(transformedBlacklist);
     return {
       lists: transformedBlacklist,
-      message: '블랙리스트 조회 완료'
+      message: '블랙리스트 조회 완료',
     };
   }
 
@@ -597,11 +592,14 @@ export class UserService {
 
     return this.blacklistService.delete(user_idx, blockedUser.idx);
   }
-  
+
   /**
    * 블랙리스트에서 여러 사용자 제거
    */
-  async removeMultipleFromBlacklist(user_idx: number, blocked_user_ids: string[]) {
+  async removeMultipleFromBlacklist(
+    user_idx: number,
+    blocked_user_ids: string[],
+  ) {
     // 유효한 사용자만 필터링
     const blockedUsers = await Promise.all(
       blocked_user_ids.map(async (id) => {
@@ -610,28 +608,28 @@ export class UserService {
           return null;
         }
         return user;
-      })
+      }),
     );
-    
+
     // null이 아닌 유효한 사용자만 추출
-    const validUsers = blockedUsers.filter(user => user !== null);
-    
+    const validUsers = blockedUsers.filter((user) => user !== null);
+
     if (validUsers.length === 0) {
-       return {
+      return {
         deletedCount: 0,
-        message: '차단 해제할 유저가 없습니다.'
-       }
+        message: '차단 해제할 유저가 없습니다.',
+      };
     }
-    
+
     // 각 사용자의 idx 추출
-    const blockedIdxs = validUsers.map(user => user.idx);
-    
+    const blockedIdxs = validUsers.map((user) => user.idx);
+
     // 일괄 삭제 실행
     const count = await this.blacklistService.deleteMany(user_idx, blockedIdxs);
-    
+
     return {
       deletedCount: count,
-      message: `${count}명의 사용자를 블랙리스트에서 제거했습니다.`
+      message: `${count}명의 사용자를 블랙리스트에서 제거했습니다.`,
     };
   }
 
@@ -642,7 +640,7 @@ export class UserService {
    */
   async getUserProfileByNickname(nickname: string) {
     const user = await this.userRepository.findByUserNickname(nickname);
-    
+
     if (!user) {
       throw new NotFoundException('존재하지 않는 사용자입니다.');
     }

@@ -8,12 +8,12 @@ export class StreamRepository {
 
   /**
    * Stream 생성 함수
-   * @param user_idx
+   * @param broadcaster_idx
    * @param tx
    * @returns
    */
   async createStream(
-    user_idx: number,
+    broadcaster_idx: number,
     thumbnail_url: string,
     request_id: string,
     stream_id: string,
@@ -24,9 +24,9 @@ export class StreamRepository {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.stream.create({
       data: {
-        user: {
+        broadcaster: {
           connect: {
-            idx: user_idx,
+            idx: broadcaster_idx,
           },
         },
         request_id: request_id,
@@ -54,14 +54,14 @@ export class StreamRepository {
   }
 
   /**
-   * User idx로 스트림 조회
-   * @param user_idx
+   * Broadcaster idx로 스트림 조회
+   * @param broadcaster_idx
    * @returns
    */
-  async getStreamByUserIdx(user_idx: number) {
+  async getStreamByUserIdx(broadcaster_idx: number) {
     return await this.prisma.stream.findUnique({
       where: {
-        user_idx: user_idx,
+        broadcaster_idx: broadcaster_idx,
       },
     });
   }
@@ -73,14 +73,14 @@ export class StreamRepository {
   async getLiveList() {
     const streams = await this.prisma.stream.findMany({
       select: {
-        // user_idx: true,
+        // broadcaster_idx: true,
         thumbnail: true,
         // request_id: true,
         // stream_id: true,
         start_time: true,
         play_cnt: true,
         recommend_cnt: true,
-        user: {
+        broadcaster: {
           select: {
             idx: true,
             user_id: true,
@@ -110,7 +110,7 @@ export class StreamRepository {
   async increaseRecommend(broadcaster_idx: number) {
     return await this.prisma.stream.update({
       where: {
-        user_idx: broadcaster_idx,
+        broadcaster_idx: broadcaster_idx,
       },
       data: {
         recommend_cnt: {
@@ -125,10 +125,28 @@ export class StreamRepository {
    * @param broadcaster_idx 방송자의 user_idx
    * @returns 업데이트된 Stream 객체
    */
-  async increasePlayCount(broadcaster_idx: number) {
+  async increasePlayCountByBroadcaster(broadcaster_idx: number) {
     return await this.prisma.stream.update({
       where: {
-        user_idx: broadcaster_idx,
+        broadcaster_idx: broadcaster_idx,
+      },
+      data: {
+        play_cnt: {
+          increment: 1,
+        },
+      },
+    });
+  }
+
+  /**
+   * 스트림 ID로 방송의 재생 수를 1 증가시킴
+   * @param stream_id 스트림 ID
+   * @returns 업데이트된 Stream 객체
+   */
+  async increasePlayCountByStreamId(stream_id: string) {
+    return await this.prisma.stream.update({
+      where: {
+        stream_id: stream_id,
       },
       data: {
         play_cnt: {

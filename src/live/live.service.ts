@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ManagerService } from 'src/manager/manager.service';
 import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 
 @Injectable()
 export class LiveService {
@@ -9,6 +11,7 @@ export class LiveService {
     private readonly streamService: StreamService,
     private readonly redisService: RedisService,
     private readonly userService: UserService,
+    private readonly managerService: ManagerService,
   ) {}
 
   async getLiveList() {
@@ -19,7 +22,7 @@ export class LiveService {
       lives.map(async (live) => {
         // Redis에서 시청자 수 조회
         const viewerCount = await this.redisService.getHashFieldCount(
-          `viewer:${live.user.user_id}`,
+          `viewer:${live.broadcaster.user_id}`,
         );
         // 기존 live 객체에 viewerCount 속성 추가
         return {
@@ -67,12 +70,41 @@ export class LiveService {
     );
     // 추천 수 증가
     await this.streamService.increaseRecommend(broadcaster_idx);
-    await this.redisService.publishMessage(`room:${broadCaster.user_id}`, {
-      type: 'recommend',
-      broadcaster_id: broadCaster.user_id,
-      recommender_idx: recommender_idx,
-      recommender_nickname: recommender.nickname,
-    });
+    await this.redisService.publishRoomMessage(
+      `room:${broadCaster.user_id}`,
+      RedisMessages.recommend(
+        broadCaster.user_id,
+        recommender_idx,
+        recommender.nickname,
+      ),
+    );
     return;
+  }
+
+  /**
+   * 특정 방송자의 시청자 목록을 조회합니다.
+   * @param broadcasterId 방송자의 user_id
+   * @returns 시청자 정보 배열
+   */
+  async getBroadcasterViewers(userIdx: number, broadcasterId: string) {
+    const user = await this.userService.findByUserIdx(userIdx);
+    const broadcaster = await this.userService.findByUserId(broadcasterId);
+    if (!broadcaster) {
+      throw new BadRequestException('존재하지 않는 방송자입니다.');
+    }
+    // 사용자가 방송자의 매니저인지 확인
+    const isManager = await this.managerService.isManager(
+      broadcaster.idx,
+      userIdx,
+    );
+    if (!isManager && user.idx !== broadcaster.idx) {
+      throw new BadRequestException(
+        '해당 방송자의 시청자 목록을 조회할 권한이 없습니다.',
+      );
+    }
+
+    const viewers = await this.redisService.getViewersList(broadcasterId);
+    console.log(viewers);
+    return viewers;
   }
 }

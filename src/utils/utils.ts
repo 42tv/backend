@@ -35,14 +35,17 @@ export function timeFormatter(time: string) {
 export type UserIncludeOptions = {
   user_detail?: boolean;
   channel?: boolean;
-  braodcast_setting?: boolean;
+  broadcast_setting?: boolean;
   ivs_channel?: boolean;
   coin?: boolean;
+  fan_level?: boolean;
 };
 
 /*
  *  ServerCommand를 포함할 수 있는 구조체여야 하지만 현재는 확립 안되었음
  *  그래서 일단 DeleteCommand에 사용사례에 맞추어 정의됨됨
+ *
+ * @deprecated 대신 src/redis/interfaces/redis-message.interface.ts의 ServerCommandMessage를 사용하세요
  */
 export interface ServerCommand {
   command: 'delete';
@@ -51,6 +54,9 @@ export interface ServerCommand {
   user_id: string;
 }
 
+/**
+ * @deprecated 대신 src/redis/interfaces/redis-message.interface.ts의 RoomChatMessage를 사용하세요
+ */
 export interface RoomChatEvent {
   type: 'chat';
   broadcaster_id: string;
@@ -59,21 +65,20 @@ export interface RoomChatEvent {
   chatter_message: string;
 }
 
+/**
+ * @deprecated 대신 src/redis/interfaces/redis-message.interface.ts의 RecommendMessage를 사용하세요
+ */
 export interface RoomRecommendEvent {
   type: 'recommend';
   broadcaster_id: string;
   recommender_nickname: string;
 }
 
+/**
+ * @deprecated 대신 src/redis/interfaces/redis-message.interface.ts의 ViewerCountMessage를 사용하세요
+ */
 export interface RoomUpdateEvent {
   type: 'viewer_count';
   broadcaster_id: string;
   viewer_cnt: number;
-}
-
-export interface BookmarkEvent {
-  type: 'bookmark';
-  action: 'add' | 'delete';
-  user_idx: number;
-  broadcaster_id: string;
 }
