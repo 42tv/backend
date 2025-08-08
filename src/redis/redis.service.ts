@@ -123,7 +123,7 @@ export class RedisService {
         await this.handleUserLeaveMessage(message);
         break;
       case OpCode.ROLE_CHANGE:
-        await this.handleRoleChangeMessage();
+        await this.handleRoleChangeMessage(message);
         break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
@@ -226,30 +226,18 @@ export class RedisService {
    * 역할 변경 메시지 처리
    * @param message 역할 변경 메시지
    */
-  private async handleRoleChangeMessage() {
-    // console.log(
-    //   `[RoleChange] - room: ${message.broadcasterId}, target: ${message.targetNickname}(${message.targetUserId}), ${message.previousRole} -> ${message.newRole}, changed by: ${message.changedByNickname}`,
-    // );
-    // // 역할 변경 메시지를 해당 방의 모든 사용자에게 전송
-    // await this.eventsGateway.sendToRoom(
-    //   message.broadcasterId,
-    //   'role_change',
-    //   {
-    //     target_user_id: payload.user,
-    //     target_user_idx: payload.targetUserIdx,
-    //     target_nickname: payload.targetNickname,
-    //     previous_role: payload.previousRole,
-    //     new_role: payload.newRole,
-    //     changed_by_idx: payload.changedByIdx,
-    //     changed_by_nickname: payload.changedByNickname,
-    //   },
-    // );
-    // // Redis의 viewer 정보도 업데이트
-    // await this.updateViewerRole(
-    //   message.broadcasterId,
-    //   payload.role.user_id,
-    //   payload.role
-    // );
+  private async handleRoleChangeMessage(message: ChatRoomMessage) {
+    console.log(
+      `[RoleChange] message received for room: ${message.broadcaster_id}`,
+    );
+
+    // 역할 변경 메시지를 broadcaster와 manager에게만 전송
+    await this.eventsGateway.sendToSpecificUserTypes(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
+      ['broadcaster', 'manager'],
+    );
   }
 
   /**
@@ -417,18 +405,38 @@ export class RedisService {
    * @param broadcasterId 방송자 ID
    * @param userId 사용자 ID
    * @param newRole 새로운 역할
+   * @param fanLevel 팬 레벨 정보 (있는 경우)
    */
-  // async updateViewerRole(broadcasterId: string, userId: string, newRole: string): Promise<void> {
-  //   const key = `viewer:${broadcasterId}`;
-  //   const viewerData = await this.hget(key, userId);
+  async updateViewerRole(
+    broadcasterId: string,
+    userId: string,
+    newRole: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest',
+    fanLevel?: { name: string; color: string },
+  ): Promise<void> {
+    const key = `viewer:${broadcasterId}`;
+    const viewerData = await this.hget(key, userId);
 
-  //   if (viewerData) {
-  //     const viewer = JSON.parse(viewerData);
-  //     viewer.role = newRole;
-  //     await this.hset(key, userId, JSON.stringify(viewer));
-  //     console.log(`[Update Viewer Role] ${userId} role changed to ${newRole} in ${broadcasterId}`);
-  //   }
-  // }
+    if (viewerData) {
+      const viewer = JSON.parse(viewerData);
+      viewer.role = newRole;
+
+      // fanLevel이 제공되면 업데이트, 없으면 기존 값 유지하되 role이 변경되면 적절히 조정
+      if (fanLevel) {
+        viewer.fan_level = fanLevel;
+      } else if (newRole !== 'manager') {
+        // manager가 아닌 경우 기본 색상으로 변경
+        viewer.fan_level = {
+          name: 'viewer',
+          color: getUserRoleColor('viewer'),
+        };
+      }
+
+      await this.hset(key, userId, JSON.stringify(viewer));
+      console.log(
+        `[Update Viewer Role] ${userId} role changed to ${newRole} in ${broadcasterId}`,
+      );
+    }
+  }
 
   /**
    * 방송 종료시 viewer 해시 키 전체 삭제

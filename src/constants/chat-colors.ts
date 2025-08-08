@@ -5,6 +5,7 @@ export const USER_ROLE_COLORS = {
   broadcaster: '#e0b21aff', // 빨간색 계열
   manager: '#24f109ff', // 청록색 계열
   guest: '#6B7280', // 회색 계열
+  viewer: '#6B7280', // guest와 같은 회색 계열
 } as const;
 
 /**
