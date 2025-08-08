@@ -49,6 +49,8 @@ export namespace RedisMessages {
     userId: string,
     nickname: string,
     message: string,
+    profile_img: string,
+    role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest',
     grade: string,
     color: string,
   ): ChatRoomMessage {
@@ -60,6 +62,8 @@ export namespace RedisMessages {
         user_id: userId,
         nickname,
         message,
+        profile_img,
+        role,
         grade,
         color,
       } as ChatPayload,

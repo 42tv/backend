@@ -38,6 +38,7 @@ export class ChatService {
     let parsedViewerInfo;
     try {
       parsedViewerInfo = JSON.parse(viewerInfo);
+      console.log('Parsed Viewer Info:', parsedViewerInfo);
     } catch (error) {
       throw new BadRequestException('시청자 정보를 불러올 수 없습니다.');
     }
@@ -51,6 +52,8 @@ export class ChatService {
         user.user_id,
         user.nickname,
         message,
+        user.profile_img,
+        parsedViewerInfo.role,
         parsedViewerInfo.fan_level.name,
         parsedViewerInfo.fan_level.color,
       )

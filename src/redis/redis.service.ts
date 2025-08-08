@@ -147,6 +147,8 @@ export class RedisService {
         user_id: chatPayload.user_id,
         nickname: chatPayload.nickname,
         message: chatPayload.message,
+        profile_img: chatPayload.profile_img,
+        role: chatPayload.role,
         grade: chatPayload.grade,
         color: chatPayload.color,
       }

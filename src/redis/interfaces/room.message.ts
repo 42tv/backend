@@ -37,6 +37,7 @@ export interface ChatPayload {
   user_id: string;
   nickname: string;
   message: string;
+  profile_img: string;
   role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
   grade: string;
   color: string;
