@@ -6,10 +6,10 @@ import { IsString, IsNotEmpty } from 'class-validator';
  * 클라이언트에서 서버로 전송되는 토큰 갱신 요청 데이터
  */
 export class RefreshDto {
-  @ApiProperty({ 
-    description: 'JWT 리프레시 토큰', 
+  @ApiProperty({
+    description: 'JWT 리프레시 토큰',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-    required: true 
+    required: true,
   })
   @IsString()
   @IsNotEmpty()
@@ -23,8 +23,7 @@ export class RefreshDto {
 export class RefreshResponseDto {
   @ApiProperty({
     description: '새로 발급된 JWT 액세스 토큰',
-    example:
-      'something jwt',
+    example: 'something jwt',
   })
   access_token: string;
 }

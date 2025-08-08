@@ -3,8 +3,18 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
 import { Redis } from 'ioredis';
 import { RedisMessages } from './interfaces/message-namespace';
-import { ChatPayload, ChatRoomMessage, OpCode, RoleChangePayload, UserJoinPayload, UserLeavePayload, ViewerCountPayload, ViewerInfo } from './interfaces/room.message';
-import { ServerMessage, ServerOpCode, DuplicateConnectPayload } from './interfaces/server.message';
+import {
+  ChatPayload,
+  ChatRoomMessage,
+  OpCode,
+  UserJoinPayload,
+  ViewerInfo,
+} from './interfaces/room.message';
+import {
+  ServerMessage,
+  ServerOpCode,
+  DuplicateConnectPayload,
+} from './interfaces/server.message';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { getUserRoleColor } from 'src/constants/chat-colors';
 
@@ -78,9 +88,12 @@ export class RedisService {
   private async handleDuplicateConnectMessage(message: ServerMessage) {
     const payload = message.payload as DuplicateConnectPayload;
     console.log(`[Duplicate Connect] received:`, payload);
-    
+
     // EventsGateway를 통해 기존 연결을 끊는다
-    await this.eventsGateway.handleDuplicateDisconnect(payload.roomId, payload.disconnectId);
+    await this.eventsGateway.handleDuplicateDisconnect(
+      payload.roomId,
+      payload.disconnectId,
+    );
   }
 
   /**
@@ -110,7 +123,7 @@ export class RedisService {
         await this.handleUserLeaveMessage(message);
         break;
       case OpCode.ROLE_CHANGE:
-        await this.handleRoleChangeMessage(message);
+        await this.handleRoleChangeMessage();
         break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
@@ -122,14 +135,12 @@ export class RedisService {
    * @param message 시청자 수 업데이트 메시지
    */
   private async handleViewerCountMessage(message: ChatRoomMessage) {
-    const payload = message.payload as ViewerCountPayload;
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,
-      message.payload 
+      message.payload,
     );
   }
-
 
   /**
    * 채팅 메시지 처리
@@ -138,21 +149,17 @@ export class RedisService {
    */
   private async handleChatMessage(message: ChatRoomMessage) {
     const chatPayload = message.payload as ChatPayload;
-    await this.eventsGateway.sendToRoom(
-      message.broadcaster_id,
-      message.op,
-      {
-        type: OpCode.CHAT,
-        user_idx: chatPayload.user_idx,
-        user_id: chatPayload.user_id,
-        nickname: chatPayload.nickname,
-        message: chatPayload.message,
-        profile_img: chatPayload.profile_img,
-        role: chatPayload.role,
-        grade: chatPayload.grade,
-        color: chatPayload.color,
-      }
-    );
+    await this.eventsGateway.sendToRoom(message.broadcaster_id, message.op, {
+      type: OpCode.CHAT,
+      user_idx: chatPayload.user_idx,
+      user_id: chatPayload.user_id,
+      nickname: chatPayload.nickname,
+      message: chatPayload.message,
+      profile_img: chatPayload.profile_img,
+      role: chatPayload.role,
+      grade: chatPayload.grade,
+      color: chatPayload.color,
+    });
   }
 
   /**
@@ -164,7 +171,7 @@ export class RedisService {
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,
-      message.payload
+      message.payload,
     );
   }
 
@@ -177,7 +184,7 @@ export class RedisService {
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,
-      message.payload
+      message.payload,
     );
   }
 
@@ -195,7 +202,7 @@ export class RedisService {
         user_idx: payload.user_idx,
         user_id: payload.user_id,
         nickname: payload.nickname,
-        role: payload.jwt_decode
+        role: payload.jwt_decode,
       },
       ['manager', 'broadcaster'],
     );
@@ -207,7 +214,6 @@ export class RedisService {
    */
   private async handleUserLeaveMessage(message: ChatRoomMessage) {
     // 입장/퇴장 메시지를 관리자 및 방송자에게만 전송
-    const payload = message.payload as UserLeavePayload;
     await this.eventsGateway.sendToSpecificUserTypes(
       message.broadcaster_id,
       message.op,
@@ -220,12 +226,10 @@ export class RedisService {
    * 역할 변경 메시지 처리
    * @param message 역할 변경 메시지
    */
-  private async handleRoleChangeMessage(message: ChatRoomMessage) {
-    const payload = message.payload as RoleChangePayload;
+  private async handleRoleChangeMessage() {
     // console.log(
     //   `[RoleChange] - room: ${message.broadcasterId}, target: ${message.targetNickname}(${message.targetUserId}), ${message.previousRole} -> ${message.newRole}, changed by: ${message.changedByNickname}`,
     // );
-
     // // 역할 변경 메시지를 해당 방의 모든 사용자에게 전송
     // await this.eventsGateway.sendToRoom(
     //   message.broadcasterId,
@@ -240,7 +244,6 @@ export class RedisService {
     //     changed_by_nickname: payload.changedByNickname,
     //   },
     // );
-
     // // Redis의 viewer 정보도 업데이트
     // await this.updateViewerRole(
     //   message.broadcasterId,
@@ -282,7 +285,10 @@ export class RedisService {
    * @param channel 발행할 채널
    * @param message 발행할 메시지
    */
-  async publishRoomMessage(channel: string, message: ChatRoomMessage | ServerMessage): Promise<void> {
+  async publishRoomMessage(
+    channel: string,
+    message: ChatRoomMessage | ServerMessage,
+  ): Promise<void> {
     try {
       await this.redis.publish(channel, JSON.stringify(message));
     } catch (error) {
@@ -352,26 +358,33 @@ export class RedisService {
   async registViewer(
     broadcasterId: string,
     userId: string,
-    jwt: WebsocketJwt
+    jwt: WebsocketJwt,
   ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
 
     // fan_level이 있으면 사용하고, 없으면 역할에 따른 기본 색상 사용
-    const fanLevel = (jwt.user.fan_level && !jwt.user.is_guest) ? {
-      name: jwt.user.fan_level.name,
-      color: jwt.user.fan_level.color,
-    } : {
-      name: jwt.user.role,
-      color: getUserRoleColor(jwt.user.role),
-    };
+    const fanLevel =
+      jwt.user.fan_level && !jwt.user.is_guest
+        ? {
+            name: jwt.user.fan_level.name,
+            color: jwt.user.fan_level.color,
+          }
+        : {
+            name: jwt.user.role,
+            color: getUserRoleColor(jwt.user.role),
+          };
 
-    await this.hset(key, userId, JSON.stringify({
-      user_id: userId,
-      user_idx: jwt.user.idx,
-      nickname: jwt.user.nickname,
-      role: jwt.user.role,
-      fan_level: fanLevel
-    }));
+    await this.hset(
+      key,
+      userId,
+      JSON.stringify({
+        user_id: userId,
+        user_idx: jwt.user.idx,
+        nickname: jwt.user.nickname,
+        role: jwt.user.role,
+        fan_level: fanLevel,
+      }),
+    );
   }
 
   /**
@@ -391,7 +404,10 @@ export class RedisService {
    * @param userId 시청자 ID
    * @returns 시청자 정보 JSON 문자열 또는 null
    */
-  async getViewerInfo(broadcasterId: string, userId: string): Promise<string | null> {
+  async getViewerInfo(
+    broadcasterId: string,
+    userId: string,
+  ): Promise<string | null> {
     const key = `viewer:${broadcasterId}`;
     return await this.hget(key, userId);
   }
@@ -405,7 +421,7 @@ export class RedisService {
   // async updateViewerRole(broadcasterId: string, userId: string, newRole: string): Promise<void> {
   //   const key = `viewer:${broadcasterId}`;
   //   const viewerData = await this.hget(key, userId);
-    
+
   //   if (viewerData) {
   //     const viewer = JSON.parse(viewerData);
   //     viewer.role = newRole;
@@ -478,21 +494,21 @@ export class RedisService {
    * @param ttl 만료 시간(초), 옵션
    * @returns 작업 성공 여부 (OK)
    */
-  private async set(key: string, value: string, ttl?: number): Promise<string> {
-    if (ttl) {
-      return await this.redis.set(key, value, 'EX', ttl);
-    }
-    return await this.redis.set(key, value);
-  }
+  // private async set(key: string, value: string, ttl?: number): Promise<string> {
+  //   if (ttl) {
+  //     return await this.redis.set(key, value, 'EX', ttl);
+  //   }
+  //   return await this.redis.set(key, value);
+  // }
 
   /**
    * Redis에서 키에 해당하는 값을 가져옵니다.
    * @param key 조회할 키
    * @returns 저장된 값 또는 null (키가 존재하지 않는 경우)
    */
-  private async get(key: string): Promise<string | null> {
-    return await this.redis.get(key);
-  }
+  // private async get(key: string): Promise<string | null> {
+  //   return await this.redis.get(key);
+  // }
 
   /**
    * Redis에서 키의 존재 여부를 확인합니다.

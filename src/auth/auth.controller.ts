@@ -41,13 +41,13 @@ export class AuthController {
    * @returns access_token에 jwt를 담아서 반납(idx, user_id, nickname 정보를 담음)
    */
   @Post('login')
-  @ApiOperation({ 
-    summary: '사용자 로그인', 
-    description: '사용자 ID와 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.' 
+  @ApiOperation({
+    summary: '사용자 로그인',
+    description: '사용자 ID와 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.',
   })
-  @ApiBody({ 
-    description: '로그인 요청 데이터 (Swagger용)', 
-    type: LoginDto 
+  @ApiBody({
+    description: '로그인 요청 데이터 (Swagger용)',
+    type: LoginDto,
   })
   @ApiResponse({
     status: 201,
@@ -68,14 +68,14 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @ApiOperation({ 
-    summary: '토큰 갱신', 
-    description: '리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.' 
+  @ApiOperation({
+    summary: '토큰 갱신',
+    description: '리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.',
   })
   @ApiBearerAuth()
-  @ApiBody({ 
-    description: '토큰 갱신 요청 데이터 (Swagger용)', 
-    type: RefreshDto 
+  @ApiBody({
+    description: '토큰 갱신 요청 데이터 (Swagger용)',
+    type: RefreshDto,
   })
   @ApiResponse({
     status: 201,
@@ -121,9 +121,9 @@ export class AuthController {
    * @returns 로그아웃 성공 메시지
    */
   @Post('logout')
-  @ApiOperation({ 
-    summary: '사용자 로그아웃', 
-    description: '사용자를 로그아웃하고 인증 쿠키를 삭제합니다.' 
+  @ApiOperation({
+    summary: '사용자 로그아웃',
+    description: '사용자를 로그아웃하고 인증 쿠키를 삭제합니다.',
   })
   @ApiResponse({
     status: 201,
@@ -144,9 +144,10 @@ export class AuthController {
    * @returns 로그인 정보 또는 게스트 정보 반환
    */
   @Get('login_info')
-  @ApiOperation({ 
-    summary: '로그인 정보 조회', 
-    description: '현재 사용자의 로그인 정보를 조회하거나 게스트 토큰을 발급합니다.' 
+  @ApiOperation({
+    summary: '로그인 정보 조회',
+    description:
+      '현재 사용자의 로그인 정보를 조회하거나 게스트 토큰을 발급합니다.',
   })
   @ApiResponse({
     status: HttpStatus.OK,

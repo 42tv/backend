@@ -71,12 +71,12 @@ export class LiveService {
     // 추천 수 증가
     await this.streamService.increaseRecommend(broadcaster_idx);
     await this.redisService.publishRoomMessage(
-      `room:${broadCaster.user_id}`, 
+      `room:${broadCaster.user_id}`,
       RedisMessages.recommend(
         broadCaster.user_id,
         recommender_idx,
-        recommender.nickname
-      )
+        recommender.nickname,
+      ),
     );
     return;
   }
@@ -93,9 +93,14 @@ export class LiveService {
       throw new BadRequestException('존재하지 않는 방송자입니다.');
     }
     // 사용자가 방송자의 매니저인지 확인
-    const isManager = await this.managerService.isManager(broadcaster.idx, userIdx);
+    const isManager = await this.managerService.isManager(
+      broadcaster.idx,
+      userIdx,
+    );
     if (!isManager && user.idx !== broadcaster.idx) {
-      throw new BadRequestException('해당 방송자의 시청자 목록을 조회할 권한이 없습니다.');
+      throw new BadRequestException(
+        '해당 방송자의 시청자 목록을 조회할 권한이 없습니다.',
+      );
     }
 
     const viewers = await this.redisService.getViewersList(broadcasterId);

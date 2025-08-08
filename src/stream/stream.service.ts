@@ -78,7 +78,9 @@ export class StreamService {
    * @returns 업데이트된 Stream 객체
    */
   async increasePlayCountByBroadcaster(broadcaster_idx: number) {
-    return await this.streamRepository.increasePlayCountByBroadcaster(broadcaster_idx);
+    return await this.streamRepository.increasePlayCountByBroadcaster(
+      broadcaster_idx,
+    );
   }
 
   async increasePlayCountByStreamId(stream_id: string) {

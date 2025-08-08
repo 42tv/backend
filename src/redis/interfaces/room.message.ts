@@ -26,10 +26,19 @@ export interface JwtDecode {
 }
 
 // Redis 메시지의 기본 인터페이스
-export interface ChatRoomMessage{
+export interface ChatRoomMessage {
   op: OpCode;
   broadcaster_id: string;
-  payload: ChatPayload | RecommendPayload | ViewerCountPayload | BookmarkPayload | UserJoinPayload | UserLeavePayload | RoleChangePayload | KickPayload | BanPayload;
+  payload:
+    | ChatPayload
+    | RecommendPayload
+    | ViewerCountPayload
+    | BookmarkPayload
+    | UserJoinPayload
+    | UserLeavePayload
+    | RoleChangePayload
+    | KickPayload
+    | BanPayload;
 }
 
 export interface ChatPayload {
@@ -80,7 +89,7 @@ export interface RoleChangePayload {
     idx: number;
     user_id: string;
     nickname: string;
-  }
+  };
 }
 
 export interface KickPayload {
@@ -120,5 +129,3 @@ export interface ViewerInfo {
 //   room_id: string;
 //   user_id: string;
 // }
-
-

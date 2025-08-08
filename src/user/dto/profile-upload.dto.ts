@@ -6,11 +6,11 @@ import { ApiProperty } from '@nestjs/swagger';
  * AWS S3로 파일이 업로드됩니다.
  */
 export class ProfileImageUploadDto {
-  @ApiProperty({ 
-    description: '프로필 이미지 파일 (5MB 이하, AWS S3에 저장)', 
+  @ApiProperty({
+    description: '프로필 이미지 파일 (5MB 이하, AWS S3에 저장)',
     type: 'string',
     format: 'binary',
-    required: true 
+    required: true,
   })
   image: any;
 }

@@ -1,5 +1,3 @@
-import { User } from '@prisma/client';
-
 export interface BlacklistWithBlocked {
   id: number;
   broadcaster_idx: number;

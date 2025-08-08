@@ -1,7 +1,12 @@
 import { Controller, Get, Request, Res } from '@nestjs/common';
 
 import { OauthService } from './oauth.service';
-import { ApiOperation, ApiTags, ApiResponse, ApiBadRequestResponse } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiTags,
+  ApiResponse,
+  ApiBadRequestResponse,
+} from '@nestjs/swagger';
 import {
   OAuthRedirectResponseDto,
   OAuthCallbackResponseDto,

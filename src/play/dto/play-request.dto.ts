@@ -7,7 +7,7 @@ import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
 export class PlayStreamDto {
   @ApiProperty({
     description: '시청할 스트리머의 ID',
-    example: 'streamer123'
+    example: 'streamer123',
   })
   @IsString()
   @IsNotEmpty()
@@ -16,7 +16,7 @@ export class PlayStreamDto {
   @ApiProperty({
     description: '비밀번호가 설정된 방송의 경우 필요',
     example: '1234',
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()

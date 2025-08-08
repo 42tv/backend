@@ -133,10 +133,7 @@ export class FanRepository {
    * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 방송인 목록
    */
-  async findBroadcastersByFan(
-    fan_idx: number,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findBroadcastersByFan(fan_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.fan.findMany({
       where: {

@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { AddManagerDto } from './dto/add.manager.dto';
 import { RemoveManagerDto } from './dto/remove.manager.dto';
 import { ManagerRepository } from './manager.repository';
@@ -20,7 +26,10 @@ export class ManagerService {
    * @returns 매니저 관계 정보 또는 null
    */
   async isManager(managerIdx: number, broadcasterIdx: number) {
-    const manager = await this.managerRepository.findManager(managerIdx, broadcasterIdx);
+    const manager = await this.managerRepository.findManager(
+      managerIdx,
+      broadcasterIdx,
+    );
     return manager ? true : false;
   }
 
@@ -32,11 +41,16 @@ export class ManagerService {
    */
   async addManager(broadcasterIdx: number, addManagerDto: AddManagerDto) {
     // 매니저로 추가할 사용자가 존재하는지 확인
-    const broadcaster = await this.managerRepository.findUserByIdx(broadcasterIdx);
-    const managerUser = await this.managerRepository.findUserByUserId(addManagerDto.userId);
+    const broadcaster =
+      await this.managerRepository.findUserByIdx(broadcasterIdx);
+    const managerUser = await this.managerRepository.findUserByUserId(
+      addManagerDto.userId,
+    );
 
     if (!managerUser) {
-      throw new NotFoundException('해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.');
+      throw new NotFoundException(
+        '해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.',
+      );
     }
 
     // 자기 자신을 매니저로 추가하려는 경우 방지
@@ -80,14 +94,14 @@ export class ManagerService {
           idx: broadcaster.idx,
           user_id: broadcaster.user_id,
           nickname: broadcaster.nickname,
-        }
-      )
+        },
+      ),
     );
 
     return {
       success: true,
       message: '매니저가 성공적으로 추가되었습니다.',
-      data: manager
+      data: manager,
     };
   }
 
@@ -97,13 +111,21 @@ export class ManagerService {
    * @param removeManagerDto 제거할 매니저 정보
    * @returns 제거 결과
    */
-  async removeManager(broadcasterIdx: number, removeManagerDto: RemoveManagerDto) {
+  async removeManager(
+    broadcasterIdx: number,
+    removeManagerDto: RemoveManagerDto,
+  ) {
     // 제거할 매니저 사용자가 존재하는지 확인
-    const broadcaster = await this.managerRepository.findUserByIdx(broadcasterIdx);
-    const managerUser = await this.managerRepository.findUserByUserId(removeManagerDto.userId);
+    const broadcaster =
+      await this.managerRepository.findUserByIdx(broadcasterIdx);
+    const managerUser = await this.managerRepository.findUserByUserId(
+      removeManagerDto.userId,
+    );
 
     if (!managerUser) {
-      throw new NotFoundException('해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.');
+      throw new NotFoundException(
+        '해당 사용자 ID를 가진 사용자를 찾을 수 없습니다.',
+      );
     }
 
     // 매니저 관계가 존재하는지 확인
@@ -140,13 +162,13 @@ export class ManagerService {
           idx: broadcaster.idx,
           user_id: broadcaster.user_id,
           nickname: broadcaster.nickname,
-        }
-      )
+        },
+      ),
     );
 
     return {
       success: true,
-      message: '매니저가 성공적으로 제거되었습니다.'
+      message: '매니저가 성공적으로 제거되었습니다.',
     };
   }
 }

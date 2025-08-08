@@ -7,11 +7,7 @@ import { ManagerRepository } from './manager.repository';
 import { ChattingRedisModule } from 'src/redis/redis.module';
 
 @Module({
-  imports: [
-    PrismaModule, 
-    AuthModule,
-    forwardRef(() => ChattingRedisModule),
-  ],
+  imports: [PrismaModule, AuthModule, forwardRef(() => ChattingRedisModule)],
   providers: [ManagerService, ManagerRepository],
   exports: [ManagerService],
   controllers: [ManagerController],

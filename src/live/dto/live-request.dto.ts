@@ -7,7 +7,7 @@ import { IsNotEmpty, IsNumber } from 'class-validator';
 export class RecommendLiveStreamDto {
   @ApiProperty({
     description: '추천할 방송자의 user_idx',
-    example: 5
+    example: 5,
   })
   @IsNumber()
   @IsNotEmpty()

@@ -1,11 +1,14 @@
-import { BadRequestException, Injectable, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PostRepository } from './post.repository';
 import { PostDto } from './dto/create.post.dto';
 import { UserService } from 'src/user/user.service';
 import { FanService } from 'src/fan/fan.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
-import { min } from 'class-validator';
 
 @Injectable()
 export class PostService {
@@ -60,7 +63,9 @@ export class PostService {
     });
 
     if (!postSettings) {
-      throw new BadRequestException('받는 사람의 쪽지 설정을 찾을 수 없습니다.');
+      throw new BadRequestException(
+        '받는 사람의 쪽지 설정을 찾을 수 없습니다.',
+      );
     }
 
     // 쪽지 설정이 있고 팬 전용 설정이 켜져 있는 경우
@@ -68,14 +73,18 @@ export class PostService {
       // 팬인지 확인
       const fan = await this.fanService.findFan(sender_idx, receiver.idx);
       if (!fan) {
-        throw new ForbiddenException(`${receiver.nickname}님의 쪽지 수신은 "${postSettings.minFanLevel.name}" 레벨 이상이어야 합니다`);
+        throw new ForbiddenException(
+          `${receiver.nickname}님의 쪽지 수신은 "${postSettings.minFanLevel.name}" 레벨 이상이어야 합니다`,
+        );
       }
 
       // 최소 팬레벨이 설정되어 있는 경우
       if (postSettings.min_fan_level_id && postSettings.minFanLevel) {
         // 팬 레벨 확인
         if (fan.total_donation < postSettings.minFanLevel.min_donation) {
-          throw new ForbiddenException(`쪽지를 보내기 위해서는 최소 "${postSettings.minFanLevel.name}" 레벨 이상이어야 합니다.`);
+          throw new ForbiddenException(
+            `쪽지를 보내기 위해서는 최소 "${postSettings.minFanLevel.name}" 레벨 이상이어야 합니다.`,
+          );
         }
       }
     }
@@ -122,9 +131,7 @@ export class PostService {
     const result = [];
     for (const post of posts) {
       const sender = await this.userService.findByUserIdx(post.sender_idx);
-      const recipient = await this.userService.findByUserIdx(
-        post.receiver_idx,
-      );
+      const recipient = await this.userService.findByUserIdx(post.receiver_idx);
       result.push({
         id: post.id,
         message: post.content,
@@ -172,7 +179,11 @@ export class PostService {
   async deleteReceivedPost(recipient_idx: number, postId: string) {
     try {
       await this.prismaService.$transaction(async (tx) => {
-        await this.postRepository.deleteReceivedPost(recipient_idx, Number(postId), tx);
+        await this.postRepository.deleteReceivedPost(
+          recipient_idx,
+          Number(postId),
+          tx,
+        );
       });
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
@@ -189,7 +200,11 @@ export class PostService {
   async deleteSentPost(sender_idx: number, postId: string) {
     try {
       await this.prismaService.$transaction(async (tx) => {
-        await this.postRepository.deleteSentPost(sender_idx, Number(postId), tx);
+        await this.postRepository.deleteSentPost(
+          sender_idx,
+          Number(postId),
+          tx,
+        );
       });
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
@@ -206,7 +221,11 @@ export class PostService {
   async deleteReceivedPosts(recipient_idx: number, postIds: number[]) {
     try {
       await this.prismaService.$transaction(async (tx) => {
-        await this.postRepository.deleteReceivedPosts(recipient_idx, postIds, tx);
+        await this.postRepository.deleteReceivedPosts(
+          recipient_idx,
+          postIds,
+          tx,
+        );
       });
     } catch (e) {
       throw new BadRequestException('유효하지 않은 요청입니다');
@@ -321,11 +340,13 @@ export class PostService {
 
     // minFanLevel이 팬레벨 배열에서 몇 번째로 높은 레벨인지 계산
     let minFanLevelRank = null;
-    console.log(postSettings.minFanLevel)
+    console.log(postSettings.minFanLevel);
     if (postSettings.minFanLevel) {
       // fanLevels는 min_donation 오름차순으로 정렬되어 있으므로
       // 배열에서 해당 레벨의 인덱스를 찾아서 순위를 계산
-      const levelIndex = fanLevels.findIndex(level => level.id === postSettings.minFanLevel.id);
+      const levelIndex = fanLevels.findIndex(
+        (level) => level.id === postSettings.minFanLevel.id,
+      );
       if (levelIndex != -1) {
         minFanLevelRank = levelIndex + 1;
       }
@@ -344,7 +365,7 @@ export class PostService {
    * @param updateData 업데이트할 데이터
    * @returns
    */
-  async updatePostSettings(user_idx: number, min_fan_level_rank?: number ) {
+  async updatePostSettings(user_idx: number, min_fan_level_rank?: number) {
     let min_fan_level_id: number | null = null;
 
     // 팬레벨 순위가 제공된 경우, 해당 순위의 팬레벨을 찾아 ID 설정
@@ -357,7 +378,9 @@ export class PostService {
 
       // 순위가 1~5 범위를 벗어나거나 존재하지 않는 경우
       if (min_fan_level_rank < 1 || min_fan_level_rank > fanLevels.length) {
-        throw new BadRequestException(`유효하지 않은 팬레벨 순위입니다. 1~${fanLevels.length} 범위 내에서 선택해주세요.`);
+        throw new BadRequestException(
+          `유효하지 않은 팬레벨 순위입니다. 1~${fanLevels.length} 범위 내에서 선택해주세요.`,
+        );
       }
 
       // 순위는 1부터 시작하므로 배열 인덱스로 변환 (1 -> 0, 2 -> 1, ...)
@@ -367,7 +390,7 @@ export class PostService {
       where: { user_idx },
       data: {
         min_fan_level_id: min_fan_level_id,
-      }
+      },
     });
 
     return {

@@ -14,8 +14,6 @@ import { PlayResponse } from './interfaces/response';
 import { WebsocketJwt } from './interfaces/websocket';
 import { FanService } from 'src/fan/fan.service';
 
-
-
 @Injectable()
 export class PlayService {
   constructor(
@@ -34,43 +32,78 @@ export class PlayService {
     isGuest: boolean,
     guestId: string,
     password: string,
-  ) : Promise<PlayResponse> {
+  ): Promise<PlayResponse> {
     // 기본 데이터 조회
-    const { broadcaster, stream, bookmarkCount } = await this.getBasicPlayData(streamerId);
+    const { broadcaster, stream, bookmarkCount } =
+      await this.getBasicPlayData(streamerId);
     if (isGuest) {
       return this.handleGuestPlay(broadcaster, stream, bookmarkCount, guestId);
     }
-    
+
     const user = await this.userService.findByUserIdx(userIdx);
-    const bookmark = await this.userService.getBookmarkByStreamerIdx(userIdx, broadcaster.idx);
-    
+    const bookmark = await this.userService.getBookmarkByStreamerIdx(
+      userIdx,
+      broadcaster.idx,
+    );
+
     // 블랙리스트 체크 (본인이 아닌 경우에만)
     if (user.idx !== broadcaster.idx) {
       await this.validateGuestAccess(broadcaster);
       await this.checkBlacklist(broadcaster.idx, user.idx);
     }
-    
+
     if (user.idx === broadcaster.idx) {
-      return this.handleUserPlay(broadcaster, stream, bookmarkCount, bookmark, user, 'broadcaster');
+      return this.handleUserPlay(
+        broadcaster,
+        stream,
+        bookmarkCount,
+        bookmark,
+        user,
+        'broadcaster',
+      );
     }
-    
+
     // Manager 여부 확인
-    const isManager = await this.managerService.isManager(user.idx, broadcaster.idx)
+    const isManager = await this.managerService.isManager(
+      user.idx,
+      broadcaster.idx,
+    );
     if (isManager) {
-      return this.handleUserPlay(broadcaster, stream, bookmarkCount, bookmark, user, 'manager');
+      return this.handleUserPlay(
+        broadcaster,
+        stream,
+        bookmarkCount,
+        bookmark,
+        user,
+        'manager',
+      );
     }
-    
+
     // Member 여부 확인 (특정 조건을 만족하는 일반 회원)
     const fan = await this.fanService.findFan(userIdx, broadcaster.idx);
     if (fan) {
       // Member는 일부 제한 사항을 우회할 수 있음
       await this.validateMemberAccess(broadcaster, password);
-      return this.handleUserPlay(broadcaster, stream, bookmarkCount, bookmark, user, 'member');
+      return this.handleUserPlay(
+        broadcaster,
+        stream,
+        bookmarkCount,
+        bookmark,
+        user,
+        'member',
+      );
     }
-    
+
     // 일반 Viewer - 모든 제한 사항 적용
     await this.validateViewerAccess(broadcaster, password, user);
-    return this.handleUserPlay(broadcaster, stream, bookmarkCount, bookmark, user, 'viewer');
+    return this.handleUserPlay(
+      broadcaster,
+      stream,
+      bookmarkCount,
+      bookmark,
+      user,
+      'viewer',
+    );
   }
 
   private async getBasicPlayData(streamerId: string) {
@@ -81,23 +114,28 @@ export class PlayService {
         broadcast_setting: true,
       },
     );
-    
+
     if (!broadcaster) {
       throw new BadRequestException('존재하지 않는 스트리머입니다.');
     }
-    
+
     const stream = await this.streamService.getStreamByUserIdx(broadcaster.idx);
     if (!stream) {
       throw new BadRequestException('방송중인 스트리머가 아닙니다.');
     }
-    
-    const bookmarkCount = (await this.bookmarkService.getUserBookmarkCount(broadcaster.idx)).count;
-    
+
+    const bookmarkCount = (
+      await this.bookmarkService.getUserBookmarkCount(broadcaster.idx)
+    ).count;
+
     return { broadcaster, stream, bookmarkCount };
   }
 
   private async checkBlacklist(broadcasterIdx: number, userIdx: number) {
-    const isBlocked = await this.blacklistService.isUserBlocked(broadcasterIdx, userIdx);
+    const isBlocked = await this.blacklistService.isUserBlocked(
+      broadcasterIdx,
+      userIdx,
+    );
     if (isBlocked) {
       throw new ForbiddenException('해당 방송에 제재된 사용자입니다');
     }
@@ -127,7 +165,11 @@ export class PlayService {
     }
   }
 
-  private async validateViewerAccess(broadcaster: any, password?: string, user?: any) {
+  private async validateViewerAccess(
+    broadcaster: any,
+    password?: string,
+    user?: any,
+  ) {
     // Viewer는 가장 제한적인 접근 권한을 가짐
     if (broadcaster.broadcastSetting?.is_adult) {
       // 성인 여부 검사 로직 - Viewer는 더 엄격한 검증 필요
@@ -174,7 +216,7 @@ export class PlayService {
       },
     };
     const playToken = this.authService.generatePlayToken(payload);
-    
+
     return {
       broadcaster: {
         idx: broadcaster.idx,
@@ -239,7 +281,7 @@ export class PlayService {
       },
     };
     const playToken = this.authService.generatePlayToken(payload);
-    
+
     const response: PlayResponse = {
       broadcaster: {
         idx: broadcaster.idx,

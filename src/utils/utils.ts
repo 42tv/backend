@@ -44,7 +44,7 @@ export type UserIncludeOptions = {
 /*
  *  ServerCommand를 포함할 수 있는 구조체여야 하지만 현재는 확립 안되었음
  *  그래서 일단 DeleteCommand에 사용사례에 맞추어 정의됨됨
- * 
+ *
  * @deprecated 대신 src/redis/interfaces/redis-message.interface.ts의 ServerCommandMessage를 사용하세요
  */
 export interface ServerCommand {

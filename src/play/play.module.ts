@@ -10,7 +10,15 @@ import { ManagerModule } from 'src/manager/manager.module';
 import { FanModule } from 'src/fan/fan.module';
 
 @Module({
-  imports: [UserModule, StreamModule, AuthModule, BlacklistModule, BookmarkModule, ManagerModule, FanModule],
+  imports: [
+    UserModule,
+    StreamModule,
+    AuthModule,
+    BlacklistModule,
+    BookmarkModule,
+    ManagerModule,
+    FanModule,
+  ],
   controllers: [PlayController],
   providers: [PlayService],
   exports: [PlayService],
