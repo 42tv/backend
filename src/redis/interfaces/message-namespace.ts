@@ -10,6 +10,7 @@ import {
   RoleChangePayload,
   RoleChangeType,
   KickPayload,
+  KickedPayload,
   BanPayload,
   JwtDecode,
 } from './room.message';
@@ -158,6 +159,27 @@ export const RedisMessages = {
         nickname,
         kicked_by: kickedBy,
       } as KickPayload,
+    };
+  },
+
+  kicked(
+    broadcasterId: string,
+    userId: string,
+    userIdx: number,
+    nickname: string,
+    kickedBy: KickedPayload['kicked_by'],
+    reason?: string,
+  ): ChatRoomMessage {
+    return {
+      op: OpCode.KICKED,
+      broadcaster_id: broadcasterId,
+      payload: {
+        user_id: userId,
+        user_idx: userIdx,
+        nickname,
+        kicked_by: kickedBy,
+        reason,
+      } as KickedPayload,
     };
   },
 

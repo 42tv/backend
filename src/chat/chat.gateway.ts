@@ -93,6 +93,37 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
+   * - 특정 사용자에게 메시지 보내기
+   * @param broadcasterId - 방송자 ID
+   * @param userId - 메시지를 받을 사용자 ID (user_id 또는 guest_id)
+   * @param eventName - 메시지 이벤트 이름
+   * @param data - 메시지 데이터
+   */
+  async sendToUser(
+    broadcasterId: string,
+    userId: string,
+    eventName: string,
+    data: any,
+  ) {
+    // 해당 room이 이 서버에 존재하는지 확인
+    if (this.chatRooms.has(broadcasterId)) {
+      const roomMap = this.chatRooms.get(broadcasterId);
+      const client = roomMap.get(userId);
+      
+      if (client) {
+        client.emit(eventName, data);
+        console.log(
+          `[SendToUser] - room: ${broadcasterId}, user: ${userId}, event: ${eventName}`,
+        );
+      } else {
+        console.log(
+          `[SendToUser] - User ${userId} not found in room ${broadcasterId}`,
+        );
+      }
+    }
+  }
+
+  /**
    * - chatRoom에서 지정된 type들에게만 메시지 보내기
    * @param broadcasterId - 스트리머 idx
    * @param eventName - 메시지 이벤트 이름

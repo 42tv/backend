@@ -249,12 +249,28 @@ export class RedisService {
    */
   private async handleKickMessage(message: ChatRoomMessage) {
     console.log(`[Kick] message received for room: ${message.broadcaster_id}`);
+    
+    const kickPayload = message.payload as any;
 
     // kick 메시지를 모든 시청자에게 전송
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,
       message.payload,
+    );
+
+    // kick 당한 사용자에게 개별적으로 KICKED 알림 전송
+    await this.eventsGateway.sendToUser(
+      message.broadcaster_id,
+      kickPayload.user_id,
+      OpCode.KICKED,
+      {
+        user_id: kickPayload.user_id,
+        user_idx: kickPayload.user_idx,
+        nickname: kickPayload.nickname,
+        kicked_by: kickPayload.kicked_by,
+        reason: kickPayload.reason,
+      },
     );
   }
 
