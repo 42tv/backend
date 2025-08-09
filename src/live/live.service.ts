@@ -1,9 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
 import { ManagerService } from 'src/manager/manager.service';
 import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
+import { KickViewerDto } from './dto/kick-viewer.dto';
 
 @Injectable()
 export class LiveService {
@@ -106,5 +110,89 @@ export class LiveService {
     const viewers = await this.redisService.getViewersList(broadcasterId);
     console.log(viewers);
     return viewers;
+  }
+
+  /**
+   * 시청자(회원/게스트)를 kick 합니다.
+   * @param kickerIdx kick을 실행하는 사용자의 idx
+   * @param broadcasterId 방송자의 user_id
+   * @param kickViewerDto kick할 시청자 정보 (user_id 또는 guest_id)
+   */
+  async kickViewer(
+    kickerIdx: number,
+    broadcasterId: string,
+    kickViewerDto: KickViewerDto,
+  ) {
+    const kicker = await this.userService.findByUserIdx(kickerIdx);
+    const broadcaster = await this.userService.findByUserId(broadcasterId);
+
+    if (!broadcaster) {
+      throw new BadRequestException('존재하지 않는 방송자입니다.');
+    }
+
+    // 권한 검증: 방송자 본인이거나 매니저여야 함
+    const isManager = await this.managerService.isManager(
+      broadcaster.idx,
+      kickerIdx,
+    );
+
+    if (!isManager && kicker.idx !== broadcaster.idx) {
+      return '시청자를 kick할 권한이 없습니다.';
+    }
+
+    // Redis에서 시청자 정보 확인
+    const viewerInfo = await this.redisService.getViewerInfo(
+      broadcasterId,
+      kickViewerDto.viewer_id,
+    );
+
+    if (!viewerInfo) {
+      console.log(
+        `[Kick] Viewer ${kickViewerDto.viewer_id} not found in ${broadcasterId}`,
+      );
+      return '해당 시청자를 찾을 수 없습니다.';
+    }
+
+    const viewer = JSON.parse(viewerInfo);
+
+    // 방송자는 자기 자신을 kick할 수 없음 (user_id 또는 guest_id로 비교)
+    const viewerId = viewer.user_id || viewer.guest_id;
+    if (viewerId === broadcasterId) {
+      return '방송자는 자기 자신을 kick할 수 없습니다.';
+    }
+
+    // Redis에서 시청자 제거
+    await this.redisService.removeViewer(
+      broadcasterId,
+      kickViewerDto.viewer_id,
+    );
+
+    // Redis에서 connection 정보도 제거
+    await this.redisService.removeConnection(
+      broadcasterId,
+      kickViewerDto.viewer_id,
+    );
+
+    // Redis pub/sub으로 kick 알림 발행
+    await this.redisService.publishRoomMessage(
+      `room:${broadcasterId}`,
+      RedisMessages.kick(
+        broadcasterId,
+        kickViewerDto.viewer_id,
+        viewer.user_idx,
+        viewer.nickname,
+        {
+          idx: kicker.idx,
+          user_id: kicker.user_id,
+          nickname: kicker.nickname,
+        },
+      ),
+    );
+
+    console.log(
+      `[Kick] ${kickViewerDto.viewer_id} kicked from ${broadcasterId} by ${kicker.user_id}`,
+    );
+
+    return 'Viewer kicked successfully';
   }
 }

@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
+import { KickViewerDto } from './dto/kick-viewer.dto';
 
 @ApiTags('live')
 @Controller('live')
@@ -196,6 +197,72 @@ export class LiveController {
       code: 200,
       message: 'success',
       viewers,
+    };
+  }
+
+  @Post(':broadcasterId/kick')
+  @UseGuards(MemberGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '시청자 kick' })
+  @ApiBody({ type: KickViewerDto })
+  @ApiResponse({
+    status: 200,
+    description: '시청자 kick 성공',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'Viewer kicked successfully' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: '잘못된 요청 또는 권한 없음',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'string', example: 'No permission to kick viewer' },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: '인증되지 않은 사용자',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 401 },
+        message: { type: 'string', example: 'Unauthorized' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: '시청자가 없는 경우도 성공으로 처리',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 200 },
+        message: { type: 'string', example: '해당 시청자를 찾을 수 없습니다.' },
+      },
+    },
+  })
+  async kickViewer(
+    @Req() req: any,
+    @Param('broadcasterId') broadcasterId: string,
+    @Body() kickViewerDto: KickViewerDto,
+  ) {
+    const message = await this.liveService.kickViewer(
+      req.user.idx,
+      broadcasterId,
+      kickViewerDto,
+    );
+    return {
+      code: 200,
+      message,
     };
   }
 }

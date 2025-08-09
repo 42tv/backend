@@ -125,6 +125,9 @@ export class RedisService {
       case OpCode.ROLE_CHANGE:
         await this.handleRoleChangeMessage(message);
         break;
+      case OpCode.KICK:
+        await this.handleKickMessage(message);
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
     }
@@ -237,6 +240,21 @@ export class RedisService {
       message.op,
       message.payload,
       ['broadcaster', 'manager'],
+    );
+  }
+
+  /**
+   * Kick 메시지 처리
+   * @param message Kick 메시지
+   */
+  private async handleKickMessage(message: ChatRoomMessage) {
+    console.log(`[Kick] message received for room: ${message.broadcaster_id}`);
+
+    // kick 메시지를 모든 시청자에게 전송
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
     );
   }
 
