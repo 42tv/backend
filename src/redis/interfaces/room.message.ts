@@ -1,6 +1,7 @@
 export enum OpCode {
   CHAT = 'chat',
   KICK = 'kick',
+  KICKED = 'kicked',
   BAN = 'ban',
   RECOMMEND = 'recommend',
   BOOKMARK = 'bookmark',
@@ -44,6 +45,7 @@ export interface ChatRoomMessage {
     | UserLeavePayload
     | RoleChangePayload
     | KickPayload
+    | KickedPayload
     | BanPayload
     | ViewerListPayload;
 }
@@ -110,6 +112,18 @@ export interface KickPayload {
     user_id: string;
     nickname: string;
   };
+}
+
+export interface KickedPayload {
+  user_id: string;
+  user_idx: number;
+  nickname: string;
+  kicked_by: {
+    idx: number;
+    user_id: string;
+    nickname: string;
+  };
+  reason?: string;
 }
 
 export interface BanPayload {
