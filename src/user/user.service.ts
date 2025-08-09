@@ -571,7 +571,10 @@ export class UserService {
     }
 
     // 블랙리스트 추가 (기존 로직)
-    const result = await this.blacklistService.create(user_idx, blockedUser.idx);
+    const result = await this.blacklistService.create(
+      user_idx,
+      blockedUser.idx,
+    );
 
     // 추가 로직: 방송 중인 경우 시청자 강퇴 (에러 발생해도 기존 로직에 영향 없음)
     try {
