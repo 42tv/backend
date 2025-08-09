@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ManagerService } from 'src/manager/manager.service';
 import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
