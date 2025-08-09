@@ -445,13 +445,13 @@ export class RedisService {
    * @param broadcasterId 방송자 ID
    * @param userId 사용자 ID
    * @param newRole 새로운 역할
-   * @param gradeInfo 등급 정보 (있는 경우)
+   * @param gradeInfo 등급 정보
    */
   async updateViewerRole(
     broadcasterId: string,
     userId: string,
-    newRole: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest',
-    gradeInfo?: { name: string; color: string },
+    newRole: 'manager' | 'member' | 'viewer' | 'guest',
+    gradeInfo: { name: string; color: string },
   ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
     const viewerData = await this.hget(key, userId);
@@ -459,17 +459,8 @@ export class RedisService {
     if (viewerData) {
       const viewer = JSON.parse(viewerData);
       viewer.role = newRole;
-
-      // gradeInfo가 제공되면 업데이트, 없으면 기존 값 유지하되 role이 변경되면 적절히 조정
-      if (gradeInfo) {
-        viewer.grade = gradeInfo.name;
-        viewer.color = gradeInfo.color;
-      } else if (newRole !== 'manager') {
-        // manager가 아닌 경우 기본 색상으로 변경
-        const defaultColor = getUserRoleColor('viewer');
-        viewer.grade = 'viewer';
-        viewer.color = defaultColor;
-      }
+      viewer.grade = gradeInfo.name;
+      viewer.color = gradeInfo.color;
 
       await this.hset(key, userId, JSON.stringify(viewer));
       console.log(
