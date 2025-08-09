@@ -184,7 +184,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const viewers = await this.redisService.getViewersList(
         broadcaster.user_id,
       );
-      client.emit(OpCode.VIEWER_LIST, { viewers });
+      console.log(`Current viewers in room ${broadcaster.user_id}:`, viewers);
+      client.emit(OpCode.VIEWER_LIST, viewers);
     }
 
     // chatRoom에 사용자 추가

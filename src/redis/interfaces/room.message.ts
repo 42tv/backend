@@ -142,7 +142,10 @@ export interface ViewerInfo {
   user_id: string;
   user_idx: number;
   nickname: string;
-  jwtDecode: JwtDecode;
+  role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
+  profile_img: string;
+  grade: string;
+  color: string;
 }
 
 // // 서버 커맨드 메시지 타입

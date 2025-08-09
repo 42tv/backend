@@ -5,6 +5,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { FanService } from 'src/fan/fan.service';
 import { ManagerService } from 'src/manager/manager.service';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
+import { ViewerInfo } from 'src/redis/interfaces/room.message';
 
 @Injectable()
 export class ChatService {
@@ -39,7 +40,7 @@ export class ChatService {
     }
 
     // 3. Redis에서 가져온 시청자 정보 파싱
-    let parsedViewerInfo;
+    let parsedViewerInfo: ViewerInfo;
     try {
       parsedViewerInfo = JSON.parse(viewerInfo);
       console.log('Parsed Viewer Info:', parsedViewerInfo);
@@ -58,8 +59,8 @@ export class ChatService {
         message,
         user.profile_img,
         parsedViewerInfo.role,
-        parsedViewerInfo.fan_level.name,
-        parsedViewerInfo.fan_level.color,
+        parsedViewerInfo.grade,
+        parsedViewerInfo.color,
       ),
     );
 

@@ -12,6 +12,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { RoleChangeType } from 'src/redis/interfaces/room.message';
 import { FanService } from 'src/fan/fan.service';
+import { UserService } from 'src/user/user.service';
 import { getUserRoleColor } from 'src/constants/chat-colors';
 
 @Injectable()
@@ -22,6 +23,8 @@ export class ManagerService {
     private readonly redisService: RedisService,
     @Inject(forwardRef(() => FanService))
     private readonly fanService: FanService,
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
   ) {}
 
   /**
@@ -40,7 +43,7 @@ export class ManagerService {
 
   /**
    * 사용자의 적절한 역할을 결정합니다.
-   * 매니저가 해임된 경우 적절한 역할(member/viewer)과 팬 레벨을 반환합니다.
+   * 매니저가 해임된 경우 적절한 역할(member/viewer)과 등급 정보를 반환합니다.
    * @param userIdx 사용자 ID
    * @param broadcasterIdx 방송자 ID
    * @returns 사용자 역할 정보
@@ -50,7 +53,7 @@ export class ManagerService {
     broadcasterIdx: number,
   ): Promise<{
     role: 'member' | 'viewer';
-    fanLevel?: { name: string; color: string };
+    gradeInfo?: { name: string; color: string };
   }> {
     // 팬 레벨 확인
     const fanLevel = await this.fanService.matchFanLevel(
@@ -62,7 +65,7 @@ export class ManagerService {
       // 팬 레벨이 있으면 member
       return {
         role: 'member',
-        fanLevel: {
+        gradeInfo: {
           name: fanLevel.name,
           color: fanLevel.color,
         },
@@ -71,7 +74,7 @@ export class ManagerService {
       // 팬 레벨이 없으면 viewer
       return {
         role: 'viewer',
-        fanLevel: {
+        gradeInfo: {
           name: 'viewer',
           color: getUserRoleColor('viewer'),
         },
@@ -89,7 +92,7 @@ export class ManagerService {
     // 매니저로 추가할 사용자가 존재하는지 확인
     const broadcaster =
       await this.managerRepository.findUserByIdx(broadcasterIdx);
-    const managerUser = await this.managerRepository.findUserByUserId(
+    const managerUser = await this.userService.findByUserId(
       addManagerDto.userId,
     );
 
@@ -172,7 +175,7 @@ export class ManagerService {
     // 제거할 매니저 사용자가 존재하는지 확인
     const broadcaster =
       await this.managerRepository.findUserByIdx(broadcasterIdx);
-    const managerUser = await this.managerRepository.findUserByUserId(
+    const managerUser = await this.userService.findByUserId(
       removeManagerDto.userId,
     );
 
@@ -206,7 +209,7 @@ export class ManagerService {
       broadcaster.user_id,
       managerUser.user_id,
       userRole.role,
-      userRole.fanLevel,
+      userRole.gradeInfo,
     );
 
     // Redis를 통해 모든 서버의 해당 room에 role 변경 알림
@@ -220,7 +223,7 @@ export class ManagerService {
         managerUser.nickname,
         'manager',
         userRole.role,
-        userRole.fanLevel?.color || getUserRoleColor(userRole.role),
+        userRole.gradeInfo?.color || getUserRoleColor(userRole.role),
       ),
     );
 
