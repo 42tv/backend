@@ -249,7 +249,7 @@ export class RedisService {
    */
   private async handleKickMessage(message: ChatRoomMessage) {
     console.log(`[Kick] message received for room: ${message.broadcaster_id}`);
-    
+
     const kickPayload = message.payload as any;
 
     // kick 메시지를 모든 시청자에게 전송
@@ -312,6 +312,7 @@ export class RedisService {
     message: ChatRoomMessage | ServerMessage,
   ): Promise<void> {
     try {
+      console.log(`[Redis Publish] Channel: ${channel}, OpCode: ${message.op}, Message:`, JSON.stringify(message));
       await this.redis.publish(channel, JSON.stringify(message));
     } catch (error) {
       console.error(`Failed to publish message to ${channel}:`, error);
@@ -557,7 +558,7 @@ export class RedisService {
    * @param key 확인할 키
    * @returns 키가 존재하면 1, 아니면 0
    */
-  private async exists(key: string): Promise<number> {
+  async exists(key: string): Promise<number> {
     return await this.redis.exists(key);
   }
 
@@ -594,7 +595,7 @@ export class RedisService {
    * @param field 필드 이름
    * @returns 필드 값 또는 null (키나 필드가 존재하지 않는 경우)
    */
-  private async hget(key: string, field: string): Promise<string | null> {
+  async hget(key: string, field: string): Promise<string | null> {
     return await this.redis.hget(key, field);
   }
 

@@ -109,7 +109,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (this.chatRooms.has(broadcasterId)) {
       const roomMap = this.chatRooms.get(broadcasterId);
       const client = roomMap.get(userId);
-      
+
       if (client) {
         client.emit(eventName, data);
         console.log(
