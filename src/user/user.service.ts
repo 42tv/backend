@@ -570,7 +570,52 @@ export class UserService {
       throw new BadRequestException('이미 차단된 사용자입니다.');
     }
 
-    return this.blacklistService.create(user_idx, blockedUser.idx);
+    // 블랙리스트 추가 (기존 로직)
+    const result = await this.blacklistService.create(
+      user_idx,
+      blockedUser.idx,
+    );
+
+    // 추가 로직: 방송 중인 경우 시청자 강퇴 (에러 발생해도 기존 로직에 영향 없음)
+    try {
+      // 차단을 요청한 사용자 정보 가져오기
+      const requestUser = await this.findByUserIdx(user_idx);
+
+      // 차단을 요청한 사용자가 방송 중인지 확인 (Redis에 broadcasterId 존재 확인)
+      const broadcasterKey = `viewer:${requestUser.user_id}`;
+      const isBroadcasting = await this.redisService.exists(broadcasterKey);
+
+      if (isBroadcasting) {
+        // 차단당한 사용자가 해당 방송에 시청자로 있는지 확인
+        const viewerData = await this.redisService.hget(
+          broadcasterKey,
+          blocked_user_id,
+        );
+
+        if (viewerData) {
+          // 차단당한 사용자가 방송에 있다면 KICK 메시지 전송
+          await this.redisService.publishRoomMessage(
+            `room:${requestUser.user_id}`,
+            RedisMessages.kick(
+              requestUser.user_id,
+              blockedUser.user_id,
+              blockedUser.idx,
+              blockedUser.nickname,
+              {
+                idx: requestUser.idx,
+                user_id: requestUser.user_id,
+                nickname: requestUser.nickname,
+              },
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      // 강퇴 로직 에러는 로그만 남기고 기존 결과는 그대로 반환
+      console.error('방송 시청자 강퇴 중 에러 발생:', error);
+    }
+
+    return result;
   }
 
   /**

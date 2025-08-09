@@ -1,6 +1,7 @@
 export enum OpCode {
   CHAT = 'chat',
   KICK = 'kick',
+  KICKED = 'kicked',
   BAN = 'ban',
   RECOMMEND = 'recommend',
   BOOKMARK = 'bookmark',
@@ -44,6 +45,7 @@ export interface ChatRoomMessage {
     | UserLeavePayload
     | RoleChangePayload
     | KickPayload
+    | KickedPayload
     | BanPayload
     | ViewerListPayload;
 }
@@ -112,6 +114,18 @@ export interface KickPayload {
   };
 }
 
+export interface KickedPayload {
+  user_id: string;
+  user_idx: number;
+  nickname: string;
+  kicked_by: {
+    idx: number;
+    user_id: string;
+    nickname: string;
+  };
+  reason?: string;
+}
+
 export interface BanPayload {
   user_id: string;
   user_idx: number;
@@ -128,7 +142,10 @@ export interface ViewerInfo {
   user_id: string;
   user_idx: number;
   nickname: string;
-  jwtDecode: JwtDecode;
+  role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
+  profile_img: string;
+  grade: string;
+  color: string;
 }
 
 // // 서버 커맨드 메시지 타입

@@ -125,6 +125,9 @@ export class RedisService {
       case OpCode.ROLE_CHANGE:
         await this.handleRoleChangeMessage(message);
         break;
+      case OpCode.KICK:
+        await this.handleKickMessage(message);
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
     }
@@ -241,6 +244,37 @@ export class RedisService {
   }
 
   /**
+   * Kick 메시지 처리
+   * @param message Kick 메시지
+   */
+  private async handleKickMessage(message: ChatRoomMessage) {
+    console.log(`[Kick] message received for room: ${message.broadcaster_id}`);
+
+    const kickPayload = message.payload as any;
+
+    // kick 메시지를 모든 시청자에게 전송
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
+    );
+
+    // kick 당한 사용자에게 개별적으로 KICKED 알림 전송
+    await this.eventsGateway.sendToUser(
+      message.broadcaster_id,
+      kickPayload.user_id,
+      OpCode.KICKED,
+      {
+        user_id: kickPayload.user_id,
+        user_idx: kickPayload.user_idx,
+        nickname: kickPayload.nickname,
+        kicked_by: kickPayload.kicked_by,
+        reason: kickPayload.reason,
+      },
+    );
+  }
+
+  /**
    * Redis 채널 구독
    * @param channel 구독할 채널 이름
    */
@@ -278,6 +312,10 @@ export class RedisService {
     message: ChatRoomMessage | ServerMessage,
   ): Promise<void> {
     try {
+      console.log(
+        `[Redis Publish] Channel: ${channel}, OpCode: ${message.op}, Message:`,
+        JSON.stringify(message),
+      );
       await this.redis.publish(channel, JSON.stringify(message));
     } catch (error) {
       console.error(`Failed to publish message to ${channel}:`, error);
@@ -370,7 +408,9 @@ export class RedisService {
         user_idx: jwt.user.idx,
         nickname: jwt.user.nickname,
         role: jwt.user.role,
-        fan_level: fanLevel,
+        profile_img: jwt.user.profile_img,
+        grade: fanLevel.name,
+        color: fanLevel.color,
       }),
     );
   }
@@ -405,13 +445,13 @@ export class RedisService {
    * @param broadcasterId 방송자 ID
    * @param userId 사용자 ID
    * @param newRole 새로운 역할
-   * @param fanLevel 팬 레벨 정보 (있는 경우)
+   * @param gradeInfo 등급 정보
    */
   async updateViewerRole(
     broadcasterId: string,
     userId: string,
-    newRole: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest',
-    fanLevel?: { name: string; color: string },
+    newRole: 'manager' | 'member' | 'viewer' | 'guest',
+    gradeInfo: { name: string; color: string },
   ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
     const viewerData = await this.hget(key, userId);
@@ -419,17 +459,8 @@ export class RedisService {
     if (viewerData) {
       const viewer = JSON.parse(viewerData);
       viewer.role = newRole;
-
-      // fanLevel이 제공되면 업데이트, 없으면 기존 값 유지하되 role이 변경되면 적절히 조정
-      if (fanLevel) {
-        viewer.fan_level = fanLevel;
-      } else if (newRole !== 'manager') {
-        // manager가 아닌 경우 기본 색상으로 변경
-        viewer.fan_level = {
-          name: 'viewer',
-          color: getUserRoleColor('viewer'),
-        };
-      }
+      viewer.grade = gradeInfo.name;
+      viewer.color = gradeInfo.color;
 
       await this.hset(key, userId, JSON.stringify(viewer));
       console.log(
@@ -482,12 +513,15 @@ export class RedisService {
         // value가 JSON 문자열인 경우 파싱
         return typeof value === 'string' ? JSON.parse(value) : value;
       } catch (error) {
-        // JSON 파싱에 실패한 경우 원본 value 반환
+        // JSON 파싱에 실패한 경우 기본값으로 fallback
         return {
           user_id: key,
           user_idx: -1,
           nickname: 'guest',
-          role: 'guest',
+          role: 'guest' as const,
+          profile_img: '',
+          grade: 'guest',
+          color: getUserRoleColor('guest'),
         };
       }
     });
@@ -523,7 +557,7 @@ export class RedisService {
    * @param key 확인할 키
    * @returns 키가 존재하면 1, 아니면 0
    */
-  private async exists(key: string): Promise<number> {
+  async exists(key: string): Promise<number> {
     return await this.redis.exists(key);
   }
 
@@ -560,7 +594,7 @@ export class RedisService {
    * @param field 필드 이름
    * @returns 필드 값 또는 null (키나 필드가 존재하지 않는 경우)
    */
-  private async hget(key: string, field: string): Promise<string | null> {
+  async hget(key: string, field: string): Promise<string | null> {
     return await this.redis.hget(key, field);
   }
 
