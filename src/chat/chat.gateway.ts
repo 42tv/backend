@@ -192,18 +192,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // chatRoom에 사용자 추가
     await this.addChatRoomUser(broadcaster.user_id, registerId, client);
 
-    // grade와 color 계산 (registViewer와 동일한 로직)
-    const fanLevel =
-      user.fan_level && !user.is_guest
-        ? {
-            name: user.fan_level.name,
-            color: user.fan_level.color,
-          }
-        : {
-            name: user.is_guest ? 'guest' : 'viewer',
-            color: getUserRoleColor(user.is_guest ? 'guest' : 'viewer'),
-          };
-
     // Redis를 통해 모든 서버의 해당 room에 사용자 입장 알림
     await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`,
@@ -214,8 +202,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         user.nickname,
         user.profile_img,
         user.role,
-        fanLevel.name,
-        fanLevel.color,
+        user.fan_level.name,
+        user.fan_level.color,
       ),
     );
 
@@ -256,19 +244,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (roomMap.has(registerId)) {
         // 방송자의 채팅방에서 사용자 제거 및 redis에서 제거
         await this.deleteChatRoomUser(broadcaster.user_id, registerId);
-
-        // grade와 color 계산 (userJoin과 동일한 로직)
-        const fanLevel =
-          user.fan_level && !user.is_guest
-            ? {
-                name: user.fan_level.name,
-                color: user.fan_level.color,
-              }
-            : {
-                name: user.role,
-                color: getUserRoleColor(user.role),
-              };
-
         // 사용자가 나갔다는 알림을 Redis를 통해 모든 서버의 해당 room에 전송
         await this.redisService.publishRoomMessage(
           `room:${broadcaster.user_id}`,
@@ -279,8 +254,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
             user.nickname,
             user.profile_img,
             user.role,
-            fanLevel.name,
-            fanLevel.color,
+            user.fan_level.name,
+            user.fan_level.color,
           ),
         );
         const viewerCount = await this.redisService.getHashFieldCount(

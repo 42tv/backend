@@ -391,18 +391,6 @@ export class RedisService {
   ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
 
-    // fan_level이 있으면 사용하고, 없으면 역할에 따른 기본 색상 사용
-    const fanLevel =
-      jwt.user.fan_level && !jwt.user.is_guest
-        ? {
-            name: jwt.user.fan_level.name,
-            color: jwt.user.fan_level.color,
-          }
-        : {
-            name: jwt.user.role,
-            color: getUserRoleColor(jwt.user.role),
-          };
-
     await this.hset(
       key,
       userId,
@@ -412,8 +400,8 @@ export class RedisService {
         nickname: jwt.user.nickname,
         role: jwt.user.role,
         profile_img: jwt.user.profile_img,
-        grade: fanLevel.name,
-        color: fanLevel.color,
+        grade: jwt.user.fan_level.name,
+        color: jwt.user.fan_level.color,
       }),
     );
   }

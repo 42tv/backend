@@ -25,7 +25,7 @@ export interface JwtDecode {
   profile_img: string;
   is_guest: boolean;
   guest_id?: string;
-  fan_level?: {
+  fan_level: {
     name: string;
     color: string;
     total_donation: number;

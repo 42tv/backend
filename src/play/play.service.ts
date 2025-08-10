@@ -280,6 +280,17 @@ export class PlayService {
         role,
         profile_img: user.profile_img,
         is_guest: false,
+        fan_level: fanLevel
+          ? {
+              name: fanLevel.name,
+              color: fanLevel.color,
+              total_donation: fanLevel.total_donation,
+            }
+          : {
+              name: 'viewer',
+              color: getUserRoleColor('viewer'),
+              total_donation: 0,
+            },
       },
       stream: {
         idx: stream.idx,

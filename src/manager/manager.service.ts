@@ -152,7 +152,7 @@ export class ManagerService {
         currentUserRole.role,
         'manager',
         currentUserRole.gradeInfo.name,
-        currentUserRole.gradeInfo.color
+        currentUserRole.gradeInfo.color,
       ),
     );
 
