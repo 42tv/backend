@@ -205,7 +205,10 @@ export class RedisService {
         user_idx: payload.user_idx,
         user_id: payload.user_id,
         nickname: payload.nickname,
-        role: payload.jwt_decode,
+        profile_img: payload.profile_img,
+        role: payload.role,
+        grade: payload.grade,
+        color: payload.color,
       },
       ['manager', 'broadcaster'],
     );

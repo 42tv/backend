@@ -13,6 +13,7 @@ import { Stream } from '@prisma/client';
 import { PlayResponse } from './interfaces/response';
 import { WebsocketJwt } from './interfaces/websocket';
 import { FanService } from 'src/fan/fan.service';
+import { getUserRoleColor } from 'src/constants/chat-colors';
 
 @Injectable()
 export class PlayService {
@@ -209,6 +210,11 @@ export class PlayService {
         profile_img: '',
         is_guest: true,
         guest_id: guestId,
+        fan_level: {
+          name: 'guest',
+          color: getUserRoleColor('guest'), // 게스트의 팬 레벨 정보
+          total_donation: 0,
+        },
       },
       stream: {
         idx: stream.idx,
@@ -312,6 +318,12 @@ export class PlayService {
     // 팬 레벨 정보가 있으면 추가
     if (fanLevel) {
       response.user.fan_level = fanLevel;
+    } else {
+      response.user.fan_level = {
+        name: 'viewer',
+        color: getUserRoleColor('viewer'),
+        total_donation: 0,
+      };
     }
 
     return response;

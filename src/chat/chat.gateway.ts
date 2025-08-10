@@ -12,6 +12,7 @@ import { StreamService } from 'src/stream/stream.service';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { OpCode } from 'src/redis/interfaces/room.message';
+import { getUserRoleColor } from 'src/constants/chat-colors';
 
 interface AuthenticatedSocket extends Socket {
   jwt: WebsocketJwt;
@@ -191,6 +192,18 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // chatRoom에 사용자 추가
     await this.addChatRoomUser(broadcaster.user_id, registerId, client);
 
+    // grade와 color 계산 (registViewer와 동일한 로직)
+    const fanLevel =
+      user.fan_level && !user.is_guest
+        ? {
+            name: user.fan_level.name,
+            color: user.fan_level.color,
+          }
+        : {
+            name: user.is_guest ? 'guest' : 'viewer',
+            color: getUserRoleColor(user.is_guest ? 'guest' : 'viewer'),
+          };
+
     // Redis를 통해 모든 서버의 해당 room에 사용자 입장 알림
     await this.redisService.publishRoomMessage(
       `room:${broadcaster.user_id}`,
@@ -199,15 +212,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         registerId,
         user.idx,
         user.nickname,
-        {
-          idx: user.idx,
-          user_id: user.user_id,
-          nickname: user.nickname,
-          role: user.role,
-          profile_img: user.profile_img,
-          is_guest: user.is_guest,
-          guest_id: user.guest_id,
-        },
+        user.profile_img,
+        user.role,
+        fanLevel.name,
+        fanLevel.color,
       ),
     );
 
@@ -248,6 +256,19 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (roomMap.has(registerId)) {
         // 방송자의 채팅방에서 사용자 제거 및 redis에서 제거
         await this.deleteChatRoomUser(broadcaster.user_id, registerId);
+
+        // grade와 color 계산 (userJoin과 동일한 로직)
+        const fanLevel =
+          user.fan_level && !user.is_guest
+            ? {
+                name: user.fan_level.name,
+                color: user.fan_level.color,
+              }
+            : {
+                name: user.role,
+                color: getUserRoleColor(user.role),
+              };
+
         // 사용자가 나갔다는 알림을 Redis를 통해 모든 서버의 해당 room에 전송
         await this.redisService.publishRoomMessage(
           `room:${broadcaster.user_id}`,
@@ -256,15 +277,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
             registerId,
             user.idx,
             user.nickname,
-            {
-              idx: user.idx,
-              user_id: user.user_id,
-              nickname: user.nickname,
-              role: user.role,
-              profile_img: user.profile_img,
-              is_guest: user.is_guest,
-              guest_id: user.guest_id,
-            },
+            user.profile_img,
+            user.role,
+            fanLevel.name,
+            fanLevel.color,
           ),
         );
         const viewerCount = await this.redisService.getHashFieldCount(

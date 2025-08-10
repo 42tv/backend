@@ -53,7 +53,7 @@ export class ManagerService {
     broadcasterIdx: number,
   ): Promise<{
     role: 'member' | 'viewer';
-    gradeInfo?: { name: string; color: string };
+    gradeInfo: { name: string; color: string };
   }> {
     // 팬 레벨 확인
     const fanLevel = await this.fanService.matchFanLevel(
@@ -151,7 +151,8 @@ export class ManagerService {
         managerUser.nickname,
         currentUserRole.role,
         'manager',
-        getUserRoleColor('manager'),
+        currentUserRole.gradeInfo.name,
+        currentUserRole.gradeInfo.color
       ),
     );
 
@@ -223,7 +224,8 @@ export class ManagerService {
         managerUser.nickname,
         'manager',
         userRole.role,
-        userRole.gradeInfo?.color || getUserRoleColor(userRole.role),
+        userRole.gradeInfo.name,
+        userRole.gradeInfo.color,
       ),
     );
 
