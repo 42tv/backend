@@ -369,9 +369,12 @@ export class UserService {
     if (
       !file.mimetype.endsWith('jpeg') &&
       !file.mimetype.endsWith('png') &&
-      !file.mimetype.endsWith('jpg')
+      !file.mimetype.endsWith('jpg') &&
+      !file.mimetype.endsWith('webp')
     ) {
-      throw new BadRequestException('jpeg, png, jpg 파일만 업로드 가능합니다');
+      throw new BadRequestException(
+        'jpeg, png, jpg, webp 파일만 업로드 가능합니다',
+      );
     }
     if (file.size > 1024 * 1024 * 5) {
       throw new BadRequestException(
@@ -390,6 +393,7 @@ export class UserService {
 
         if (keyMatch) {
           const oldKey = keyMatch[0];
+          console.log(oldKey);
           try {
             // 원본 프로필 이미지와 리사이즈된 이미지 모두 삭제 시도
             await this.awsService.deleteFromS3(oldKey);
@@ -401,9 +405,12 @@ export class UserService {
         }
       }
 
-      // 이미지 리사이징 및 업로드
+      // 이미지 리사이징 및 업로드 (원본 비율 유지, 최대 400px)
       const buffer = await sharp(file.buffer)
-        .resize(400, 400)
+        .resize(400, 400, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
         .toFormat('jpeg')
         .toBuffer();
 

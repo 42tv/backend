@@ -273,7 +273,7 @@ export class PlayService {
       // 다른 사용자인 경우
       fanLevel = await this.fanService.matchFanLevel(user.idx, broadcaster.idx);
     }
-    
+
     const payload: WebsocketJwt = {
       broadcaster: {
         idx: broadcaster.idx,

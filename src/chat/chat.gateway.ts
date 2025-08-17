@@ -12,7 +12,6 @@ import { StreamService } from 'src/stream/stream.service';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { OpCode } from 'src/redis/interfaces/room.message';
-import { getUserRoleColor } from 'src/constants/chat-colors';
 
 interface AuthenticatedSocket extends Socket {
   jwt: WebsocketJwt;
