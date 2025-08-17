@@ -260,12 +260,20 @@ export class PlayService {
     user: any,
     role: 'broadcaster' | 'manager' | 'member' | 'viewer',
   ): Promise<PlayResponse> {
-    // 팬 레벨 정보 조회 (본인이 아닌 경우에만)
+    // 팬 레벨 정보 조회
     let fanLevel = null;
-    if (user.idx !== broadcaster.idx) {
+    if (user.idx === broadcaster.idx) {
+      // 방송자 본인인 경우
+      fanLevel = {
+        name: 'broadcaster',
+        color: getUserRoleColor('broadcaster'),
+        total_donation: 0,
+      };
+    } else {
+      // 다른 사용자인 경우
       fanLevel = await this.fanService.matchFanLevel(user.idx, broadcaster.idx);
     }
-
+    
     const payload: WebsocketJwt = {
       broadcaster: {
         idx: broadcaster.idx,
