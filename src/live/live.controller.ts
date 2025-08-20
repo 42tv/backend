@@ -185,7 +185,6 @@ export class LiveController {
       },
     },
   })
-  
   async getBroadcasterViewers(
     @Req() req: any,
     @Param('broadcasterId') broadcasterId: string,

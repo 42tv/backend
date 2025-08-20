@@ -33,10 +33,10 @@ export class ManagerService {
    * @param broadcasterIdx 크리에이터 사용자 ID
    * @returns 매니저 관계 정보 또는 null
    */
-  async isManager(managerIdx: number, broadcasterIdx: number) {
+  async isManager(broadcasterIdx: number, managerIdx: number) {
     const manager = await this.managerRepository.findManager(
-      managerIdx,
       broadcasterIdx,
+      managerIdx,
     );
     return manager ? true : false;
   }
