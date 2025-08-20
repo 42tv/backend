@@ -261,17 +261,13 @@ export class PlayService {
     role: 'broadcaster' | 'manager' | 'member' | 'viewer',
   ): Promise<PlayResponse> {
     // 팬 레벨 정보 조회
-    let fanLevel = null;
-    if (user.idx === broadcaster.idx) {
-      // 방송자 본인인 경우
+    let fanLevel = await this.fanService.matchFanLevel(user.idx, broadcaster.idx);
+    if (!fanLevel) {
       fanLevel = {
-        name: 'broadcaster',
-        color: getUserRoleColor('broadcaster'),
+        name: role,
+        color: getUserRoleColor(role),
         total_donation: 0,
       };
-    } else {
-      // 다른 사용자인 경우
-      fanLevel = await this.fanService.matchFanLevel(user.idx, broadcaster.idx);
     }
 
     const payload: WebsocketJwt = {
@@ -289,16 +285,6 @@ export class PlayService {
         profile_img: user.profile_img,
         is_guest: false,
         fan_level: fanLevel
-          ? {
-              name: fanLevel.name,
-              color: fanLevel.color,
-              total_donation: fanLevel.total_donation,
-            }
-          : {
-              name: 'viewer',
-              color: getUserRoleColor('viewer'),
-              total_donation: 0,
-            },
       },
       stream: {
         idx: stream.idx,
@@ -329,22 +315,11 @@ export class PlayService {
         profile_img: user.profile_img,
         is_bookmarked: bookmark?.is_bookmarked ? true : false,
         play_token: playToken.token,
+        fan_level: fanLevel,
         role: role,
         is_guest: false,
       },
     };
-
-    // 팬 레벨 정보가 있으면 추가
-    if (fanLevel) {
-      response.user.fan_level = fanLevel;
-    } else {
-      response.user.fan_level = {
-        name: 'viewer',
-        color: getUserRoleColor('viewer'),
-        total_donation: 0,
-      };
-    }
-
     return response;
   }
 }
