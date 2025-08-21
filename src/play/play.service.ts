@@ -66,8 +66,8 @@ export class PlayService {
 
     // Manager 여부 확인
     const isManager = await this.managerService.isManager(
-      user.idx,
       broadcaster.idx,
+      user.idx,
     );
     if (isManager) {
       return this.handleUserPlay(
@@ -261,7 +261,10 @@ export class PlayService {
     role: 'broadcaster' | 'manager' | 'member' | 'viewer',
   ): Promise<PlayResponse> {
     // 팬 레벨 정보 조회
-    let fanLevel = await this.fanService.matchFanLevel(user.idx, broadcaster.idx);
+    let fanLevel = await this.fanService.matchFanLevel(
+      user.idx,
+      broadcaster.idx,
+    );
     if (!fanLevel) {
       fanLevel = {
         name: role,
@@ -284,7 +287,7 @@ export class PlayService {
         role,
         profile_img: user.profile_img,
         is_guest: false,
-        fan_level: fanLevel
+        fan_level: fanLevel,
       },
       stream: {
         idx: stream.idx,

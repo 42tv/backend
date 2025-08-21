@@ -238,11 +238,10 @@ export class RedisService {
     );
 
     // 역할 변경 메시지를 broadcaster와 manager에게만 전송
-    await this.eventsGateway.sendToSpecificUserTypes(
+    await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,
       message.payload,
-      ['broadcaster', 'manager'],
     );
   }
 
