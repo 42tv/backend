@@ -7,6 +7,7 @@ import {
   ChatPayload,
   ChatRoomMessage,
   OpCode,
+  RoleChangePayload,
   UserJoinPayload,
   ViewerInfo,
 } from './interfaces/room.message';
@@ -235,6 +236,26 @@ export class RedisService {
   private async handleRoleChangeMessage(message: ChatRoomMessage) {
     console.log(
       `[RoleChange] message received for room: ${message.broadcaster_id}`,
+    );
+
+    const roleChangePayload = message.payload as RoleChangePayload;
+    // chatRoom에 있는 사용자의 JWT 정보 업데이트
+    await this.eventsGateway.updateChatRoomUserRole(
+      message.broadcaster_id,
+      roleChangePayload.user_id,
+      {
+        idx: roleChangePayload.user_idx,
+        user_id: roleChangePayload.user_id,
+        nickname: roleChangePayload.nickname,
+        role: roleChangePayload.to_role,
+        profile_img: roleChangePayload.profile_img || '', // 기존 값 유지를 위해 빈 문자열로 처리
+        is_guest: false,
+        fan_level: {
+          name: roleChangePayload.to_grade,
+          color: roleChangePayload.to_color,
+          total_donation: 0, // 기존 값 유지를 위해 0으로 처리
+        },
+      },
     );
 
     // 역할 변경 메시지를 broadcaster와 manager에게만 전송

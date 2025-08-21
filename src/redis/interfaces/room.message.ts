@@ -104,6 +104,7 @@ export interface RoleChangePayload {
   user_idx: number;
   user_id: string;
   nickname: string;
+  profile_img: string;
   from_role: 'manager' | 'member' | 'viewer';
   to_role: 'manager' | 'member' | 'viewer';
   to_grade: string;
