@@ -12,7 +12,6 @@ import {
   KickPayload,
   KickedPayload,
   BanPayload,
-  JwtDecode,
 } from './room.message';
 import {
   DuplicateConnectPayload,
@@ -85,7 +84,10 @@ export const RedisMessages = {
     userId: string,
     userIdx: number,
     nickname: string,
-    jwtDecode: JwtDecode,
+    profileImg: string,
+    role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest',
+    grade: string,
+    color: string,
   ): ChatRoomMessage {
     return {
       op: OpCode.USER_JOIN,
@@ -94,7 +96,10 @@ export const RedisMessages = {
         user_id: userId,
         user_idx: userIdx,
         nickname,
-        jwt_decode: jwtDecode,
+        profile_img: profileImg,
+        role,
+        grade,
+        color,
       } as UserJoinPayload,
     };
   },
@@ -104,7 +109,10 @@ export const RedisMessages = {
     userId: string,
     userIdx: number,
     nickname: string,
-    jwtDecode: JwtDecode,
+    profileImg: string,
+    role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest',
+    grade: string,
+    color: string,
   ): ChatRoomMessage {
     return {
       op: OpCode.USER_LEAVE,
@@ -113,7 +121,10 @@ export const RedisMessages = {
         user_id: userId,
         user_idx: userIdx,
         nickname,
-        jwt_decode: jwtDecode,
+        profile_img: profileImg,
+        role,
+        grade,
+        color,
       } as UserLeavePayload,
     };
   },
@@ -124,8 +135,10 @@ export const RedisMessages = {
     userIdx: number,
     userId: string,
     nickname: string,
+    profile_img: string,
     fromRole: 'manager' | 'member' | 'viewer',
     toRole: 'manager' | 'member' | 'viewer',
+    toGrade: string,
     toColor: string,
   ): ChatRoomMessage {
     return {
@@ -136,8 +149,10 @@ export const RedisMessages = {
         user_idx: userIdx,
         user_id: userId,
         nickname,
+        profile_img: profile_img || '',
         from_role: fromRole,
         to_role: toRole,
+        to_grade: toGrade,
         to_color: toColor,
       } as RoleChangePayload,
     };

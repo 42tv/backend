@@ -13,6 +13,7 @@ import { Stream } from '@prisma/client';
 import { PlayResponse } from './interfaces/response';
 import { WebsocketJwt } from './interfaces/websocket';
 import { FanService } from 'src/fan/fan.service';
+import { getUserRoleColor } from 'src/constants/chat-colors';
 
 @Injectable()
 export class PlayService {
@@ -65,8 +66,8 @@ export class PlayService {
 
     // Manager 여부 확인
     const isManager = await this.managerService.isManager(
-      user.idx,
       broadcaster.idx,
+      user.idx,
     );
     if (isManager) {
       return this.handleUserPlay(
@@ -209,6 +210,11 @@ export class PlayService {
         profile_img: '',
         is_guest: true,
         guest_id: guestId,
+        fan_level: {
+          name: 'guest',
+          color: getUserRoleColor('guest'), // 게스트의 팬 레벨 정보
+          total_donation: 0,
+        },
       },
       stream: {
         idx: stream.idx,
@@ -254,10 +260,17 @@ export class PlayService {
     user: any,
     role: 'broadcaster' | 'manager' | 'member' | 'viewer',
   ): Promise<PlayResponse> {
-    // 팬 레벨 정보 조회 (본인이 아닌 경우에만)
-    let fanLevel = null;
-    if (user.idx !== broadcaster.idx) {
-      fanLevel = await this.fanService.matchFanLevel(user.idx, broadcaster.idx);
+    // 팬 레벨 정보 조회
+    let fanLevel = await this.fanService.matchFanLevel(
+      user.idx,
+      broadcaster.idx,
+    );
+    if (!fanLevel) {
+      fanLevel = {
+        name: role,
+        color: getUserRoleColor(role),
+        total_donation: 0,
+      };
     }
 
     const payload: WebsocketJwt = {
@@ -274,6 +287,7 @@ export class PlayService {
         role,
         profile_img: user.profile_img,
         is_guest: false,
+        fan_level: fanLevel,
       },
       stream: {
         idx: stream.idx,
@@ -304,16 +318,11 @@ export class PlayService {
         profile_img: user.profile_img,
         is_bookmarked: bookmark?.is_bookmarked ? true : false,
         play_token: playToken.token,
+        fan_level: fanLevel,
         role: role,
         is_guest: false,
       },
     };
-
-    // 팬 레벨 정보가 있으면 추가
-    if (fanLevel) {
-      response.user.fan_level = fanLevel;
-    }
-
     return response;
   }
 }

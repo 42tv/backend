@@ -25,7 +25,7 @@ export interface JwtDecode {
   profile_img: string;
   is_guest: boolean;
   guest_id?: string;
-  fan_level?: {
+  fan_level: {
     name: string;
     color: string;
     total_donation: number;
@@ -83,14 +83,20 @@ export interface UserJoinPayload {
   user_id: string;
   user_idx: number;
   nickname: string;
-  jwt_decode: JwtDecode;
+  profile_img: string;
+  role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
+  grade: string;
+  color: string;
 }
 
 export interface UserLeavePayload {
   user_id: string;
   user_idx: number;
   nickname: string;
-  jwt_decode: JwtDecode;
+  profile_img: string;
+  role: 'broadcaster' | 'manager' | 'member' | 'viewer' | 'guest';
+  grade: string;
+  color: string;
 }
 
 export interface RoleChangePayload {
@@ -98,8 +104,10 @@ export interface RoleChangePayload {
   user_idx: number;
   user_id: string;
   nickname: string;
+  profile_img: string;
   from_role: 'manager' | 'member' | 'viewer';
   to_role: 'manager' | 'member' | 'viewer';
+  to_grade: string;
   to_color: string;
 }
 

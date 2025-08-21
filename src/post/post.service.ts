@@ -334,7 +334,7 @@ export class PostService {
       throw new BadRequestException('쪽지 설정을 찾을 수 없습니다.');
     }
 
-    const fanLevels = await this.fanLevelService.findByUserIdx(user_idx);
+    const fanLevels = await this.fanLevelService.findByUserIdx(user_idx, 'asc');
     console.log('fanLevels', fanLevels);
     console.log(`postSetting`, postSettings);
 
@@ -353,8 +353,16 @@ export class PostService {
     }
     console.log(`minFanLevelRank`, minFanLevelRank);
 
+    // fanLevels에 순위(level) 정보 추가하고 id 제거
+    const fanLevelsWithRank = fanLevels.map((level, index) => ({
+      name: level.name,
+      min_donation: level.min_donation,
+      color: level.color,
+      level: index + 1, // 1부터 시작하는 순위
+    }));
+
     return {
-      fanLevels: fanLevels,
+      fanLevels: fanLevelsWithRank,
       minFanLevel: minFanLevelRank,
     };
   }
@@ -371,7 +379,10 @@ export class PostService {
     // 팬레벨 순위가 제공된 경우, 해당 순위의 팬레벨을 찾아 ID 설정
     if (min_fan_level_rank !== null && min_fan_level_rank !== undefined) {
       // 사용자의 팬레벨 목록을 min_donation 오름차순으로 조회
-      const fanLevels = await this.fanLevelService.findByUserIdx(user_idx);
+      const fanLevels = await this.fanLevelService.findByUserIdx(
+        user_idx,
+        'asc',
+      );
       if (fanLevels.length === 0) {
         throw new BadRequestException('팬레벨이 설정되지 않았습니다.');
       }

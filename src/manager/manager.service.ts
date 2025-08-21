@@ -33,10 +33,10 @@ export class ManagerService {
    * @param broadcasterIdx 크리에이터 사용자 ID
    * @returns 매니저 관계 정보 또는 null
    */
-  async isManager(managerIdx: number, broadcasterIdx: number) {
+  async isManager(broadcasterIdx: number, managerIdx: number) {
     const manager = await this.managerRepository.findManager(
-      managerIdx,
       broadcasterIdx,
+      managerIdx,
     );
     return manager ? true : false;
   }
@@ -53,7 +53,7 @@ export class ManagerService {
     broadcasterIdx: number,
   ): Promise<{
     role: 'member' | 'viewer';
-    gradeInfo?: { name: string; color: string };
+    gradeInfo: { name: string; color: string };
   }> {
     // 팬 레벨 확인
     const fanLevel = await this.fanService.matchFanLevel(
@@ -149,8 +149,10 @@ export class ManagerService {
         managerUser.idx,
         managerUser.user_id,
         managerUser.nickname,
+        managerUser.profile_img || '',
         currentUserRole.role,
         'manager',
+        currentUserRole.gradeInfo.name,
         getUserRoleColor('manager'),
       ),
     );
@@ -221,9 +223,11 @@ export class ManagerService {
         managerUser.idx,
         managerUser.user_id,
         managerUser.nickname,
+        managerUser.profile_img || '',
         'manager',
         userRole.role,
-        userRole.gradeInfo?.color || getUserRoleColor(userRole.role),
+        userRole.gradeInfo.name,
+        userRole.gradeInfo.color,
       ),
     );
 

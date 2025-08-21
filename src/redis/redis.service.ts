@@ -7,6 +7,7 @@ import {
   ChatPayload,
   ChatRoomMessage,
   OpCode,
+  RoleChangePayload,
   UserJoinPayload,
   ViewerInfo,
 } from './interfaces/room.message';
@@ -205,7 +206,10 @@ export class RedisService {
         user_idx: payload.user_idx,
         user_id: payload.user_id,
         nickname: payload.nickname,
-        role: payload.jwt_decode,
+        profile_img: payload.profile_img,
+        role: payload.role,
+        grade: payload.grade,
+        color: payload.color,
       },
       ['manager', 'broadcaster'],
     );
@@ -234,12 +238,31 @@ export class RedisService {
       `[RoleChange] message received for room: ${message.broadcaster_id}`,
     );
 
+    const roleChangePayload = message.payload as RoleChangePayload;
+    // chatRoom에 있는 사용자의 JWT 정보 업데이트
+    await this.eventsGateway.updateChatRoomUserRole(
+      message.broadcaster_id,
+      roleChangePayload.user_id,
+      {
+        idx: roleChangePayload.user_idx,
+        user_id: roleChangePayload.user_id,
+        nickname: roleChangePayload.nickname,
+        role: roleChangePayload.to_role,
+        profile_img: roleChangePayload.profile_img || '', // 기존 값 유지를 위해 빈 문자열로 처리
+        is_guest: false,
+        fan_level: {
+          name: roleChangePayload.to_grade,
+          color: roleChangePayload.to_color,
+          total_donation: 0, // 기존 값 유지를 위해 0으로 처리
+        },
+      },
+    );
+
     // 역할 변경 메시지를 broadcaster와 manager에게만 전송
-    await this.eventsGateway.sendToSpecificUserTypes(
+    await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,
       message.payload,
-      ['broadcaster', 'manager'],
     );
   }
 
@@ -388,18 +411,6 @@ export class RedisService {
   ): Promise<void> {
     const key = `viewer:${broadcasterId}`;
 
-    // fan_level이 있으면 사용하고, 없으면 역할에 따른 기본 색상 사용
-    const fanLevel =
-      jwt.user.fan_level && !jwt.user.is_guest
-        ? {
-            name: jwt.user.fan_level.name,
-            color: jwt.user.fan_level.color,
-          }
-        : {
-            name: jwt.user.role,
-            color: getUserRoleColor(jwt.user.role),
-          };
-
     await this.hset(
       key,
       userId,
@@ -409,8 +420,8 @@ export class RedisService {
         nickname: jwt.user.nickname,
         role: jwt.user.role,
         profile_img: jwt.user.profile_img,
-        grade: fanLevel.name,
-        color: fanLevel.color,
+        grade: jwt.user.fan_level.name,
+        color: jwt.user.fan_level.color,
       }),
     );
   }

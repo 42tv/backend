@@ -11,7 +11,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { StreamService } from 'src/stream/stream.service';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
-import { OpCode } from 'src/redis/interfaces/room.message';
+import { JwtDecode, OpCode } from 'src/redis/interfaces/room.message';
 
 interface AuthenticatedSocket extends Socket {
   jwt: WebsocketJwt;
@@ -199,15 +199,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         registerId,
         user.idx,
         user.nickname,
-        {
-          idx: user.idx,
-          user_id: user.user_id,
-          nickname: user.nickname,
-          role: user.role,
-          profile_img: user.profile_img,
-          is_guest: user.is_guest,
-          guest_id: user.guest_id,
-        },
+        user.profile_img,
+        user.role,
+        user.fan_level.name,
+        user.fan_level.color,
       ),
     );
 
@@ -256,15 +251,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
             registerId,
             user.idx,
             user.nickname,
-            {
-              idx: user.idx,
-              user_id: user.user_id,
-              nickname: user.nickname,
-              role: user.role,
-              profile_img: user.profile_img,
-              is_guest: user.is_guest,
-              guest_id: user.guest_id,
-            },
+            user.profile_img,
+            user.role,
+            user.fan_level.name,
+            user.fan_level.color,
           ),
         );
         const viewerCount = await this.redisService.getHashFieldCount(
@@ -412,6 +402,28 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomMap = this.chatRooms.get(broadcasterId);
     if (roomMap && roomMap.has(userId)) {
       roomMap.get(userId).jwt.user = newUserInfo;
+    }
+  }
+
+  /**
+   * - 역할 변경 시 chatRoom에 저장된 사용자의 JWT 정보를 업데이트
+   * @param broadcasterId 방송자 ID
+   * @param userId 사용자 ID
+   * @param partialUserInfo 업데이트할 사용자 정보 (일부 필드만 포함)
+   */
+  async updateChatRoomUserRole(
+    broadcasterId: string,
+    userId: string,
+    jwtDecode: JwtDecode,
+  ) {
+    const roomMap = this.chatRooms.get(broadcasterId);
+    if (roomMap && roomMap.has(userId)) {
+      // 기존 정보를 유지하면서 변경된 정보만 업데이트
+      roomMap.get(userId).jwt.user = jwtDecode
+
+      console.log(
+        `[Update User Role] ${userId} - ${jwtDecode}`,
+      );
     }
   }
 }

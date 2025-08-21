@@ -14,8 +14,8 @@ export class ManagerRepository {
    * @returns 매니저 관계 정보
    */
   async findManager(
-    managerIdx: number,
     broadcasterIdx: number,
+    managerIdx: number,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
