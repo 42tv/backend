@@ -79,7 +79,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param eventName - 메세지 이벤트 이름
    * @param data - 메세지 데이터
    */
-  async sendToRoom<T = unknown>(broadcasterId: string, eventName: string, data: T) {
+  async sendToRoom<T = unknown>(
+    broadcasterId: string,
+    eventName: string,
+    data: T,
+  ) {
     // 해당 room이 이 서버에 존재하는지 확인
     console.log(this.chatRooms.has(broadcasterId));
     if (this.chatRooms.has(broadcasterId)) {

@@ -384,27 +384,7 @@ export class UserService {
     const user = await this.userRepository.findByUserIdx(user_idx);
 
     try {
-      // 기존 프로필 이미지가 있는지 확인하고 있으면 삭제
-      if (user.profile_img) {
-        // URL에서 파일명 추출 (URL에 S3 버킷 경로가 포함되어 있다고 가정)
-        const profileUrl = user.profile_img;
-        const keyMatch = profileUrl.match(/profile\/.*$/);
-
-        if (keyMatch) {
-          const oldKey = keyMatch[0];
-          console.log(oldKey);
-          try {
-            // 원본 프로필 이미지와 리사이즈된 이미지 모두 삭제 시도
-            await this.awsService.deleteFromS3(oldKey);
-            console.log(`기존 프로필 이미지 삭제 완료: ${oldKey}`);
-          } catch (error) {
-            console.log(`기존 프로필 이미지 삭제 실패: ${error.message}`);
-            // 기존 파일 삭제 실패해도 계속 진행
-          }
-        }
-      }
-
-      // 이미지 리사이징 및 업로드 (원본 비율 유지, 최대 400px)
+      // 이미지 리사이징 (원본 비율 유지, 최대 400px)
       const buffer = await sharp(file.buffer)
         .resize(400, 400, {
           fit: 'inside',
@@ -413,11 +393,28 @@ export class UserService {
         .toFormat('jpeg')
         .toBuffer();
 
-      const resizedKey = `profile/${user.user_id}-${Date.now()}.jpg`;
-      await this.awsService.uploadToS3(resizedKey, buffer, 'image/jpeg');
+      // 새로운 네이밍 규칙: profile/{user_id}.jpg
+      const mainProfileKey = `profile/${user.user_id}.jpg`;
+
+      // timestamp 생성 (YYYYMMDD-HHMMSS 형식)
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace('T', '-')
+        .substring(0, 15);
+
+      const backupKey = `data/profile/${user.user_id}/${timestamp}.jpg`;
+
+      // 메인 프로필 이미지 업로드 (기존 이미지를 덮어씀)
+      await this.awsService.uploadToS3(mainProfileKey, buffer, 'image/jpeg');
+
+      // 백업용 이미지 업로드 (새 이미지를 백업 위치에 저장)
+      await this.awsService.uploadToS3(backupKey, buffer, 'image/jpeg');
+
+      console.log(`프로필 이미지 업로드 완료: ${mainProfileKey}, ${backupKey}`);
 
       // S3 버킷 베이스 URL 생성
-      const profileImageUrl = `${process.env.CDN_URL}/${resizedKey}`;
+      const profileImageUrl = `${process.env.CDN_URL}/${mainProfileKey}`;
 
       // DB의 사용자 프로필 이미지 URL 업데이트
       await this.userRepository.updateProfileImage(user_idx, profileImageUrl);

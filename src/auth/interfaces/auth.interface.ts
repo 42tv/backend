@@ -10,7 +10,7 @@ export interface AuthenticatedUser {
 }
 
 export interface JwtPayload {
-  sub?: number;  // JWT 표준 subject claim
+  sub?: number; // JWT 표준 subject claim
   idx?: number;
   user_id?: string;
   nickname?: string;
