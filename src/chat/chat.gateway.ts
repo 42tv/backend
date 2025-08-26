@@ -419,11 +419,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomMap = this.chatRooms.get(broadcasterId);
     if (roomMap && roomMap.has(userId)) {
       // 기존 정보를 유지하면서 변경된 정보만 업데이트
-      roomMap.get(userId).jwt.user = jwtDecode
+      roomMap.get(userId).jwt.user = jwtDecode;
 
-      console.log(
-        `[Update User Role] ${userId} - ${jwtDecode}`,
-      );
+      console.log(`[Update User Role] ${userId} - ${jwtDecode}`);
     }
   }
 }

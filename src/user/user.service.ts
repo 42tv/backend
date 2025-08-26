@@ -22,6 +22,7 @@ import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { RedisService } from 'src/redis/redis.service';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
+import { ErrorMessages } from 'src/common/error-messages';
 
 @Injectable()
 export class UserService {
@@ -49,11 +50,11 @@ export class UserService {
   async findOneByLocalAuth(user_id: string, password: string) {
     const user = await this.userRepository.findByUserId(user_id);
     if (!user) {
-      throw new BadRequestException('존재하지 않는 아이디입니다');
+      throw new BadRequestException(ErrorMessages.USER.NOT_FOUND);
     }
     const compare = await bcrypt.compare(password, user.password);
     if (!compare) {
-      throw new BadRequestException('비밀번호가 일치하지 않습니다');
+      throw new BadRequestException(ErrorMessages.USER.INVALID_PASSWORD);
     }
     return user;
   }
@@ -140,14 +141,14 @@ export class UserService {
   ) {
     const user = await this.userRepository.findByUserId(createUserDto.id, tx);
     if (user) {
-      throw new BadRequestException('이미 존재하는 아이디입니다.');
+      throw new BadRequestException(ErrorMessages.USER.ALREADY_EXISTS);
     }
     const nickname = await this.userRepository.findByUserNickname(
       createUserDto.nickname,
       tx,
     );
     if (nickname) {
-      throw new BadRequestException('이미 존재하는 닉네임입니다.');
+      throw new BadRequestException(ErrorMessages.USER.NICKNAME_ALREADY_EXISTS);
     }
 
     const salt = await bcrypt.genSalt();
@@ -191,7 +192,7 @@ export class UserService {
       });
     } catch (error) {
       console.log(error);
-      throw new BadRequestException('User, Channel, Ivs 생성 트랜잭션 실패');
+      throw new BadRequestException(ErrorMessages.GENERIC.TRANSACTION_FAILED);
     }
   }
 
@@ -211,9 +212,7 @@ export class UserService {
       };
     }
     if (nickname.length < 1 || nickname.length > 10) {
-      throw new BadRequestException(
-        '닉네임은 1자리 이상 10자리 이하로 입력해주세요',
-      );
+      throw new BadRequestException(ErrorMessages.USER.INVALID_NICKNAME_LENGTH);
     }
 
     let updatedUser;
@@ -223,7 +222,9 @@ export class UserService {
         tx,
       );
       if (findedUser) {
-        throw new BadRequestException('이미 존재하는 닉네임입니다');
+        throw new BadRequestException(
+          ErrorMessages.USER.NICKNAME_ALREADY_EXISTS,
+        );
       }
       updatedUser = await this.userRepository.updateNickname(
         user_idx,
@@ -253,15 +254,13 @@ export class UserService {
     const user = await this.userRepository.findByUserIdx(user_idx);
     const compare = await bcrypt.compare(password, user.password);
     if (!compare) {
-      throw new BadRequestException('비밀번호가 일치하지 않습니다');
+      throw new BadRequestException(ErrorMessages.USER.INVALID_PASSWORD);
     }
 
     const regex =
       /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!regex.test(new_password)) {
-      throw new BadRequestException(
-        '새 비밀번호는 8자리 이상 알파벳,숫자,특수문자 1개씩 이상이어야 합니다',
-      );
+      throw new BadRequestException(ErrorMessages.PASSWORD.INVALID_FORMAT);
     }
     const salt = await bcrypt.genSalt();
     const hash = await bcrypt.hash(new_password, salt);
