@@ -3,6 +3,7 @@ import {
   Injectable,
   ForbiddenException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PostRepository } from './post.repository';
 import { PostDto } from './dto/create.post.dto';
 import { UserService } from 'src/user/user.service';
@@ -26,7 +27,7 @@ export class PostService {
    * @param tx 트랜잭션 옵션
    * @returns
    */
-  async createPostSettings(user_idx: number, tx?: any) {
+  async createPostSettings(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prismaService;
     return await prismaClient.postSettings.create({
       data: {

@@ -8,7 +8,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChannelService } from 'src/channel/channel.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
@@ -215,7 +215,7 @@ export class UserService {
       throw new BadRequestException(ErrorMessages.USER.INVALID_NICKNAME_LENGTH);
     }
 
-    let updatedUser;
+    let updatedUser: User;
     await this.prisma.$transaction(async (tx) => {
       const findedUser = await this.userRepository.findByUserNickname(
         nickname,

@@ -60,6 +60,7 @@ export class OauthService {
           sub: user.idx,
           user_id: user.user_id,
           nickname: user.nickname,
+          is_guest: false,
         });
       return { access_token, refresh_token };
     }
@@ -68,6 +69,7 @@ export class OauthService {
         sub: findedUser.idx,
         user_id: findedUser.user_id,
         nickname: findedUser.nickname,
+        is_guest: false,
       });
     return { access_token, refresh_token };
   }

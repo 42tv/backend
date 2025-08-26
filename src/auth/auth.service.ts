@@ -9,6 +9,14 @@ import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  AuthenticatedUser,
+  JwtPayload,
+  TokenPair,
+  PlayToken,
+  PhoneVerificationPayload,
+} from './interfaces/auth.interface';
+import { WebsocketJwt } from 'src/play/interfaces/websocket';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +26,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(username: string, pw: string): Promise<any> {
+  async validateUser(username: string, pw: string): Promise<AuthenticatedUser | null> {
     const user = await this.userService.findOneByLocalAuth(username, pw); // 비밀번호는 별도로 비교
     if (user && (await bcrypt.compare(pw, user.password))) {
       const { password, ...result } = user; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -27,7 +35,7 @@ export class AuthService {
     return null; // 인증 실패
   }
 
-  generateToken(payload: any) {
+  generateToken(payload: JwtPayload): TokenPair {
     const access_token = this.jwtService.sign(payload, {
       secret: process.env.JWT_ACCESS_SECRET,
       expiresIn: '1d',
@@ -39,7 +47,7 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
-  generatePlayToken(payload: any) {
+  generatePlayToken(payload: JwtPayload | WebsocketJwt): PlayToken {
     const token = this.jwtService.sign(payload, {
       secret: process.env.JWT_PLAY_SECRET,
       expiresIn: '60s',
@@ -47,11 +55,12 @@ export class AuthService {
     return { token };
   }
 
-  login(user: any) {
-    const payload = {
+  login(user: AuthenticatedUser): TokenPair {
+    const payload: JwtPayload = {
       idx: user.idx,
       user_id: user.user_id,
       nickname: user.nickname,
+      profile_img: user.profile_img,
       is_guest: false,
     };
     const { access_token, refresh_token } = this.generateToken(payload);
@@ -72,7 +81,7 @@ export class AuthService {
     return this.jwtService.decode(token);
   }
 
-  async verifyPhone(payload: any) {
+  async verifyPhone(payload: PhoneVerificationPayload) {
     console.log(payload);
     // const user = await this.userService.findByUserIdx(payload.idx);
     // return await this.channelService.verifyPhone(user.idx);
@@ -84,7 +93,7 @@ export class AuthService {
    * @returns 게스트 토큰
    */
   generateGuestToken() {
-    const payload = { is_guest: true, guest_id: `${uuidv4()}` }; // Example guest payload
+    const payload: JwtPayload = { is_guest: true, guest_id: `${uuidv4()}` };
     return this.generateToken(payload);
   }
 

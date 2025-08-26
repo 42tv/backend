@@ -6,6 +6,7 @@ import { RedisMessages } from './interfaces/message-namespace';
 import {
   ChatPayload,
   ChatRoomMessage,
+  KickedPayload,
   OpCode,
   RoleChangePayload,
   UserJoinPayload,
@@ -273,7 +274,7 @@ export class RedisService {
   private async handleKickMessage(message: ChatRoomMessage) {
     console.log(`[Kick] message received for room: ${message.broadcaster_id}`);
 
-    const kickPayload = message.payload as any;
+    const kickPayload = message.payload as KickedPayload;
 
     // kick 메시지를 모든 시청자에게 전송
     await this.eventsGateway.sendToRoom(
