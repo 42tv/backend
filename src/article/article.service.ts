@@ -8,6 +8,7 @@ import { ArticleRepository } from './article.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AwsService } from 'src/aws/aws.service';
 import { UserService } from 'src/user/user.service';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class ArticleService {
@@ -54,8 +55,17 @@ export class ArticleService {
           const image = images[i];
           const s3Key = `article/${user.user_id}/${article.id}/${i}.jpg`;
 
-          // S3에 업로드
-          await this.awsService.uploadToS3(s3Key, image.buffer, image.mimetype);
+          // 이미지 리사이징 (최대 800px, 원본 비율 유지)
+          const resizedBuffer = await sharp(image.buffer)
+            .resize(800, 800, {
+              fit: 'inside',
+              withoutEnlargement: true,
+            })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+
+          // S3에 리사이즈된 이미지 업로드
+          await this.awsService.uploadToS3(s3Key, resizedBuffer, 'image/jpeg');
 
           // CDN URL 생성
           const imageUrl = `${process.env.CDN_URL}/${s3Key}`;

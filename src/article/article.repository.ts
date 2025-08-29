@@ -52,20 +52,22 @@ export class ArticleRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.article.findMany({
+    const articles = await prismaClient.article.findMany({
       where: {
         author_idx: userIdx,
         is_active: true,
       },
-      include: {
-        author: {
-          select: {
-            idx: true,
-            nickname: true,
-            profile_img: true,
-          },
-        },
+      select: {
+        author_idx: true,
+        content: true,
+        title: true,
+        created_at: true,
         images: {
+          select: {
+            id: true,
+            image_url: true,
+            image_order: true,
+          },
           orderBy: {
             image_order: 'asc',
           },
@@ -75,6 +77,18 @@ export class ArticleRepository {
       skip: offset,
       take: limit,
     });
+
+    return articles.map(article => ({
+      authorIdx: article.author_idx,
+      content: article.content,
+      title: article.title,
+      createdAt: article.created_at,
+      images: article.images.map(image => ({
+        id: image.id,
+        imageUrl: image.image_url,
+        imageOrder: image.image_order,
+      })),
+    }));
   }
 
   async getArticleById(id: number, tx?: Prisma.TransactionClient) {
