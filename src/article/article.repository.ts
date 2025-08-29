@@ -45,6 +45,38 @@ export class ArticleRepository {
     });
   }
 
+  async getArticles(
+    userIdx: number,
+    offset = 0,
+    limit = 10,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.article.findMany({
+      where: {
+        author_idx: userIdx,
+        is_active: true,
+      },
+      include: {
+        author: {
+          select: {
+            idx: true,
+            nickname: true,
+            profile_img: true,
+          },
+        },
+        images: {
+          orderBy: {
+            image_order: 'asc',
+          },
+        },
+      },
+      orderBy: [{ is_pinned: 'desc' }, { created_at: 'desc' }],
+      skip: offset,
+      take: limit,
+    });
+  }
+
   async getArticleById(id: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.article.findUnique({

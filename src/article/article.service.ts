@@ -82,6 +82,10 @@ export class ArticleService {
     };
   }
 
+  async getArticles(userIdx: number, offset = 0, limit = 10) {
+    return await this.articleRepository.getArticles(userIdx, offset, limit);
+  }
+
   async getArticleById(id: number, incrementView = false) {
     const article = await this.articleRepository.getArticleById(id);
 

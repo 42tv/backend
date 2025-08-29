@@ -86,6 +86,48 @@ export class ArticleController {
     );
   }
 
+  @Get()
+  @UseGuards(GuestGuard)
+  @ApiOperation({
+    summary: '게시글 목록 조회',
+    description: '게시글 목록을 조회합니다.',
+  })
+  @ApiQuery({
+    name: 'userIdx',
+    description: '사용자 ID',
+    type: 'number',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'offset',
+    description: '시작 위치',
+    type: 'number',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: '조회할 개수',
+    type: 'number',
+    required: false,
+  })
+  @ApiOkResponse({
+    description: '게시글 목록 조회 성공',
+  })
+  async getArticles(
+    @Query('userIdx') userIdx: string,
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const userIdxNum = parseInt(userIdx);
+    const offsetNum = offset ? parseInt(offset) : 0;
+    const limitNum = limit ? parseInt(limit) : 10;
+    return await this.articleService.getArticles(
+      userIdxNum,
+      offsetNum,
+      limitNum,
+    );
+  }
+
   @Get(':id')
   @UseGuards(GuestGuard)
   @ApiOperation({
