@@ -109,9 +109,9 @@ export class ArticleController {
       {
         title: updateArticleDto.title,
         content: updateArticleDto.content,
+        keepImageIds,
       },
       images,
-      keepImageIds,
     );
   }
 

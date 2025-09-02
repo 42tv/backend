@@ -96,7 +96,7 @@ export class ArticleService {
     return await this.articleRepository.getArticles(userIdx, offset, limit);
   }
 
-  async getArticleById(id: number, incrementView = false) {
+  async getArticleById(id: number, _incrementView = false) {
     const article = await this.articleRepository.getArticleById(id);
 
     if (!article || !article.is_active) {
@@ -120,9 +120,9 @@ export class ArticleService {
     data: {
       title?: string;
       content?: string;
+      keepImageIds?: number[];
     },
     newImages?: Express.Multer.File[],
-    keepImageIds?: number[],
   ) {
     const existingArticle = await this.getArticleById(id);
 
@@ -150,11 +150,11 @@ export class ArticleService {
       await this.articleRepository.updateArticle(id, authorIdx, updateData, tx);
 
       // 2. 이미지 처리
-      if (newImages || keepImageIds) {
+      if (newImages || data.keepImageIds) {
         // 기존 이미지들 중 삭제할 이미지들 찾기
         const existingImages = existingArticle.images || [];
         const imagesToDelete = existingImages.filter(
-          (img) => !keepImageIds?.includes(img.id),
+          (img) => !data.keepImageIds?.includes(img.id),
         );
 
         // S3에서 삭제할 이미지들 제거
@@ -179,7 +179,7 @@ export class ArticleService {
         // 새 이미지들 업로드
         if (newImages && newImages.length > 0) {
           const existingMaxOrder = Math.max(
-            ...(keepImageIds || []).map((id) => {
+            ...(data.keepImageIds || []).map((id) => {
               const img = existingImages.find((i) => i.id === id);
               return img ? img.image_order : -1;
             }),
