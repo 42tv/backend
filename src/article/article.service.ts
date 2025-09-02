@@ -102,12 +102,6 @@ export class ArticleService {
     if (!article || !article.is_active) {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
-
-    if (incrementView) {
-      await this.articleRepository.incrementViewCount(id);
-      article.view_count += 1;
-    }
-
     return article;
   }
 
@@ -126,14 +120,11 @@ export class ArticleService {
     data: {
       title?: string;
       content?: string;
-      is_pinned?: boolean;
     },
+    newImages?: Express.Multer.File[],
+    keepImageIds?: number[],
   ) {
-    const existingArticle = await this.articleRepository.getArticleById(id);
-
-    if (!existingArticle || !existingArticle.is_active) {
-      throw new NotFoundException('게시글을 찾을 수 없습니다.');
-    }
+    const existingArticle = await this.getArticleById(id);
 
     if (existingArticle.author_idx !== authorIdx) {
       throw new ForbiddenException('게시글을 수정할 권한이 없습니다.');
@@ -147,17 +138,91 @@ export class ArticleService {
       throw new BadRequestException('내용을 입력해주세요.');
     }
 
-    const updateData = {
-      ...data,
-      title: data.title?.trim(),
-      content: data.content?.trim(),
-    };
+    const user = await this.userService.findByUserIdx(authorIdx);
 
-    return await this.articleRepository.updateArticle(
-      id,
-      authorIdx,
-      updateData,
-    );
+    return await this.prismaService.$transaction(async (tx) => {
+      // 1. 기본 정보 업데이트
+      const updateData = {
+        title: data.title?.trim(),
+        content: data.content?.trim(),
+      };
+
+      await this.articleRepository.updateArticle(id, authorIdx, updateData, tx);
+
+      // 2. 이미지 처리
+      if (newImages || keepImageIds) {
+        // 기존 이미지들 중 삭제할 이미지들 찾기
+        const existingImages = existingArticle.images || [];
+        const imagesToDelete = existingImages.filter(
+          (img) => !keepImageIds?.includes(img.id),
+        );
+
+        // S3에서 삭제할 이미지들 제거
+        for (const imageToDelete of imagesToDelete) {
+          try {
+            const s3Key = `article/${user.user_id}/${id}/${imageToDelete.image_order}.jpg`;
+            await this.awsService.deleteFromS3(s3Key);
+          } catch (error) {
+            console.log(`S3에서 이미지 삭제 실패: ${error}`);
+          }
+        }
+
+        // DB에서 삭제할 이미지들 제거
+        if (imagesToDelete.length > 0) {
+          await tx.articleImage.deleteMany({
+            where: {
+              id: { in: imagesToDelete.map((img) => img.id) },
+            },
+          });
+        }
+
+        // 새 이미지들 업로드
+        if (newImages && newImages.length > 0) {
+          const existingMaxOrder = Math.max(
+            ...(keepImageIds || []).map((id) => {
+              const img = existingImages.find((i) => i.id === id);
+              return img ? img.image_order : -1;
+            }),
+            -1,
+          );
+
+          for (let i = 0; i < newImages.length; i++) {
+            const image = newImages[i];
+            const imageOrder = existingMaxOrder + 1 + i;
+            const s3Key = `article/${user.user_id}/${id}/${imageOrder}.jpg`;
+
+            // 이미지 리사이징
+            const resizedBuffer = await sharp(image.buffer)
+              .resize(800, 800, {
+                fit: 'inside',
+                withoutEnlargement: true,
+              })
+              .jpeg({ quality: 85 })
+              .toBuffer();
+
+            // S3에 업로드
+            await this.awsService.uploadToS3(
+              s3Key,
+              resizedBuffer,
+              'image/jpeg',
+            );
+
+            // DB에 저장
+            const imageUrl = `${process.env.CDN_URL}/${s3Key}`;
+            await tx.articleImage.create({
+              data: {
+                article_id: id,
+                image_url: imageUrl,
+                image_order: imageOrder,
+              },
+            });
+          }
+        }
+      }
+
+      // 3. 업데이트된 게시글 정보 반환
+      return await this.articleRepository.getArticleById(id, tx);
+    });
   }
 
   async deleteArticle(id: number, authorIdx: number) {

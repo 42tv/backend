@@ -78,12 +78,12 @@ export class ArticleRepository {
       take: limit,
     });
 
-    return articles.map(article => ({
+    return articles.map((article) => ({
       authorIdx: article.author_idx,
       content: article.content,
       title: article.title,
       createdAt: article.created_at,
-      images: article.images.map(image => ({
+      images: article.images.map((image) => ({
         id: image.id,
         imageUrl: image.image_url,
         imageOrder: image.image_order,
