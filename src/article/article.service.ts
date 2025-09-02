@@ -96,7 +96,7 @@ export class ArticleService {
     return await this.articleRepository.getArticles(userIdx, offset, limit);
   }
 
-  async getArticleById(id: number, _incrementView = false) {
+  async getArticleById(id: number) {
     const article = await this.articleRepository.getArticleById(id);
 
     if (!article || !article.is_active) {
@@ -130,22 +130,17 @@ export class ArticleService {
       throw new ForbiddenException('게시글을 수정할 권한이 없습니다.');
     }
 
-    if (data.title && !data.title.trim()) {
-      throw new BadRequestException('제목을 입력해주세요.');
-    }
-
-    if (data.content && !data.content.trim()) {
-      throw new BadRequestException('내용을 입력해주세요.');
-    }
-
     const user = await this.userService.findByUserIdx(authorIdx);
 
     return await this.prismaService.$transaction(async (tx) => {
       // 1. 기본 정보 업데이트
-      const updateData = {
-        title: data.title?.trim(),
-        content: data.content?.trim(),
-      };
+      const updateData: { title?: string; content?: string } = {};
+      if (data.title !== undefined) {
+        updateData.title = data.title ? data.title.trim() : '';
+      }
+      if (data.content !== undefined) {
+        updateData.content = data.content ? data.content.trim() : '';
+      }
 
       await this.articleRepository.updateArticle(id, authorIdx, updateData, tx);
 
