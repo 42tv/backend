@@ -46,7 +46,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - `npm run lint`
    - `npx tsc --noEmit`
 2. 개인정보는 반드시 암호화 (UserDetail 참고)
-3. API 추가 시 Swagger 데코레이터 필수
 
 ### 채팅 구조
 실시간 채팅방에 관련된 Redis 구조의 코드를 작업할 때는 항상 서버가 여러개로 스케일링 될 경우를 고려하여 작성해달라

@@ -58,6 +58,7 @@ export class ArticleRepository {
         is_active: true,
       },
       select: {
+        id: true,
         author_idx: true,
         content: true,
         title: true,
@@ -79,6 +80,7 @@ export class ArticleRepository {
     });
 
     return articles.map((article) => ({
+      id: article.id,
       authorIdx: article.author_idx,
       content: article.content,
       title: article.title,
@@ -195,6 +197,19 @@ export class ArticleRepository {
     });
   }
 
+  async getArticlesCount(
+    userIdx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.article.count({
+      where: {
+        author_idx: userIdx,
+        is_active: true,
+      },
+    });
+  }
+
   async incrementViewCount(id: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
     return await prismaClient.article.update({
@@ -205,5 +220,41 @@ export class ArticleRepository {
         },
       },
     });
+  }
+
+  async createArticleImage(
+    articleId: number,
+    imageUrl: string,
+    imageOrder: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.articleImage.create({
+      data: {
+        article_id: articleId,
+        image_url: imageUrl,
+        image_order: imageOrder,
+      },
+    });
+  }
+
+  async deleteArticleImages(
+    articleId: number,
+    imageOrder?: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.articleImage.deleteMany({
+      where: {
+        article_id: articleId,
+        ...(imageOrder !== undefined && { image_order: imageOrder }),
+      },
+    });
+  }
+
+  async executeTransaction<T>(
+    callback: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    return await this.prisma.$transaction(callback);
   }
 }

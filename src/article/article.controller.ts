@@ -11,12 +11,14 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
 import { ArticleService } from './article.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { GuestGuard } from 'src/auth/guard/jwt.guest.guard';
+import { GetArticlesQueryDto } from './dto/get-articles-query.dto';
 
 @Controller('article')
 export class ArticleController {
@@ -56,17 +58,13 @@ export class ArticleController {
   @Get()
   @UseGuards(GuestGuard)
   async getArticles(
-    @Query('userIdx') userIdx: string,
-    @Query('offset') offset?: string,
-    @Query('limit') limit?: string,
+    @Query(new ValidationPipe({ transform: true })) query: GetArticlesQueryDto,
   ) {
-    const userIdxNum = parseInt(userIdx);
-    const offsetNum = offset ? parseInt(offset) : 0;
-    const limitNum = limit ? parseInt(limit) : 10;
-    return await this.articleService.getArticles(
-      userIdxNum,
-      offsetNum,
-      limitNum,
+    return await this.articleService.getArticlesWithPagination(
+      query.userIdx,
+      query.page,
+      query.offset,
+      query.limit || 10,
     );
   }
 
