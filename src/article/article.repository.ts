@@ -55,7 +55,6 @@ export class ArticleRepository {
     const articles = await prismaClient.article.findMany({
       where: {
         author_idx: userIdx,
-        is_active: true,
       },
       select: {
         id: true,
@@ -124,7 +123,6 @@ export class ArticleRepository {
     return await prismaClient.article.findMany({
       where: {
         author_idx: authorIdx,
-        is_active: true,
       },
       include: {
         author: {
@@ -186,13 +184,10 @@ export class ArticleRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
-    return await prismaClient.article.update({
+    return await prismaClient.article.delete({
       where: {
         id,
         author_idx: authorIdx,
-      },
-      data: {
-        is_active: false,
       },
     });
   }
@@ -205,7 +200,6 @@ export class ArticleRepository {
     return await prismaClient.article.count({
       where: {
         author_idx: userIdx,
-        is_active: true,
       },
     });
   }

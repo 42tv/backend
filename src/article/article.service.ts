@@ -121,7 +121,7 @@ export class ArticleService {
 
   private async validateArticlePermission(id: number, authorIdx: number) {
     const article = await this.articleRepository.getArticleById(id);
-    if (!article || !article.is_active) {
+    if (!article) {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
     if (article.author_idx !== authorIdx) {
@@ -313,13 +313,22 @@ export class ArticleService {
   async deleteArticle(id: number, authorIdx: number) {
     const existingArticle = await this.validateArticlePermission(id, authorIdx);
 
-    // 이미지가 있는 경우 S3에서도 삭제
-    if (existingArticle.images && existingArticle.images.length > 0) {
-      // 각 이미지를 S3에서 삭제
-      for (const image of existingArticle.images) {
-        await this.deleteImageFromS3AndDB(authorIdx, id, image.image_order);
+    return await this.articleRepository.executeTransaction(async (tx) => {
+      // 이미지가 있는 경우 S3에서도 삭제
+      if (existingArticle.images && existingArticle.images.length > 0) {
+        // 각 이미지를 S3에서 삭제
+        for (const image of existingArticle.images) {
+          await this.deleteImageFromS3AndDB(
+            authorIdx,
+            id,
+            image.image_order,
+            tx,
+          );
+        }
       }
-    }
-    return await this.articleRepository.deleteArticle(id, authorIdx);
+
+      // 게시글 완전 삭제
+      return await this.articleRepository.deleteArticle(id, authorIdx, tx);
+    });
   }
 }
