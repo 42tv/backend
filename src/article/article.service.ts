@@ -31,7 +31,8 @@ export class ArticleService {
       throw new BadRequestException('내용을 입력해주세요.');
     }
 
-    // 사용자 정보는 MemberGuard에서 이미 검증됨
+    // 사용자 정보 조회 (user_id 필요)
+    const user = await this.userService.findByUserIdx(authorIdx);
 
     // 트랜잭션으로 게시글 생성
     await this.articleRepository.executeTransaction(async (tx) => {
@@ -49,7 +50,7 @@ export class ArticleService {
         for (let i = 0; i < images.length; i++) {
           await this.uploadImageToS3AndSaveDB(
             images[i],
-            authorIdx,
+            user.user_id,
             article.id,
             i,
             tx,
@@ -147,7 +148,7 @@ export class ArticleService {
     existingArticle: any,
     keepImageIds: number[] | undefined,
     newImages: Express.Multer.File[] | undefined,
-    authorIdx: number,
+    userId: string,
     articleId: number,
     tx: any,
   ) {
@@ -167,7 +168,7 @@ export class ArticleService {
     if (imagesToDelete.length > 0) {
       for (const imageToDelete of imagesToDelete) {
         await this.deleteImageFromS3AndDB(
-          authorIdx,
+          userId,
           articleId,
           imageToDelete.image_order,
           tx,
@@ -198,7 +199,7 @@ export class ArticleService {
       for (let i = 0; i < newImages.length; i++) {
         await this.uploadImageToS3AndSaveDB(
           newImages[i],
-          authorIdx,
+          userId,
           articleId,
           newImageStartOrder + i,
           tx,
@@ -209,12 +210,12 @@ export class ArticleService {
 
   private async uploadImageToS3AndSaveDB(
     image: Express.Multer.File,
-    authorIdx: number,
+    userId: string,
     articleId: number,
     imageOrder: number,
     tx?: any,
   ): Promise<string> {
-    const s3Key = `article/${authorIdx}/${articleId}/${imageOrder}.jpg`;
+    const s3Key = `article/${userId}/${articleId}/${imageOrder}.jpg`;
 
     // 이미지 리사이징
     const resizedBuffer = await sharp(image.buffer)
@@ -243,12 +244,12 @@ export class ArticleService {
   }
 
   private async deleteImageFromS3AndDB(
-    authorIdx: number,
+    userId: string,
     articleId: number,
     imageOrder: number,
     tx?: any,
   ): Promise<void> {
-    const s3Key = `article/${authorIdx}/${articleId}/${imageOrder}.jpg`;
+    const s3Key = `article/${userId}/${articleId}/${imageOrder}.jpg`;
 
     // S3에서 이미지 삭제
     try {
@@ -272,6 +273,7 @@ export class ArticleService {
     newImages?: Express.Multer.File[],
   ) {
     const existingArticle = await this.validateArticlePermission(id, authorIdx);
+    const user = await this.userService.findByUserIdx(authorIdx);
 
     return await this.articleRepository.executeTransaction(async (tx) => {
       // 1. 이미지 처리 먼저 (S3 업로드 및 DB 저장)
@@ -280,7 +282,7 @@ export class ArticleService {
           existingArticle,
           data.keepImageIds,
           newImages,
-          authorIdx,
+          user.user_id,
           id,
           tx,
         );
@@ -312,6 +314,7 @@ export class ArticleService {
 
   async deleteArticle(id: number, authorIdx: number) {
     const existingArticle = await this.validateArticlePermission(id, authorIdx);
+    const user = await this.userService.findByUserIdx(authorIdx);
 
     return await this.articleRepository.executeTransaction(async (tx) => {
       // 이미지가 있는 경우 S3에서도 삭제
@@ -319,7 +322,7 @@ export class ArticleService {
         // 각 이미지를 S3에서 삭제
         for (const image of existingArticle.images) {
           await this.deleteImageFromS3AndDB(
-            authorIdx,
+            user.user_id,
             id,
             image.image_order,
             tx,
