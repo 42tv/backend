@@ -57,7 +57,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
         const payload: WebsocketJwt = await this.authService.validate(token);
         // TypeScript 용으로 socket에 프로퍼티 추가
-        (socket as any).jwt = payload;
+        (socket as AuthenticatedSocket).jwt = payload;
         next();
       } catch (err) {
         // authService.validate에서 발생한 오류 또는 기타 오류 처리
@@ -79,7 +79,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param eventName - 메세지 이벤트 이름
    * @param data - 메세지 데이터
    */
-  async sendToRoom(broadcasterId: string, eventName: string, data: any) {
+  async sendToRoom<T = unknown>(
+    broadcasterId: string,
+    eventName: string,
+    data: T,
+  ) {
     // 해당 room이 이 서버에 존재하는지 확인
     console.log(this.chatRooms.has(broadcasterId));
     if (this.chatRooms.has(broadcasterId)) {
@@ -99,11 +103,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param eventName - 메시지 이벤트 이름
    * @param data - 메시지 데이터
    */
-  async sendToUser(
+  async sendToUser<T = unknown>(
     broadcasterId: string,
     userId: string,
     eventName: string,
-    data: any,
+    data: T,
   ) {
     // 해당 room이 이 서버에 존재하는지 확인
     if (this.chatRooms.has(broadcasterId)) {
@@ -419,11 +423,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomMap = this.chatRooms.get(broadcasterId);
     if (roomMap && roomMap.has(userId)) {
       // 기존 정보를 유지하면서 변경된 정보만 업데이트
-      roomMap.get(userId).jwt.user = jwtDecode
+      roomMap.get(userId).jwt.user = jwtDecode;
 
-      console.log(
-        `[Update User Role] ${userId} - ${jwtDecode}`,
-      );
+      console.log(`[Update User Role] ${userId} - ${jwtDecode}`);
     }
   }
 }

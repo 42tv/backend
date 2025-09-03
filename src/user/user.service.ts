@@ -8,7 +8,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChannelService } from 'src/channel/channel.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IvsService } from 'src/ivs/ivs.service';
@@ -22,6 +22,7 @@ import { BlacklistService } from 'src/blacklist/blacklist.service';
 import { RedisService } from 'src/redis/redis.service';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
+import { ErrorMessages } from 'src/common/error-messages';
 
 @Injectable()
 export class UserService {
@@ -49,11 +50,11 @@ export class UserService {
   async findOneByLocalAuth(user_id: string, password: string) {
     const user = await this.userRepository.findByUserId(user_id);
     if (!user) {
-      throw new BadRequestException('존재하지 않는 아이디입니다');
+      throw new BadRequestException(ErrorMessages.USER.NOT_FOUND);
     }
     const compare = await bcrypt.compare(password, user.password);
     if (!compare) {
-      throw new BadRequestException('비밀번호가 일치하지 않습니다');
+      throw new BadRequestException(ErrorMessages.USER.INVALID_PASSWORD);
     }
     return user;
   }
@@ -140,14 +141,14 @@ export class UserService {
   ) {
     const user = await this.userRepository.findByUserId(createUserDto.id, tx);
     if (user) {
-      throw new BadRequestException('이미 존재하는 아이디입니다.');
+      throw new BadRequestException(ErrorMessages.USER.ALREADY_EXISTS);
     }
     const nickname = await this.userRepository.findByUserNickname(
       createUserDto.nickname,
       tx,
     );
     if (nickname) {
-      throw new BadRequestException('이미 존재하는 닉네임입니다.');
+      throw new BadRequestException(ErrorMessages.USER.NICKNAME_ALREADY_EXISTS);
     }
 
     const salt = await bcrypt.genSalt();
@@ -191,7 +192,7 @@ export class UserService {
       });
     } catch (error) {
       console.log(error);
-      throw new BadRequestException('User, Channel, Ivs 생성 트랜잭션 실패');
+      throw new BadRequestException(ErrorMessages.GENERIC.TRANSACTION_FAILED);
     }
   }
 
@@ -211,19 +212,19 @@ export class UserService {
       };
     }
     if (nickname.length < 1 || nickname.length > 10) {
-      throw new BadRequestException(
-        '닉네임은 1자리 이상 10자리 이하로 입력해주세요',
-      );
+      throw new BadRequestException(ErrorMessages.USER.INVALID_NICKNAME_LENGTH);
     }
 
-    let updatedUser;
+    let updatedUser: User;
     await this.prisma.$transaction(async (tx) => {
       const findedUser = await this.userRepository.findByUserNickname(
         nickname,
         tx,
       );
       if (findedUser) {
-        throw new BadRequestException('이미 존재하는 닉네임입니다');
+        throw new BadRequestException(
+          ErrorMessages.USER.NICKNAME_ALREADY_EXISTS,
+        );
       }
       updatedUser = await this.userRepository.updateNickname(
         user_idx,
@@ -253,15 +254,13 @@ export class UserService {
     const user = await this.userRepository.findByUserIdx(user_idx);
     const compare = await bcrypt.compare(password, user.password);
     if (!compare) {
-      throw new BadRequestException('비밀번호가 일치하지 않습니다');
+      throw new BadRequestException(ErrorMessages.USER.INVALID_PASSWORD);
     }
 
     const regex =
       /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!regex.test(new_password)) {
-      throw new BadRequestException(
-        '새 비밀번호는 8자리 이상 알파벳,숫자,특수문자 1개씩 이상이어야 합니다',
-      );
+      throw new BadRequestException(ErrorMessages.PASSWORD.INVALID_FORMAT);
     }
     const salt = await bcrypt.genSalt();
     const hash = await bcrypt.hash(new_password, salt);
@@ -385,27 +384,7 @@ export class UserService {
     const user = await this.userRepository.findByUserIdx(user_idx);
 
     try {
-      // 기존 프로필 이미지가 있는지 확인하고 있으면 삭제
-      if (user.profile_img) {
-        // URL에서 파일명 추출 (URL에 S3 버킷 경로가 포함되어 있다고 가정)
-        const profileUrl = user.profile_img;
-        const keyMatch = profileUrl.match(/profile\/.*$/);
-
-        if (keyMatch) {
-          const oldKey = keyMatch[0];
-          console.log(oldKey);
-          try {
-            // 원본 프로필 이미지와 리사이즈된 이미지 모두 삭제 시도
-            await this.awsService.deleteFromS3(oldKey);
-            console.log(`기존 프로필 이미지 삭제 완료: ${oldKey}`);
-          } catch (error) {
-            console.log(`기존 프로필 이미지 삭제 실패: ${error.message}`);
-            // 기존 파일 삭제 실패해도 계속 진행
-          }
-        }
-      }
-
-      // 이미지 리사이징 및 업로드 (원본 비율 유지, 최대 400px)
+      // 이미지 리사이징 (원본 비율 유지, 최대 400px)
       const buffer = await sharp(file.buffer)
         .resize(400, 400, {
           fit: 'inside',
@@ -414,11 +393,28 @@ export class UserService {
         .toFormat('jpeg')
         .toBuffer();
 
-      const resizedKey = `profile/${user.user_id}-${Date.now()}.jpg`;
-      await this.awsService.uploadToS3(resizedKey, buffer, 'image/jpeg');
+      // 새로운 네이밍 규칙: profile/{user_id}.jpg
+      const mainProfileKey = `profile/${user.user_id}.jpg`;
+
+      // timestamp 생성 (YYYYMMDD-HHMMSS 형식)
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace('T', '-')
+        .substring(0, 15);
+
+      const backupKey = `data/profile/${user.user_id}/${timestamp}.jpg`;
+
+      // 메인 프로필 이미지 업로드 (기존 이미지를 덮어씀)
+      await this.awsService.uploadToS3(mainProfileKey, buffer, 'image/jpeg');
+
+      // 백업용 이미지 업로드 (새 이미지를 백업 위치에 저장)
+      await this.awsService.uploadToS3(backupKey, buffer, 'image/jpeg');
+
+      console.log(`프로필 이미지 업로드 완료: ${mainProfileKey}, ${backupKey}`);
 
       // S3 버킷 베이스 URL 생성
-      const profileImageUrl = `${process.env.CDN_URL}/${resizedKey}`;
+      const profileImageUrl = `${process.env.CDN_URL}/${mainProfileKey}`;
 
       // DB의 사용자 프로필 이미지 URL 업데이트
       await this.userRepository.updateProfileImage(user_idx, profileImageUrl);

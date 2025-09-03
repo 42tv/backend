@@ -5,6 +5,7 @@ import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { KickViewerDto } from './dto/kick-viewer.dto';
+import { ErrorMessages } from 'src/common/error-messages';
 
 @Injectable()
 export class LiveService {
@@ -44,7 +45,7 @@ export class LiveService {
   async recommendLiveStream(recommender_idx: number, broadcaster_idx: number) {
     const broadCaster = await this.userService.findByUserIdx(broadcaster_idx);
     if (!broadCaster) {
-      throw new BadRequestException('존재하지 않는 방송자입니다.');
+      throw new BadRequestException(ErrorMessages.BROADCASTER.NOT_FOUND);
     }
     const recommender = await this.userService.findByUserIdx(recommender_idx);
     // 한국 시간 기준 오늘 날짜 생성 (YYYY-MM-DD 형식)
@@ -60,7 +61,9 @@ export class LiveService {
       today,
     );
     if (alreadyRecommended) {
-      throw new BadRequestException('오늘 이미 추천하셨습니다.');
+      throw new BadRequestException(
+        ErrorMessages.BROADCASTER.ALREADY_RECOMMENDED_TODAY,
+      );
     }
 
     // 추천 기록 저장
@@ -91,7 +94,7 @@ export class LiveService {
     const user = await this.userService.findByUserIdx(userIdx);
     const broadcaster = await this.userService.findByUserId(broadcasterId);
     if (!broadcaster) {
-      throw new BadRequestException('존재하지 않는 방송자입니다.');
+      throw new BadRequestException(ErrorMessages.BROADCASTER.NOT_FOUND);
     }
     // 사용자가 방송자의 매니저인지 확인
     const isManager = await this.managerService.isManager(
@@ -100,7 +103,7 @@ export class LiveService {
     );
     if (!isManager && user.idx !== broadcaster.idx) {
       throw new BadRequestException(
-        '해당 방송자의 시청자 목록을 조회할 권한이 없습니다.',
+        ErrorMessages.BROADCASTER.VIEWER_LIST_NO_PERMISSION,
       );
     }
 
@@ -124,7 +127,7 @@ export class LiveService {
     const broadcaster = await this.userService.findByUserId(broadcasterId);
 
     if (!broadcaster) {
-      throw new BadRequestException('존재하지 않는 방송자입니다.');
+      throw new BadRequestException(ErrorMessages.BROADCASTER.NOT_FOUND);
     }
 
     // 권한 검증: 방송자 본인이거나 매니저여야 함

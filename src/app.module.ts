@@ -26,6 +26,7 @@ import { StreamViewerModule } from './stream-viewer/stream-viewer.module';
 import { FanModule } from './fan/fan.module';
 import { BookmarkModule } from './bookmark/bookmark.module';
 import { BlacklistModule } from './blacklist/blacklist.module';
+import { ArticleModule } from './article/article.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { BlacklistModule } from './blacklist/blacklist.module';
     FanModule,
     BookmarkModule,
     BlacklistModule,
+    ArticleModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],
