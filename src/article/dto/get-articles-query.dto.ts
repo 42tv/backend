@@ -1,11 +1,16 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsPositive,
+  Max,
+  Min,
+  IsString,
+} from 'class-validator';
 
 export class GetArticlesQueryDto {
-  @Type(() => Number)
-  @IsInt({ message: 'userIdx는 유효한 숫자여야 합니다.' })
-  @IsPositive({ message: 'userIdx는 1 이상의 값이어야 합니다.' })
-  userIdx: number;
+  @IsString({ message: 'userId는 문자열이어야 합니다.' })
+  userId: string;
 
   @IsOptional()
   @Type(() => Number)

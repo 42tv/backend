@@ -73,11 +73,32 @@ export class ArticleService {
   }
 
   async getArticlesWithPagination(
-    userIdx: number,
+    userId: string,
     page?: number,
     offset?: number,
     limit = 5,
   ) {
+    // userId로 사용자 정보 조회
+    const user = await this.userService.findByUserId(userId);
+    if (!user) {
+      // 사용자를 찾지 못한 경우 빈 데이터 반환
+      return {
+        data: [],
+        pagination: {
+          total: 0,
+          currentPage: page || 1,
+          totalPages: 0,
+          limit,
+          offset: offset || 0,
+          hasNext: false,
+          hasPrev: false,
+          nextOffset: null,
+          prevOffset: null,
+        },
+      };
+    }
+
+    const userIdx = user.idx;
     // page가 주어진 경우 offset 계산
     const actualOffset = page ? (page - 1) * limit : offset || 0;
     const actualPage = page || Math.floor(actualOffset / limit) + 1;

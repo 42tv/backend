@@ -61,7 +61,7 @@ export class ArticleController {
     @Query(new ValidationPipe({ transform: true })) query: GetArticlesQueryDto,
   ) {
     return await this.articleService.getArticlesWithPagination(
-      query.userIdx,
+      query.userId,
       query.page,
       query.offset,
       query.limit || 5,
