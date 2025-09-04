@@ -1,7 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { StreamService } from 'src/stream/stream.service';
 import { ChannelRepository } from './channel.repository';
 import { UserService } from 'src/user/user.service';
 import { ArticleService } from 'src/article/article.service';
@@ -11,8 +9,6 @@ import { GetChannelResponseDto } from './dto/channel-response.dto';
 @Injectable()
 export class ChannelService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly streamService: StreamService,
     private readonly channelRepository: ChannelRepository,
     private readonly userService: UserService,
     private readonly articleService: ArticleService,
@@ -75,16 +71,38 @@ export class ChannelService {
         nickname: user.nickname,
         profileImg: user.profile_img,
       },
-      articles: articles?.data || [],
+      articles: articles || {
+        data: [],
+        pagination: this.getDefaultPagination(),
+      },
       fanLevel: fanLevel || [],
     };
   }
 
   private async getArticlesByUserId(user_id: string) {
     try {
-      return await this.articleService.getArticlesWithPagination(user_id, 1, 0, 5);
+      return await this.articleService.getArticlesWithPagination(
+        user_id,
+        1,
+        0,
+        5,
+      );
     } catch (error) {
-      return { data: [] };
+      return { data: [], pagination: this.getDefaultPagination() };
     }
+  }
+
+  private getDefaultPagination() {
+    return {
+      total: 0,
+      currentPage: 1,
+      totalPages: 0,
+      limit: 5,
+      offset: 0,
+      hasNext: false,
+      hasPrev: false,
+      nextOffset: null,
+      prevOffset: null,
+    };
   }
 }
