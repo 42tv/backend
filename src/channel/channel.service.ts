@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { StreamService } from 'src/stream/stream.service';
 import { ChannelRepository } from './channel.repository';
+import { UserService } from 'src/user/user.service';
+import { ArticleService } from 'src/article/article.service';
+import { FanLevelService } from 'src/fan-level/fan-level.service';
+import { GetChannelResponseDto } from './dto/channel-response.dto';
 
 @Injectable()
 export class ChannelService {
@@ -10,6 +14,9 @@ export class ChannelService {
     private readonly prisma: PrismaService,
     private readonly streamService: StreamService,
     private readonly channelRepository: ChannelRepository,
+    private readonly userService: UserService,
+    private readonly articleService: ArticleService,
+    private readonly fanLevelService: FanLevelService,
   ) {}
 
   /**
@@ -42,5 +49,42 @@ export class ChannelService {
    */
   async verifyPhone(user_idx: number) {
     console.log(user_idx);
+  }
+
+  /**
+   * 채널 정보 조회 (사용자 정보, 게시글, 팬레벨)
+   * @param user_id 사용자 ID
+   * @returns 채널 정보
+   */
+  async getChannelInfo(user_id: string): Promise<GetChannelResponseDto> {
+    const user = await this.userService.findByUserId(user_id);
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    const [articles, fanLevel] = await Promise.all([
+      this.getArticlesByUserId(user_id),
+      this.fanLevelService.findByUserIdx(user.idx),
+    ]);
+
+    return {
+      user: {
+        userIdx: user.idx,
+        userId: user.user_id,
+        nickname: user.nickname,
+        profileImg: user.profile_img,
+      },
+      articles: articles?.data || [],
+      fanLevel: fanLevel || [],
+    };
+  }
+
+  private async getArticlesByUserId(user_id: string) {
+    try {
+      return await this.articleService.getArticlesWithPagination(user_id, 1, 0, 5);
+    } catch (error) {
+      return { data: [] };
+    }
   }
 }
