@@ -24,5 +24,5 @@ export class GetArticlesQueryDto {
   @IsInt({ message: 'limit은 유효한 숫자여야 합니다.' })
   @Min(1, { message: 'limit은 1 이상의 값이어야 합니다.' })
   @Max(100, { message: 'limit은 100 이하의 값이어야 합니다.' })
-  limit?: number = 10;
+  limit?: number = 5;
 }

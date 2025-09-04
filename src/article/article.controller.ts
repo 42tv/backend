@@ -64,7 +64,7 @@ export class ArticleController {
       query.userIdx,
       query.page,
       query.offset,
-      query.limit || 10,
+      query.limit || 5,
     );
   }
 

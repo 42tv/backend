@@ -76,7 +76,7 @@ export class ArticleService {
     userIdx: number,
     page?: number,
     offset?: number,
-    limit = 10,
+    limit = 5,
   ) {
     // page가 주어진 경우 offset 계산
     const actualOffset = page ? (page - 1) * limit : offset || 0;
