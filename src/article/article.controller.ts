@@ -17,7 +17,6 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
 import { ArticleService } from './article.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
-import { GuestGuard } from 'src/auth/guard/jwt.guest.guard';
 import { GetArticlesQueryDto } from './dto/get-articles-query.dto';
 
 @Controller('article')
@@ -56,15 +55,14 @@ export class ArticleController {
   }
 
   @Get()
-  @UseGuards(GuestGuard)
   async getArticles(
     @Query(new ValidationPipe({ transform: true })) query: GetArticlesQueryDto,
   ) {
     return await this.articleService.getArticlesWithPagination(
-      query.userIdx,
+      query.userId,
       query.page,
       query.offset,
-      query.limit || 10,
+      query.limit || 5,
     );
   }
 
