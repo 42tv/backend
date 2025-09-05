@@ -41,6 +41,14 @@ export class ChannelRepository {
       where: {
         user_idx: user_idx,
       },
+      select: {
+        title: true,
+        bookmark: true,
+        recommend: true,
+        watch: true,
+        month_time: true,
+        total_time: true,
+      }
     });
   }
 }

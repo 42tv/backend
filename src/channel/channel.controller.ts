@@ -1,11 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { ChannelService } from './channel.service';
 import { GetChannelQueryDto } from './dto/channel-request.dto';
-import {
-  GetChannelResponseDto,
-  ChannelErrorResponseDto,
-} from './dto/channel-response.dto';
+import { GetChannelResponseDto } from './dto/channel-response.dto';
 
 @ApiTags('Channel')
 @Controller('channel')

@@ -32,6 +32,47 @@ export class ChannelUserDto {
 }
 
 /**
+ * 채널 정보 DTO
+ */
+export class ChannelInfoDto {
+  @ApiProperty({
+    description: '채널 제목',
+    example: 'user123 님의 채널',
+  })
+  title: string;
+
+  @ApiProperty({
+    description: '북마크 수',
+    example: 150,
+  })
+  bookmark: number;
+
+  @ApiProperty({
+    description: '추천 수',
+    example: 75,
+  })
+  recommend: number;
+
+  @ApiProperty({
+    description: '조회 수',
+    example: 1024,
+  })
+  watch: number;
+
+  @ApiProperty({
+    description: '이달 방송 시간 (분)',
+    example: 1200,
+  })
+  month_time: number;
+
+  @ApiProperty({
+    description: '총 방송 시간 (분)',
+    example: 15000,
+  })
+  total_time: number;
+}
+
+/**
  * 채널 조회 응답 DTO
  */
 export class GetChannelResponseDto {
@@ -40,6 +81,13 @@ export class GetChannelResponseDto {
     type: ChannelUserDto,
   })
   user: ChannelUserDto;
+
+  @ApiProperty({
+    description: '채널 정보',
+    type: ChannelInfoDto,
+    nullable: true,
+  })
+  channel: ChannelInfoDto | null;
 
   @ApiProperty({
     description: '게시글 목록 (페이지네이션 포함)',
