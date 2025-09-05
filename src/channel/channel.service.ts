@@ -71,10 +71,7 @@ export class ChannelService {
         nickname: user.nickname,
         profileImg: user.profile_img,
       },
-      articles: articles || {
-        data: [],
-        pagination: this.getDefaultPagination(),
-      },
+      articles: articles,
       fanLevel: fanLevel || [],
     };
   }
@@ -88,21 +85,20 @@ export class ChannelService {
         5,
       );
     } catch (error) {
-      return { data: [], pagination: this.getDefaultPagination() };
+      return {
+        data: [],
+        pagination: {
+          total: 0,
+          currentPage: 1,
+          totalPages: 0,
+          limit: 5,
+          offset: 0,
+          hasNext: false,
+          hasPrev: false,
+          nextOffset: null,
+          prevOffset: null,
+        },
+      };
     }
-  }
-
-  private getDefaultPagination() {
-    return {
-      total: 0,
-      currentPage: 1,
-      totalPages: 0,
-      limit: 5,
-      offset: 0,
-      hasNext: false,
-      hasPrev: false,
-      nextOffset: null,
-      prevOffset: null,
-    };
   }
 }

@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ArticleResponseDto } from 'src/article/dto/article-response.dto';
+import { FanLevelSimpleDto } from 'src/fan-level/dto/fan-level-simple.dto';
 
 /**
  * 사용자 정보 DTO (채널용)
@@ -30,85 +32,6 @@ export class ChannelUserDto {
 }
 
 /**
- * 페이지네이션 정보 DTO
- */
-export class PaginationDto {
-  @ApiProperty({
-    description: '전체 개수',
-    example: 100,
-  })
-  total: number;
-
-  @ApiProperty({
-    description: '현재 페이지',
-    example: 1,
-  })
-  currentPage: number;
-
-  @ApiProperty({
-    description: '전체 페이지 수',
-    example: 10,
-  })
-  totalPages: number;
-
-  @ApiProperty({
-    description: '페이지당 항목 수',
-    example: 10,
-  })
-  limit: number;
-
-  @ApiProperty({
-    description: '오프셋',
-    example: 0,
-  })
-  offset: number;
-
-  @ApiProperty({
-    description: '다음 페이지 존재 여부',
-    example: true,
-  })
-  hasNext: boolean;
-
-  @ApiProperty({
-    description: '이전 페이지 존재 여부',
-    example: false,
-  })
-  hasPrev: boolean;
-
-  @ApiProperty({
-    description: '다음 오프셋',
-    example: 10,
-    nullable: true,
-  })
-  nextOffset: number | null;
-
-  @ApiProperty({
-    description: '이전 오프셋',
-    example: null,
-    nullable: true,
-  })
-  prevOffset: number | null;
-}
-
-/**
- * 게시글 목록 DTO
- */
-export class ArticlesWithPaginationDto {
-  @ApiProperty({
-    description: '게시글 데이터',
-    type: 'array',
-    example: [],
-  })
-  data: any[];
-
-  @ApiProperty({
-    description: '페이지네이션 정보',
-    type: PaginationDto,
-  })
-  pagination: PaginationDto;
-}
-
-/**
  * 채널 조회 응답 DTO
  */
 export class GetChannelResponseDto {
@@ -120,16 +43,15 @@ export class GetChannelResponseDto {
 
   @ApiProperty({
     description: '게시글 목록 (페이지네이션 포함)',
-    type: ArticlesWithPaginationDto,
+    type: ArticleResponseDto,
   })
-  articles: ArticlesWithPaginationDto;
+  articles: ArticleResponseDto;
 
   @ApiProperty({
     description: '팬 레벨 목록',
-    type: 'array',
-    example: [],
+    type: [FanLevelSimpleDto],
   })
-  fanLevel: any[];
+  fanLevel: FanLevelSimpleDto[];
 }
 
 /**
