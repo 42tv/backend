@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, forwardRef, Inject } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ChannelRepository } from './channel.repository';
 import { UserService } from 'src/user/user.service';
@@ -10,7 +10,9 @@ import { GetChannelResponseDto } from './dto/channel-response.dto';
 export class ChannelService {
   constructor(
     private readonly channelRepository: ChannelRepository,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
+    @Inject(forwardRef(() => ArticleService))
     private readonly articleService: ArticleService,
     private readonly fanLevelService: FanLevelService,
   ) {}

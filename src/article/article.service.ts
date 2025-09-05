@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { ArticleRepository } from './article.repository';
 import { AwsService } from 'src/aws/aws.service';
@@ -14,6 +16,7 @@ export class ArticleService {
   constructor(
     private readonly articleRepository: ArticleRepository,
     private readonly awsService: AwsService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
   ) {}
 
