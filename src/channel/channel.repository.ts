@@ -48,7 +48,7 @@ export class ChannelRepository {
         watch: true,
         month_time: true,
         total_time: true,
-      }
+      },
     });
   }
 }
