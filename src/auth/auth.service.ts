@@ -144,6 +144,8 @@ export class AuthService {
         user_id: user.user_id,
         nickname: user.nickname,
         profile_img: user.profile_img,
+        is_guest: false,
+        is_admin: user.is_admin,
       },
     };
   }
