@@ -16,6 +16,7 @@ export class AdminGuard extends AuthGuard('jwt') implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
+    console.log('AdminGuard - user:', user);
 
     if (!user || !user.is_admin) {
       throw new UnauthorizedException('관리자 권한이 필요합니다.');

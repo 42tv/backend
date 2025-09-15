@@ -4,7 +4,11 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreatePolicyDto, UpdatePolicyDto } from './dto/policy-request.dto';
+import {
+  CreatePolicyDto,
+  UpdatePolicyDto,
+  VersionIncrementType,
+} from './dto/policy-request.dto';
 import {
   PolicyResponseDto,
   PolicyListResponseDto,
@@ -22,14 +26,24 @@ export class PolicyService {
   async createPolicy(
     createPolicyDto: CreatePolicyDto,
   ): Promise<PolicyResponseDto> {
-    const existingPolicy = await this.prisma.policy.findUnique({
+    const latestPolicy = await this.prisma.policy.findFirst({
       where: { page: createPolicyDto.page },
+      orderBy: { created_at: 'desc' },
     });
 
-    if (existingPolicy) {
-      throw new ConflictException(
-        `정책 페이지 '${createPolicyDto.page}'가 이미 존재합니다.`,
+    let newVersion: string;
+    if (latestPolicy) {
+      newVersion = this.incrementVersion(
+        latestPolicy.version,
+        createPolicyDto.versionIncrementType,
       );
+
+      await this.prisma.policy.updateMany({
+        where: { page: createPolicyDto.page },
+        data: { is_active: false },
+      });
+    } else {
+      newVersion = '1.0';
     }
 
     const policy = await this.prisma.policy.create({
@@ -37,12 +51,38 @@ export class PolicyService {
         page: createPolicyDto.page,
         title: createPolicyDto.title,
         content: createPolicyDto.content,
-        version: createPolicyDto.version,
+        version: newVersion,
         is_active: createPolicyDto.is_active ?? true,
       },
     });
 
     return policy;
+  }
+
+  private incrementVersion(
+    currentVersion: string,
+    incrementType: VersionIncrementType,
+  ): string {
+    const versionParts = currentVersion
+      .split('.')
+      .map((part) => parseFloat(part) || 0);
+    let major = versionParts[0] || 1;
+    let minor = versionParts[1] || 0;
+
+    switch (incrementType) {
+      case VersionIncrementType.MAJOR:
+        major += 1;
+        minor = 0;
+        break;
+      case VersionIncrementType.MINOR:
+        minor += 0.1;
+        break;
+      case VersionIncrementType.PATCH:
+        minor += 0.01;
+        break;
+    }
+
+    return `${major}.${minor.toFixed(2).replace(/\.?0+$/, '')}`;
   }
 
   async getAllPolicies(): Promise<PolicyListResponseDto> {
