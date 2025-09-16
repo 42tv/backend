@@ -391,7 +391,7 @@ model ArticleImage {
 // 정책 문서 테이블 - 개인정보처리방침, 이용약관 등
 model Policy {
   id              Int      @id @default(autoincrement())
-  page            String   @unique // privacy, terms, etc.
+  page            String   // privacy, terms, etc.
   title           String   // 정책 제목
   content         String   // 정책 내용
   version         String   // 버전

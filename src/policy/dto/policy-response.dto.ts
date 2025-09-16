@@ -33,3 +33,11 @@ export class PolicyListResponseDto {
   @ApiProperty({ description: '총 개수' })
   total: number;
 }
+
+export class PolicyCreateSuccessResponseDto {
+  @ApiProperty({ description: '성공 메시지' })
+  success: string;
+
+  @ApiProperty({ description: '생성된 정책 정보', type: PolicyResponseDto })
+  policy: PolicyResponseDto;
+}

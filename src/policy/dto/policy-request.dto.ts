@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsBoolean,
-  IsEnum,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum PolicyPageType {
@@ -15,9 +9,8 @@ export enum PolicyPageType {
 }
 
 export enum VersionIncrementType {
-  MAJOR = 'major', // 1.0 증가 (1.11 -> 2.0)
-  MINOR = 'minor', // 0.1 증가 (1.11 -> 1.2)
-  PATCH = 'patch', // 0.01 증가 (1.11 -> 1.12)
+  MAJOR = 'major', // 1.0 증가 (1.5 -> 2.0)
+  MINOR = 'minor', // 0.1 증가 (1.5 -> 1.6)
 }
 
 export class CreatePolicyDto {
@@ -40,33 +33,6 @@ export class CreatePolicyDto {
   @IsEnum(VersionIncrementType)
   @IsNotEmpty()
   versionIncrementType: VersionIncrementType;
-
-  @ApiProperty({ description: '활성화 여부', required: false, default: true })
-  @IsBoolean()
-  @IsOptional()
-  is_active?: boolean;
-}
-
-export class UpdatePolicyDto {
-  @ApiProperty({ description: '정책 제목', required: false })
-  @IsString()
-  @IsOptional()
-  title?: string;
-
-  @ApiProperty({ description: '정책 내용', required: false })
-  @IsString()
-  @IsOptional()
-  content?: string;
-
-  @ApiProperty({ description: '정책 버전', required: false })
-  @IsString()
-  @IsOptional()
-  version?: string;
-
-  @ApiProperty({ description: '활성화 여부', required: false })
-  @IsBoolean()
-  @IsOptional()
-  is_active?: boolean;
 }
 
 export class GetPolicyQueryDto {
