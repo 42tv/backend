@@ -5,6 +5,7 @@ export interface AuthenticatedUser {
   profile_img: string;
   oauth_provider: string;
   oauth_provider_id: string;
+  is_admin: boolean;
   created_at: Date;
   updated_at: Date;
 }

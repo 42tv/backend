@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, forwardRef, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ChannelRepository } from './channel.repository';
 import { UserService } from 'src/user/user.service';
@@ -61,9 +66,10 @@ export class ChannelService {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
 
-    const [articles, fanLevel] = await Promise.all([
+    const [articles, fanLevel, channel] = await Promise.all([
       this.getArticlesByUserId(user_id),
       this.fanLevelService.findByUserIdx(user.idx),
+      this.findChannelByUserIdx(user.idx),
     ]);
 
     return {
@@ -73,6 +79,7 @@ export class ChannelService {
         nickname: user.nickname,
         profileImg: user.profile_img,
       },
+      channel: channel || null,
       articles: articles,
       fanLevel: fanLevel || [],
     };

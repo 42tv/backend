@@ -139,6 +139,7 @@ export class AuthService {
     // 인증된 사용자 정보 반환
     return {
       is_guest: false,
+      is_admin: user.is_admin,
       user: {
         idx: user.idx,
         user_id: user.user_id,

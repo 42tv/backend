@@ -18,6 +18,7 @@ model User {
   profile_img         String      @default("")
   oauth_provider      String?
   oauth_provider_id   String?
+  is_admin            Boolean     @default(false)
   created_at          DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at          DateTime    @updatedAt()
   
@@ -66,6 +67,9 @@ model User {
 
   // Article relations
   articles   Article[] @relation("ArticleAuthor") // 내가 작성한 게시글들
+
+  // Policy Agreement relations
+  policyAgreements PolicyAgreement[] @relation("UserPolicyAgreements") // 내가 동의한 정책들
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -382,4 +386,36 @@ model ArticleImage {
   // Relations
   article_id      Int
   article         Article @relation(fields: [article_id], references: [id], onDelete: Cascade)
+}
+
+// 정책 문서 테이블 - 개인정보처리방침, 이용약관 등
+model Policy {
+  id              Int      @id @default(autoincrement())
+  page            String   // privacy, terms, etc.
+  title           String   // 정책 제목
+  content         String   // 정책 내용
+  version         String   // 버전
+  is_active       Boolean  @default(true) // 활성화 여부
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at      DateTime @updatedAt
+  
+  // Relations
+  agreements      PolicyAgreement[]
+}
+
+// 정책 동의 내역 테이블
+model PolicyAgreement {
+  id              Int      @id @default(autoincrement())
+  user_idx        Int      // 동의한 사용자
+  policy_id       Int      // 동의한 정책
+  policy_version  String   // 동의 당시 정책 버전
+  agreed_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  ip_address      String?  // 동의 시점의 IP 주소 (법적 증명용)
+  
+  // Relations
+  user            User     @relation("UserPolicyAgreements", fields: [user_idx], references: [idx], onDelete: Cascade)
+  policy          Policy   @relation(fields: [policy_id], references: [id], onDelete: Cascade)
+  
+  // 사용자는 같은 정책에 대해 여러 버전에 동의할 수 있지만, 같은 버전에는 한 번만 동의
+  @@unique([user_idx, policy_id, policy_version])
 }

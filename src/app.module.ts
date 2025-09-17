@@ -27,6 +27,7 @@ import { FanModule } from './fan/fan.module';
 import { BookmarkModule } from './bookmark/bookmark.module';
 import { BlacklistModule } from './blacklist/blacklist.module';
 import { ArticleModule } from './article/article.module';
+import { PolicyModule } from './policy/policy.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ArticleModule } from './article/article.module';
     BookmarkModule,
     BlacklistModule,
     ArticleModule,
+    PolicyModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],

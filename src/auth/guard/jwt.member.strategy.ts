@@ -26,10 +26,11 @@ export class MemberStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     return {
-      idx: payload.idx,
-      userId: payload.user_id,
-      nickname: payload.nickname,
+      idx: user.idx,
+      userId: user.user_id,
+      nickname: user.nickname,
       is_guest: payload.is_guest,
+      is_admin: user.is_admin,
     };
   }
 }
