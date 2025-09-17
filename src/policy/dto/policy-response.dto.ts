@@ -27,11 +27,18 @@ export class PolicyResponseDto {
 }
 
 export class PolicyListResponseDto {
-  @ApiProperty({ description: '정책 목록', type: [PolicyResponseDto] })
-  policies: PolicyResponseDto[];
+  @ApiProperty({ description: '성공 여부' })
+  success: boolean;
 
-  @ApiProperty({ description: '총 개수' })
-  total: number;
+  @ApiProperty({ description: '응답 메시지' })
+  message: string;
+
+  @ApiProperty({
+    description: '정책 목록',
+    type: [PolicyResponseDto],
+    required: false,
+  })
+  data?: PolicyResponseDto[];
 }
 
 export class PolicyCreateSuccessResponseDto {

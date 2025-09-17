@@ -87,8 +87,9 @@ export class PolicyService {
     });
 
     return {
-      policies,
-      total: policies.length,
+      success: true,
+      message: '정책 목록 조회 성공',
+      data: policies,
     };
   }
 
