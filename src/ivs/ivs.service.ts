@@ -49,7 +49,6 @@ export class IvsService {
     });
   }
 
-
   /**
    * IVS채널 생성 요청
    * @param channelName
@@ -88,18 +87,23 @@ export class IvsService {
 
   /**
    * createUser에서 사용하는 IVS 채널 생성
-   * @param channel_idx
+   * @param user_id
    * @param tx
    * @returns
    */
   async createIvs(user_id: string, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
-    const response = await this.requestCreateIvs(user_id);
-    console.log(response);
-    const channelId = response.channel.arn.split('/')[1];
-    // 채널명은 idx로 설정
+    let awsChannelArn: string | null = null;
+
     try {
-      return await prismaClient.iVSChannel.create({
+      // 1. AWS IVS 채널 생성
+      const response = await this.requestCreateIvs(user_id);
+      awsChannelArn = response.channel.arn;
+      console.log(response);
+      const channelId = response.channel.arn.split('/')[1];
+
+      // 2. DB에 저장
+      const result = await prismaClient.iVSChannel.create({
         data: {
           arn: response.channel.arn,
           ingest_endpoint: 'rtmps://' + response.channel.ingestEndpoint,
@@ -117,8 +121,20 @@ export class IvsService {
           },
         },
       });
-    } catch (e) {
-      await this.requestDeleteIvs(response.channel.arn);
+
+      return result;
+    } catch (error) {
+      // 3. DB 저장 실패 시 AWS 채널 정리
+      if (awsChannelArn) {
+        try {
+          await this.requestDeleteIvs(awsChannelArn);
+        } catch (deleteError) {
+          this.logger.error('AWS IVS 채널 정리 실패', deleteError);
+        }
+      }
+
+      // 4. 원본 에러를 다시 throw
+      throw error;
     }
   }
 

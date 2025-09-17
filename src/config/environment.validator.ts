@@ -44,11 +44,15 @@ export class EnvironmentValidator {
     if (missingEnvVars.length > 0) {
       const errorMessage = `다음 필수 환경변수가 설정되지 않았습니다: ${missingEnvVars.join(', ')}`;
       this.logger.error(errorMessage);
-      this.logger.error('애플리케이션을 시작할 수 없습니다. .env 파일을 확인해주세요.');
+      this.logger.error(
+        '애플리케이션을 시작할 수 없습니다. .env 파일을 확인해주세요.',
+      );
       throw new Error(errorMessage);
     }
 
-    this.logger.log(`모든 필수 환경변수가 설정되었습니다. (총 ${requiredEnvVars.length}개)`);
+    this.logger.log(
+      `모든 필수 환경변수가 설정되었습니다. (총 ${requiredEnvVars.length}개)`,
+    );
   }
 
   /**
