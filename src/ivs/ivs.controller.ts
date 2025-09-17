@@ -6,10 +6,12 @@ import {
   UseGuards,
   Body,
   Delete,
+  Logger,
 } from '@nestjs/common';
 import { IvsService } from './ivs.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { User } from 'src/user/entities/user.entity';
+import { WebhookGuard } from './guards/webhook.guard';
 import {
   ApiBearerAuth,
   ApiInternalServerErrorResponse,
@@ -26,6 +28,8 @@ import { IvsEventDto } from './dto/ivs-request.dto';
 @ApiTags('ivs')
 @Controller('ivs')
 export class IvsController {
+  private readonly logger = new Logger(IvsController.name);
+
   constructor(private readonly ivsService: IvsService) {}
 
   @Post('stream-key')
@@ -69,6 +73,7 @@ export class IvsController {
   }
 
   @Post('callback/lambda')
+  @UseGuards(WebhookGuard)
   @ApiOperation({ summary: 'IVS 콜백 람다' })
   @ApiBody({ type: IvsEventDto })
   @ApiResponse({
@@ -81,12 +86,27 @@ export class IvsController {
       },
     },
   })
-  async ivsLambdaCallback(@Body() ivsEvnet: IvsEventDto) {
-    console.log(ivsEvnet);
-    await this.ivsService.handleCallbackStreamEvent(ivsEvnet);
-    return {
-      message: 'success',
-    };
+  async ivsLambdaCallback(@Body() ivsEvent: IvsEventDto) {
+    const startTime = Date.now();
+
+    // 보안 로깅
+    this.logger.log(
+      `웹훅 수신: ${ivsEvent.eventName} for ${ivsEvent.channelName}`,
+    );
+
+    try {
+      // 기존 로직 실행
+      console.log(ivsEvent);
+      await this.ivsService.handleCallbackStreamEvent(ivsEvent);
+
+      this.logger.log(`웹훅 처리 완료: ${Date.now() - startTime}ms`);
+      return {
+        message: 'success',
+      };
+    } catch (error) {
+      this.logger.error(`웹훅 처리 실패: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   @Post('callback/test')
