@@ -49,6 +49,7 @@ export class IvsService {
     });
   }
 
+
   /**
    * IVS채널 생성 요청
    * @param channelName
@@ -196,8 +197,8 @@ export class IvsService {
       const response = await this.client.send(command);
       return response;
     } catch (error) {
+      this.logger.error('AWS streamKey 생성 실패', error);
       throw new InternalServerErrorException('AWS의 streamKey 생성 실패');
-      throw error;
     }
   }
 
