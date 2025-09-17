@@ -25,7 +25,7 @@ export class EnvironmentValidator {
       'AWS_SECRET_ACCESS_KEY',
       'AWS_S3_BUCKET',
       'AWS_IVS_RECORDING_CONFIG_ARN',
-      'AWS_WEBHOOK_SECRET_TOKEN',
+      'AWS_WEBHOOK_TOKEN',
 
       // CDN 및 URL
       'CDN_URL',
