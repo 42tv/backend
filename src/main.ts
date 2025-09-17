@@ -4,8 +4,12 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ExceptionfilterFormat } from './middle-ware/exception-filter';
 import { GraylogService } from 'nestjs-graylog';
 import * as cookieParser from 'cookie-parser';
+import { EnvironmentValidator } from './config/environment.validator';
 
 async function bootstrap() {
+  // 환경변수 검증 (애플리케이션 시작 전)
+  EnvironmentValidator.validateRequiredEnvironmentVariables();
+
   // HTTP 애플리케이션 생성
   const app = await NestFactory.create(AppModule);
   const graylogService = app.get(GraylogService);
