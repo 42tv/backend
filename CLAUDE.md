@@ -34,6 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 데모 지향성
 - API, WebSocket, 외부 도구 연동, 멀티 요청 처리 등 주요 기능을 빠르게 시연 가능하도록 구조를 설계합니다.
 - 데이터 시딩, 모의 서비스(Mock Service), Swagger/Redoc 기반 문서화로 빠른 프로토타입 제작을 지원합니다.
+- 하지만 Swagger 코드는 당분간 작성하지 않습니다.
 - 스트리밍 API, 이벤트 기반 처리, 확장 가능한 모듈 구조를 갖춥니다.
 
 ### 품질 보장
