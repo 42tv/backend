@@ -70,6 +70,9 @@ model User {
 
   // Policy Agreement relations
   policyAgreements PolicyAgreement[] @relation("UserPolicyAgreements") // 내가 동의한 정책들
+
+  // Payment relations (1단계: 결제 시스템)
+  paymentTransactions PaymentTransaction[]
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -411,11 +414,74 @@ model PolicyAgreement {
   policy_version  String   // 동의 당시 정책 버전
   agreed_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   ip_address      String?  // 동의 시점의 IP 주소 (법적 증명용)
-  
+
   // Relations
   user            User     @relation("UserPolicyAgreements", fields: [user_idx], references: [idx], onDelete: Cascade)
   policy          Policy   @relation(fields: [policy_id], references: [id], onDelete: Cascade)
-  
+
   // 사용자는 같은 정책에 대해 여러 버전에 동의할 수 있지만, 같은 버전에는 한 번만 동의
   @@unique([user_idx, policy_id, policy_version])
+}
+
+// 상품 테이블 (1단계: 기본 상품 시스템)
+model Product {
+  id              Int       @id @default(autoincrement())
+
+  // 상품 정보
+  name            String    // "100 코인"
+  description     String?   // 상품 설명
+  base_coins      Int       // 기본 코인량
+  bonus_coins     Int       @default(0) // 보너스 코인량
+  total_coins     Int       // 실제 지급될 총 코인량 (base_coins + bonus_coins)
+  price           Int       // 가격 (원)
+
+  // 상태
+  is_active       Boolean   @default(true)
+  sort_order      Int       @default(0)
+
+  created_at      DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at      DateTime  @updatedAt
+
+  @@map("products")
+}
+
+// 결제 거래 내역 테이블 (1단계: 법적 증빙 핵심)
+model PaymentTransaction {
+  id                String    @id @default(cuid())
+  user_idx          Int?      // 결제자 (5년 보관 위해 nullable)
+
+  // PG사 결제 정보 (법적 증빙 필수)
+  pg_provider       String    // "inicis", "toss", "kakaopay"
+  pg_transaction_id String    @unique // PG사 거래 고유번호
+  payment_method    String    // "card", "bank_transfer", "mobile"
+
+  // 결제 금액
+  amount            Int       // 결제 금액 (원 단위)
+  currency          String    @default("KRW")
+
+  // 상태 및 시간
+  status            PaymentTransactionStatus @default(PENDING)
+  requested_at      DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  approved_at       DateTime?
+  canceled_at       DateTime?
+
+  // PG사 응답 원본 (감사용)
+  pg_response       Json?
+
+  // 5년 보관 의무
+  deleted_user_snapshot Json?
+  user_deleted_at   DateTime?
+  should_delete_at  DateTime? // 5년 후 삭제
+
+  // Relations
+  user              User?     @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+
+  @@map("payment_transactions")
+}
+
+enum PaymentTransactionStatus {
+  PENDING   // 결제 진행중
+  SUCCESS   // 결제 성공
+  FAILED    // 결제 실패
+  CANCELED  // 결제 취소
 }
