@@ -77,6 +77,10 @@ model User {
   // Coin Topup relations (2단계: 충전 시스템)
   coinTopups         CoinTopup[]
   walletBalance      WalletBalance? // 1:1 관계 (사용자당 하나의 지갑)
+
+  // Donation relations (3단계: 후원 시스템)
+  sentDonations      Donation[] @relation("SentDonations")
+  receivedDonations  Donation[] @relation("ReceivedDonations")
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -186,6 +190,9 @@ model Stream {
 
   // Stream viewers relation
   // viewers         StreamViewer[]
+
+  // Donation relations (3단계: 후원 시스템)
+  donations       Donation[]
 }
 
 // 시청자 정보 테이블 - 스트림 시청 정보 관리
@@ -523,6 +530,7 @@ model CoinTopup {
   transaction     PaymentTransaction @relation(fields: [transaction_id], references: [id])
   user            User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
   product         Product @relation(fields: [product_id], references: [id])
+  usages          CoinUsage[] // 이 충전분의 사용 내역
 
   @@map("coin_topups")
 }
@@ -544,4 +552,54 @@ model WalletBalance {
   user          User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("wallet_balances")
+}
+
+// 후원 내역 테이블 (3단계: 실제 사용)
+model Donation {
+  id            String    @id @default(cuid())
+  donor_idx     Int?      // 후원자 (5년 보관 위해 nullable)
+  streamer_idx  Int?      // 스트리머 (5년 보관 위해 nullable)
+
+  // 후원 정보 (코인으로 통일)
+  coin_amount   Int       // 후원한 코인량
+  coin_value    Int       // 코인의 원화 가치 (1코인=1원 또는 충전 시점 기준)
+
+  // 메시지
+  message       String?   // 후원 메시지
+
+  // 방송/스트림 정보 (선택적)
+  stream_idx    Int?      // 어떤 방송에서의 후원인지
+
+  // 시간
+  donated_at    DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // 5년 보관 의무
+  deleted_donor_snapshot    Json?     // 후원자 삭제 시
+  deleted_streamer_snapshot Json?     // 스트리머 삭제 시
+  donor_deleted_at          DateTime?
+  streamer_deleted_at       DateTime?
+  should_delete_at          DateTime? // 5년 후 삭제
+
+  // Relations
+  donor         User?       @relation("SentDonations", fields: [donor_idx], references: [idx], onDelete: SetNull)
+  streamer      User?       @relation("ReceivedDonations", fields: [streamer_idx], references: [idx], onDelete: SetNull)
+  stream        Stream?     @relation(fields: [stream_idx], references: [idx])
+  usages        CoinUsage[] // 어떤 충전분에서 차감되었는지
+
+  @@map("donations")
+}
+
+// 코인 사용 내역 테이블 (3단계: FIFO 추적)
+model CoinUsage {
+  id            Int         @id @default(autoincrement())
+  topup_id      String      // 충전 ID
+  donation_id   String      // 후원 ID
+  used_coins    Int         // 사용된 코인량
+  used_at       DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // Relations
+  topup         CoinTopup   @relation(fields: [topup_id], references: [id])
+  donation      Donation    @relation(fields: [donation_id], references: [id])
+
+  @@map("coin_usages")
 }
