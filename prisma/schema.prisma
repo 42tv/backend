@@ -73,6 +73,10 @@ model User {
 
   // Payment relations (1단계: 결제 시스템)
   paymentTransactions PaymentTransaction[]
+
+  // Coin Topup relations (2단계: 충전 시스템)
+  coinTopups         CoinTopup[]
+  walletBalance      WalletBalance? // 1:1 관계 (사용자당 하나의 지갑)
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -442,6 +446,9 @@ model Product {
   created_at      DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at      DateTime  @updatedAt
 
+  // Relations
+  topups          CoinTopup[]
+
   @@map("products")
 }
 
@@ -475,6 +482,7 @@ model PaymentTransaction {
 
   // Relations
   user              User?     @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  topups            CoinTopup[]
 
   @@map("payment_transactions")
 }
@@ -484,4 +492,56 @@ enum PaymentTransactionStatus {
   SUCCESS   // 결제 성공
   FAILED    // 결제 실패
   CANCELED  // 결제 취소
+}
+
+// 코인 충전 내역 테이블 (2단계: 결제와 지갑 연결)
+model CoinTopup {
+  id              String    @id @default(cuid())
+  transaction_id  String    // 결제 거래 ID
+  user_idx        Int?      // 충전자 (5년 보관 위해 nullable)
+
+  // 상품 정보 (충전 시점 스냅샷)
+  product_id      Int       // 구매한 상품
+
+  // 충전 정보 (시점 고정 - 나중에 상품 정보가 변경되어도 보존)
+  product_name    String    // 상품명 스냅샷
+  base_coins      Int       // 기본 코인량
+  bonus_coins     Int       @default(0) // 보너스 코인량
+  total_coins     Int       // 실제 지급된 총 코인량
+  paid_amount     Int       // 실제 결제 금액
+  coin_unit_price Float     // 코인당 가격
+
+  // 상태 및 시간
+  status          TopupStatus @default(PENDING)
+  topped_up_at    DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // 5년 보관 의무
+  deleted_user_snapshot Json?
+  user_deleted_at DateTime?
+
+  // Relations
+  transaction     PaymentTransaction @relation(fields: [transaction_id], references: [id])
+  user            User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  product         Product @relation(fields: [product_id], references: [id])
+
+  @@map("coin_topups")
+}
+
+enum TopupStatus {
+  PENDING     // 충전 대기
+  COMPLETED   // 충전 완료
+  FAILED      // 충전 실패
+  REFUNDED    // 환불됨
+}
+
+// 지갑 잔액 테이블 (2단계: 편의성)
+model WalletBalance {
+  user_idx      Int       @id // 사용자 (Primary Key)
+  coin_balance  Int       @default(0) // 현재 코인 잔액
+  updated_at    DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+
+  @@map("wallet_balances")
 }
