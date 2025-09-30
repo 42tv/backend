@@ -31,9 +31,6 @@ model User {
   coin                Coin?
   
   streams        Stream? @relation("StreamData")
-  // Gift relations
-  sentGifts      Gift[] @relation("GiftSender")
-  receivedGifts  Gift[] @relation("GiftRecipient")
 
   // Posts relations
   sentPosts      Posts[] @relation("SentPosts")
@@ -190,9 +187,6 @@ model Stream {
 
   // Stream viewers relation
   // viewers         StreamViewer[]
-
-  // Donation relations (3단계: 후원 시스템)
-  donations       Donation[]
 }
 
 // 시청자 정보 테이블 - 스트림 시청 정보 관리
@@ -257,20 +251,6 @@ model Coin {
   user            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 }
 
-// 선물(후원) 기록 테이블 - 사용자 간 코인 선물 기록
-model Gift {
-  id              Int      @id @default(autoincrement())
-  sender_idx      Int      // 선물을 보낸 사용자
-  recipient_idx   Int      // 선물을 받은 사용자
-  amount          Int      // 선물한 코인 양
-  message         String?  // 선물과 함께 보낸 메시지
-  stream_idx      Int?     // 연결된 스트림 (선물이 특정 스트림에서 이루어진 경우)
-  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  
-  // Relations
-  sender          User     @relation("GiftSender", fields: [sender_idx], references: [idx])
-  recipient       User     @relation("GiftRecipient", fields: [recipient_idx], references: [idx])
-}
 
 
 // 팬 관계 테이블 - 사용자간 팬 관계 관리
@@ -567,9 +547,6 @@ model Donation {
   // 메시지
   message       String?   // 후원 메시지
 
-  // 방송/스트림 정보 (선택적)
-  stream_idx    Int?      // 어떤 방송에서의 후원인지
-
   // 시간
   donated_at    DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
 
@@ -583,7 +560,6 @@ model Donation {
   // Relations
   donor         User?       @relation("SentDonations", fields: [donor_idx], references: [idx], onDelete: SetNull)
   streamer      User?       @relation("ReceivedDonations", fields: [streamer_idx], references: [idx], onDelete: SetNull)
-  stream        Stream?     @relation(fields: [stream_idx], references: [idx])
   usages        CoinUsage[] // 어떤 충전분에서 차감되었는지
 
   @@map("donations")
@@ -592,14 +568,18 @@ model Donation {
 // 코인 사용 내역 테이블 (3단계: FIFO 추적)
 model CoinUsage {
   id            Int         @id @default(autoincrement())
-  topup_id      String      // 충전 ID
-  donation_id   String      // 후원 ID
+  topup_id      String      // 충전 ID (어떤 충전분에서 차감되었는지)
+  donation_id   String?     // 후원 ID (후원으로 사용된 경우)
+
+  // 사용 정보
   used_coins    Int         // 사용된 코인량
+
+  // 시간
   used_at       DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
 
   // Relations
   topup         CoinTopup   @relation(fields: [topup_id], references: [id])
-  donation      Donation    @relation(fields: [donation_id], references: [id])
+  donation      Donation?   @relation(fields: [donation_id], references: [id])
 
   @@map("coin_usages")
 }

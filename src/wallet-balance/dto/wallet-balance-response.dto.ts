@@ -1,7 +1,6 @@
 export class WalletBalanceResponseDto {
   user_idx: number;
-  balance: number;
-  created_at: Date;
+  coin_balance: number;
   updated_at: Date;
 }
 

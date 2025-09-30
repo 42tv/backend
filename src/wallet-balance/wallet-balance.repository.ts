@@ -29,7 +29,7 @@ export class WalletBalanceRepository {
     return await prismaClient.walletBalance.create({
       data: {
         user_idx,
-        balance: 0,
+        coin_balance: 0,
       },
     });
   }
@@ -50,7 +50,7 @@ export class WalletBalanceRepository {
 
     return await prismaClient.walletBalance.update({
       where: { user_idx },
-      data: { balance },
+      data: { coin_balance: balance },
     });
   }
 
@@ -71,7 +71,7 @@ export class WalletBalanceRepository {
     return await prismaClient.walletBalance.update({
       where: { user_idx },
       data: {
-        balance: {
+        coin_balance: {
           increment: amount,
         },
       },
@@ -95,7 +95,7 @@ export class WalletBalanceRepository {
     return await prismaClient.walletBalance.update({
       where: { user_idx },
       data: {
-        balance: {
+        coin_balance: {
           decrement: amount,
         },
       },
@@ -123,10 +123,10 @@ export class WalletBalanceRepository {
   async getWalletStats() {
     const result = await this.prisma.walletBalance.aggregate({
       _sum: {
-        balance: true,
+        coin_balance: true,
       },
       _avg: {
-        balance: true,
+        coin_balance: true,
       },
       _count: {
         user_idx: true,
@@ -135,8 +135,8 @@ export class WalletBalanceRepository {
 
     return {
       total_users: result._count.user_idx || 0,
-      total_balance: result._sum.balance || 0,
-      average_balance: result._avg.balance || 0,
+      total_balance: result._sum.coin_balance || 0,
+      average_balance: result._avg.coin_balance || 0,
     };
   }
 }

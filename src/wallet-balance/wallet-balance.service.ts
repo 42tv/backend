@@ -91,7 +91,7 @@ export class WalletBalanceService {
       throw new NotFoundException('지갑 정보를 찾을 수 없습니다.');
     }
 
-    if (walletBalance.balance < amount) {
+    if (walletBalance.coin_balance < amount) {
       throw new BadRequestException('잔액이 부족합니다.');
     }
 
@@ -121,7 +121,7 @@ export class WalletBalanceService {
       throw new NotFoundException('지갑 정보를 찾을 수 없습니다.');
     }
 
-    if (walletBalance.balance < amount) {
+    if (walletBalance.coin_balance < amount) {
       throw new BadRequestException('환불할 수 있는 잔액이 부족합니다.');
     }
 

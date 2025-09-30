@@ -6,6 +6,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProductModule } from '../product/product.module';
 import { PaymentModule } from '../payment/payment.module';
 import { WalletBalanceModule } from '../wallet-balance/wallet-balance.module';
+import { CoinUsageModule } from '../coin-usage/coin-usage.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { WalletBalanceModule } from '../wallet-balance/wallet-balance.module';
     ProductModule,
     forwardRef(() => PaymentModule),
     WalletBalanceModule,
+    forwardRef(() => CoinUsageModule),
   ],
   controllers: [CoinTopupController],
   providers: [CoinTopupRepository, CoinTopupService],

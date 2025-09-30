@@ -8,6 +8,7 @@ import { ProcessTopupDto } from './dto/create-coin-topup.dto';
 import { ProductService } from '../product/product.service';
 import { PaymentTransactionService } from '../payment/payment-transaction.service';
 import { WalletBalanceService } from '../wallet-balance/wallet-balance.service';
+import { CoinUsageService } from '../coin-usage/coin-usage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TopupStatus, PaymentTransactionStatus } from '@prisma/client';
 
@@ -18,6 +19,7 @@ export class CoinTopupService {
     private readonly productService: ProductService,
     private readonly paymentTransactionService: PaymentTransactionService,
     private readonly walletBalanceService: WalletBalanceService,
+    private readonly coinUsageService: CoinUsageService,
     private readonly prismaService: PrismaService,
   ) {}
 
@@ -174,8 +176,15 @@ export class CoinTopupService {
         throw new BadRequestException('완료된 충전만 환불할 수 있습니다.');
       }
 
-      // TODO: 사용된 코인이 있는지 확인 (CoinUsage 테이블 체크)
-      // 사용된 코인이 있으면 환불 불가
+      // 사용된 코인이 있는지 확인 (CoinUsage 테이블 체크)
+      const usedCoins =
+        await this.coinUsageService.getUsedCoinsFromTopup(topup_id);
+
+      if (usedCoins > 0) {
+        throw new BadRequestException(
+          `이미 ${usedCoins}개의 코인이 사용되어 환불할 수 없습니다.`,
+        );
+      }
 
       // 환불 상태로 업데이트
       await this.coinTopupRepository.updateStatus(
