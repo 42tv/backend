@@ -99,11 +99,16 @@ export class ProductRepository {
     const updateData: any = { ...updateProductDto };
 
     // base_coins나 bonus_coins가 변경되면 total_coins도 재계산
-    if (updateProductDto.base_coins !== undefined || updateProductDto.bonus_coins !== undefined) {
+    if (
+      updateProductDto.base_coins !== undefined ||
+      updateProductDto.bonus_coins !== undefined
+    ) {
       const currentProduct = await this.findById(id);
       if (currentProduct) {
-        const base_coins = updateProductDto.base_coins ?? currentProduct.base_coins;
-        const bonus_coins = updateProductDto.bonus_coins ?? currentProduct.bonus_coins;
+        const base_coins =
+          updateProductDto.base_coins ?? currentProduct.base_coins;
+        const bonus_coins =
+          updateProductDto.bonus_coins ?? currentProduct.bonus_coins;
         updateData.total_coins = base_coins + bonus_coins;
       }
     }

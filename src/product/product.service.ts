@@ -18,7 +18,9 @@ export class ProductService {
    */
   async create(createProductDto: CreateProductDto) {
     // 상품명 중복 체크
-    const existingProduct = await this.productRepository.findByName(createProductDto.name);
+    const existingProduct = await this.productRepository.findByName(
+      createProductDto.name,
+    );
     if (existingProduct && existingProduct.is_active) {
       throw new BadRequestException('이미 존재하는 상품명입니다.');
     }
@@ -81,9 +83,18 @@ export class ProductService {
     const existingProduct = await this.findById(id);
 
     // 상품명 중복 체크 (다른 상품과 중복되는지)
-    if (updateProductDto.name && updateProductDto.name !== existingProduct.name) {
-      const duplicateProduct = await this.productRepository.findByName(updateProductDto.name);
-      if (duplicateProduct && duplicateProduct.id !== id && duplicateProduct.is_active) {
+    if (
+      updateProductDto.name &&
+      updateProductDto.name !== existingProduct.name
+    ) {
+      const duplicateProduct = await this.productRepository.findByName(
+        updateProductDto.name,
+      );
+      if (
+        duplicateProduct &&
+        duplicateProduct.id !== id &&
+        duplicateProduct.is_active
+      ) {
         throw new BadRequestException('이미 존재하는 상품명입니다.');
       }
     }
