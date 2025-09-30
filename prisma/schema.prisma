@@ -421,6 +421,7 @@ model Product {
   // 상품 정보
   name            String    // "100 코인"
   description     String?   // 상품 설명
+  image_url       String?   // 상품 이미지 URL
   base_coins      Int       // 기본 코인량
   bonus_coins     Int       @default(0) // 보너스 코인량
   total_coins     Int       // 실제 지급될 총 코인량 (base_coins + bonus_coins)
