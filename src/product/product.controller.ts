@@ -10,6 +10,8 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
@@ -24,6 +26,7 @@ export class ProductController {
 
   @Post()
   @UseGuards(AdminGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
   @UseInterceptors(
     FileInterceptor('image', {
       storage: multer.memoryStorage(),

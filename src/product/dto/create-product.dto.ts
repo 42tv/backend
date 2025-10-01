@@ -6,6 +6,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateProductDto {
@@ -29,6 +30,7 @@ export class CreateProductDto {
     example: 100,
     minimum: 1,
   })
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   base_coins: number;
@@ -39,6 +41,7 @@ export class CreateProductDto {
     minimum: 0,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   bonus_coins?: number;
@@ -49,6 +52,7 @@ export class CreateProductDto {
     minimum: 1,
     maximum: 1000000,
   })
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   @Max(1000000)
@@ -59,6 +63,11 @@ export class CreateProductDto {
     example: true,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   is_active?: boolean;
 
@@ -68,6 +77,7 @@ export class CreateProductDto {
     minimum: 0,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   sort_order?: number;
