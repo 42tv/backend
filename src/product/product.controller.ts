@@ -60,11 +60,21 @@ export class ProductController {
 
   @Patch(':id')
   @UseGuards(AdminGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 1024 * 1024 * 5, // 5MB
+      },
+    }),
+  )
   update(
     @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
     @Body() updateProductDto: UpdateProductDto,
   ) {
-    return this.productService.update(id, updateProductDto);
+    return this.productService.updateWithImage(id, updateProductDto, file);
   }
 
   @Patch(':id/activate')
@@ -81,7 +91,7 @@ export class ProductController {
 
   @Delete(':id')
   @UseGuards(AdminGuard)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.productService.remove(id);
+  delete(@Param('id', ParseIntPipe) id: number) {
+    return this.productService.delete(id);
   }
 }

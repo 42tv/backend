@@ -210,6 +210,95 @@ export class ProductService {
   }
 
   /**
+   * 이미지를 포함한 상품 수정
+   * @param id 상품 ID
+   * @param updateProductDto 수정 데이터
+   * @param file 업로드할 이미지 파일 (선택사항)
+   * @returns 수정된 상품
+   */
+  async updateWithImage(
+    id: number,
+    updateProductDto: UpdateProductDto,
+    file?: Express.Multer.File,
+  ) {
+    const existingProduct = await this.findById(id);
+    let imageUrl = existingProduct.image_url;
+    let s3Key: string | undefined;
+    let oldS3Key: string | undefined;
+
+    try {
+      // 1. 새 이미지가 있으면 먼저 S3에 업로드
+      if (file) {
+        const uploadResult = await this.uploadImageToS3(file);
+        imageUrl = uploadResult.imageUrl;
+        s3Key = uploadResult.s3Key;
+
+        // 기존 이미지가 S3에 있으면 나중에 삭제하기 위해 키 추출
+        if (existingProduct.image_url) {
+          const cdnUrl = process.env.CDN_URL || '';
+          oldS3Key = existingProduct.image_url.replace(`${cdnUrl}/`, '');
+        }
+      }
+
+      // 2. 상품명 중복 체크 (다른 상품과 중복되는지)
+      if (
+        updateProductDto.name &&
+        updateProductDto.name !== existingProduct.name
+      ) {
+        const duplicateProduct = await this.productRepository.findByName(
+          updateProductDto.name,
+        );
+        if (
+          duplicateProduct &&
+          duplicateProduct.id !== id &&
+          duplicateProduct.is_active
+        ) {
+          // 중복 발견 시 업로드한 새 이미지 삭제 (롤백)
+          if (s3Key) {
+            await this.awsService.deleteFromS3(s3Key);
+          }
+          throw new BadRequestException('이미 존재하는 상품명입니다.');
+        }
+      }
+
+      // 3. 상품 수정 (이미지 URL 포함)
+      const productData = {
+        ...updateProductDto,
+        image_url: imageUrl,
+      };
+
+      const updatedProduct = await this.productRepository.update(
+        id,
+        productData,
+      );
+
+      // 4. 수정 성공 후 기존 이미지 삭제 (새 이미지가 업로드된 경우)
+      if (oldS3Key && s3Key) {
+        try {
+          await this.awsService.deleteFromS3(oldS3Key);
+          console.log(`기존 이미지 삭제 완료: ${oldS3Key}`);
+        } catch (deleteError) {
+          console.error('기존 이미지 삭제 실패:', deleteError);
+          // 기존 이미지 삭제 실패는 무시 (수정은 성공했으므로)
+        }
+      }
+
+      return updatedProduct;
+    } catch (error) {
+      // 에러 발생 시 업로드한 새 이미지 삭제 (롤백)
+      if (s3Key) {
+        try {
+          await this.awsService.deleteFromS3(s3Key);
+          console.log(`롤백: S3 이미지 삭제 완료 - ${s3Key}`);
+        } catch (deleteError) {
+          console.error('S3 이미지 삭제 실패:', deleteError);
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
    * 상품 활성화
    * @param id 상품 ID
    * @returns 활성화된 상품
@@ -230,27 +319,30 @@ export class ProductService {
   }
 
   /**
-   * 상품 삭제 (소프트 삭제)
-   * @param id 상품 ID
-   * @returns 삭제된 상품
-   */
-  async delete(id: number) {
-    await this.findById(id);
-    return await this.productRepository.delete(id);
-  }
-
-  /**
-   * 상품 물리 삭제 (관리자 전용 - 구매 기록이 없는 경우만)
+   * 상품 삭제 (하드 삭제 - 물리 삭제)
    * @param id 상품 ID
    * @returns 삭제 결과
    */
-  async remove(id: number) {
-    await this.findById(id);
+  async delete(id: number) {
+    const product = await this.findById(id);
 
     // TODO: 구매 기록이 있는지 확인 (CoinTopup 테이블 체크)
     // 구매 기록이 있으면 물리 삭제 불가
 
-    // 현재는 소프트 삭제로 대체
+    // S3 이미지 삭제
+    if (product.image_url) {
+      try {
+        const cdnUrl = process.env.CDN_URL || '';
+        const s3Key = product.image_url.replace(`${cdnUrl}/`, '');
+        await this.awsService.deleteFromS3(s3Key);
+        console.log(`상품 삭제: S3 이미지 삭제 완료 - ${s3Key}`);
+      } catch (error) {
+        console.error('S3 이미지 삭제 실패:', error);
+        // 이미지 삭제 실패는 무시하고 계속 진행
+      }
+    }
+
+    // 하드 삭제 (물리 삭제)
     return await this.productRepository.delete(id);
   }
 }

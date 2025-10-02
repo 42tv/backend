@@ -120,17 +120,31 @@ export class ProductRepository {
   }
 
   /**
-   * 상품 삭제 (소프트 삭제 - 비활성화)
+   * 상품 소프트 삭제 (비활성화)
    * @param id 상품 ID
    * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 비활성화된 상품
    */
-  async delete(id: number, tx?: Prisma.TransactionClient) {
+  async deactivate(id: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
 
     return await prismaClient.product.update({
       where: { id },
       data: { is_active: false },
+    });
+  }
+
+  /**
+   * 상품 하드 삭제 (물리 삭제)
+   * @param id 상품 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
+   * @returns 삭제된 상품
+   */
+  async delete(id: number, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+
+    return await prismaClient.product.delete({
+      where: { id },
     });
   }
 }
