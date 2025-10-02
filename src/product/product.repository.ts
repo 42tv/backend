@@ -15,7 +15,7 @@ export class ProductRepository {
    * @returns 생성된 상품
    */
   async create(
-    createProductDto: CreateProductDto,
+    createProductDto: CreateProductDto & { image_url?: string },
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
@@ -27,6 +27,7 @@ export class ProductRepository {
       data: {
         name: createProductDto.name,
         description: createProductDto.description,
+        image_url: createProductDto.image_url,
         base_coins: createProductDto.base_coins,
         bonus_coins: createProductDto.bonus_coins || 0,
         total_coins,
