@@ -81,4 +81,17 @@ export class CreateProductDto {
   @IsNumber()
   @Min(0)
   sort_order?: number;
+
+  @ApiPropertyOptional({
+    description: '이미지 삭제 여부 (수정 시에만 사용)',
+    example: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  remove_image?: boolean;
 }

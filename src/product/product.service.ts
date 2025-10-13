@@ -227,20 +227,27 @@ export class ProductService {
     let oldS3Key: string | undefined;
 
     try {
-      // 1. 새 이미지가 있으면 먼저 S3에 업로드
+      // 1. 이미지 삭제 요청 처리
+      if (updateProductDto.remove_image && existingProduct.image_url) {
+        const cdnUrl = process.env.CDN_URL || '';
+        oldS3Key = existingProduct.image_url.replace(`${cdnUrl}/`, '');
+        imageUrl = null; // 이미지 URL을 null로 설정
+      }
+
+      // 2. 새 이미지가 있으면 먼저 S3에 업로드
       if (file) {
         const uploadResult = await this.uploadImageToS3(file);
         imageUrl = uploadResult.imageUrl;
         s3Key = uploadResult.s3Key;
 
         // 기존 이미지가 S3에 있으면 나중에 삭제하기 위해 키 추출
-        if (existingProduct.image_url) {
+        if (existingProduct.image_url && !oldS3Key) {
           const cdnUrl = process.env.CDN_URL || '';
           oldS3Key = existingProduct.image_url.replace(`${cdnUrl}/`, '');
         }
       }
 
-      // 2. 상품명 중복 체크 (다른 상품과 중복되는지)
+      // 3. 상품명 중복 체크 (다른 상품과 중복되는지)
       if (
         updateProductDto.name &&
         updateProductDto.name !== existingProduct.name
@@ -261,9 +268,11 @@ export class ProductService {
         }
       }
 
-      // 3. 상품 수정 (이미지 URL 포함)
+      // 4. 상품 수정 (이미지 URL 포함, remove_image 필드는 제외)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { remove_image, ...productUpdateData } = updateProductDto;
       const productData = {
-        ...updateProductDto,
+        ...productUpdateData,
         image_url: imageUrl,
       };
 
@@ -272,8 +281,8 @@ export class ProductService {
         productData,
       );
 
-      // 4. 수정 성공 후 기존 이미지 삭제 (새 이미지가 업로드된 경우)
-      if (oldS3Key && s3Key) {
+      // 5. 수정 성공 후 기존 이미지 삭제 (새 이미지가 업로드되었거나 이미지 삭제 요청이 있는 경우)
+      if (oldS3Key) {
         try {
           await this.awsService.deleteFromS3(oldS3Key);
           console.log(`기존 이미지 삭제 완료: ${oldS3Key}`);
