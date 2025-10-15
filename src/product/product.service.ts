@@ -51,9 +51,18 @@ export class ProductService {
       }
 
       // 3. 상품 생성 (이미지 URL 포함)
+      const productType = createProductDto.product_type || 'star'; // 기본값: 스타 코인
+
+      // 스타 코인인 경우 고정된 이미지 사용
+      const finalImageUrl =
+        productType === 'star'
+          ? `${process.env.CDN_URL}/statics/star_coin.png`
+          : imageUrl;
+
       const productData = {
         ...createProductDto,
-        image_url: imageUrl,
+        image_url: finalImageUrl,
+        product_type: productType,
       };
 
       return await this.productRepository.create(productData);
@@ -271,9 +280,33 @@ export class ProductService {
       // 4. 상품 수정 (이미지 URL 포함, remove_image 필드는 제외)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { remove_image, ...productUpdateData } = updateProductDto;
+
+      // product_type이 변경되었는지 확인
+      const productType =
+        updateProductDto.product_type || existingProduct.product_type;
+
+      // 스타 코인인 경우 고정된 이미지 사용
+      const finalImageUrl =
+        productType === 'star'
+          ? `${process.env.CDN_URL}/statics/star_coin.png`
+          : imageUrl;
+
+      // 스타 코인으로 변경되고 기존 이미지가 S3에 있다면 삭제 대상에 추가
+      if (productType === 'star' && existingProduct.image_url && !oldS3Key) {
+        const cdnUrl = process.env.CDN_URL || '';
+        const existingImagePath = existingProduct.image_url.replace(
+          `${cdnUrl}/`,
+          '',
+        );
+        // statics 폴더가 아닌 경우에만 삭제 대상으로 추가
+        if (!existingImagePath.startsWith('statics/')) {
+          oldS3Key = existingImagePath;
+        }
+      }
+
       const productData = {
         ...productUpdateData,
-        image_url: imageUrl,
+        image_url: finalImageUrl,
       };
 
       const updatedProduct = await this.productRepository.update(

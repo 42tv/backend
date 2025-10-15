@@ -3,6 +3,7 @@ import {
   IsNumber,
   IsOptional,
   IsBoolean,
+  IsIn,
   Min,
   Max,
 } from 'class-validator';
@@ -57,6 +58,16 @@ export class CreateProductDto {
   @Min(1)
   @Max(1000000)
   price: number;
+
+  @ApiPropertyOptional({
+    description: '상품 타입 (normal: 일반, star: 스타 코인)',
+    example: 'star',
+    enum: ['normal', 'star'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['normal', 'star'])
+  product_type?: string;
 
   @ApiPropertyOptional({
     description: '활성화 여부',
