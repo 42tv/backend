@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { CoinTopupService } from './coin-topup.service';
 import { ProcessTopupDto } from './dto/create-coin-topup.dto';
+import { PurchaseProductDto } from './dto/purchase-product.dto';
 import { MemberGuard } from '../auth/guard/jwt.member.guard';
 import { AdminGuard } from '../auth/guard/admin.guard';
 import { GetUser } from '../auth/get-user.decorator';
@@ -18,6 +19,18 @@ import { GetUser } from '../auth/get-user.decorator';
 @Controller('coin-topups')
 export class CoinTopupController {
   constructor(private readonly coinTopupService: CoinTopupService) {}
+
+  @Post('purchase')
+  @UseGuards(MemberGuard)
+  async purchaseProduct(
+    @GetUser() user: { user_idx: number },
+    @Body() purchaseDto: PurchaseProductDto,
+  ) {
+    return await this.coinTopupService.purchaseProductWithMock(
+      user.user_idx,
+      purchaseDto.product_id,
+    );
+  }
 
   @Post('process')
   @UseGuards(MemberGuard)

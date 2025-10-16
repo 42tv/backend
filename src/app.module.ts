@@ -29,6 +29,9 @@ import { BlacklistModule } from './blacklist/blacklist.module';
 import { ArticleModule } from './article/article.module';
 import { PolicyModule } from './policy/policy.module';
 import { ProductModule } from './product/product.module';
+import { PaymentModule } from './payment/payment.module';
+import { CoinTopupModule } from './coin-topup/coin-topup.module';
+import { WalletBalanceModule } from './wallet-balance/wallet-balance.module';
 
 @Module({
   imports: [
@@ -58,6 +61,9 @@ import { ProductModule } from './product/product.module';
     ArticleModule,
     PolicyModule,
     ProductModule,
+    PaymentModule,
+    CoinTopupModule,
+    WalletBalanceModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],

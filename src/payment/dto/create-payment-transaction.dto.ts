@@ -4,12 +4,14 @@ export enum PgProvider {
   INICIS = 'inicis',
   TOSS = 'toss',
   KAKAOPAY = 'kakaopay',
+  MOCK = 'mock', // 개발/테스트용
 }
 
 export enum PaymentMethod {
   CARD = 'card',
   BANK_TRANSFER = 'bank_transfer',
   MOBILE = 'mobile',
+  MOCK = 'mock', // 개발/테스트용
 }
 
 export class CreatePaymentTransactionDto {
