@@ -7,12 +7,16 @@ import { PaymentTransactionRepository } from './payment-transaction.repository';
 import { CreatePaymentTransactionDto } from './dto/create-payment-transaction.dto';
 import { PaymentTransactionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CoinTopupService } from '../coin-topup/coin-topup.service';
+import { ProductService } from '../product/product.service';
 
 @Injectable()
 export class PaymentTransactionService {
   constructor(
     private readonly paymentTransactionRepository: PaymentTransactionRepository,
     private readonly prismaService: PrismaService,
+    private readonly coinTopupService: CoinTopupService,
+    private readonly productService: ProductService,
   ) {}
 
   /**
@@ -139,6 +143,55 @@ export class PaymentTransactionService {
       PaymentTransactionStatus.CANCELED,
       pg_response,
     );
+  }
+
+  /**
+   * Mock 상품 구매 (결제 + 충전 통합)
+   * - 개발/테스트용: 실제 PG 연동 없이 즉시 처리
+   * @param user_idx 사용자 ID
+   * @param product_id 상품 ID
+   * @returns 충전 완료 결과
+   */
+  async purchaseProductWithMock(user_idx: number, product_id: number) {
+    // 1. 상품 조회
+    const product = await this.productService.findActiveProduct(product_id);
+
+    // 2. Mock PG 거래 ID 생성
+    const mockPgTransactionId = `MOCK_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    // 3. 결제 거래 생성 (PENDING)
+    await this.create(user_idx, {
+      pg_provider: 'mock' as any,
+      pg_transaction_id: mockPgTransactionId,
+      payment_method: 'mock' as any,
+      amount: product.price,
+    });
+
+    // 4. 즉시 승인 처리 (Mock)
+    const approvedTransaction = await this.approvePayment(mockPgTransactionId, {
+      mock: true,
+      timestamp: new Date().toISOString(),
+      message: 'Mock payment for development/testing',
+    });
+
+    // 5. 충전 처리 위임 (CoinTopupService)
+    const topupResult = await this.coinTopupService.processTopup(user_idx, {
+      transaction_id: approvedTransaction.id,
+      product_id: product.id,
+    });
+
+    return {
+      success: true,
+      message: '충전이 완료되었습니다.',
+      data: {
+        topup: topupResult,
+        product: {
+          id: product.id,
+          name: product.name,
+          total_coins: product.total_coins,
+        },
+      },
+    };
   }
 
   /**

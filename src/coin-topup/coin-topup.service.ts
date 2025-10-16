@@ -11,11 +11,6 @@ import { WalletBalanceService } from '../wallet-balance/wallet-balance.service';
 import { CoinUsageService } from '../coin-usage/coin-usage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TopupStatus, PaymentTransactionStatus } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
-import {
-  PgProvider,
-  PaymentMethod,
-} from '../payment/dto/create-payment-transaction.dto';
 
 @Injectable()
 export class CoinTopupService {
@@ -27,84 +22,6 @@ export class CoinTopupService {
     private readonly coinUsageService: CoinUsageService,
     private readonly prismaService: PrismaService,
   ) {}
-
-  /**
-   * Mock 상품 구매 (결제 + 충전을 한번에 처리)
-   * - 개발/테스트용: 실제 PG 연동 없이 즉시 충전 처리
-   * @param user_idx 사용자 ID
-   * @param product_id 상품 ID
-   * @returns 충전 완료 결과
-   */
-  async purchaseProductWithMock(user_idx: number, product_id: number) {
-    return await this.prismaService.$transaction(async (tx) => {
-      // 1. 상품 정보 조회 (활성화된 상품만)
-      const product = await this.productService.findActiveProduct(product_id);
-
-      // 2. Mock 결제 거래 생성 (PENDING 상태로 생성)
-      const mockPgTransactionId = `MOCK_${Date.now()}_${uuidv4()}`;
-      await this.paymentTransactionService.create(user_idx, {
-        pg_provider: PgProvider.MOCK,
-        pg_transaction_id: mockPgTransactionId,
-        payment_method: PaymentMethod.MOCK,
-        amount: product.price,
-      });
-
-      // 3. 결제 승인 처리
-      const approvedTransaction =
-        await this.paymentTransactionService.approvePayment(
-          mockPgTransactionId,
-          {
-            mock: true,
-            timestamp: new Date().toISOString(),
-            message: 'Mock payment for development/testing',
-          },
-        );
-
-      // 4. 코인 충전 내역 생성
-      const coinTopup = await this.coinTopupRepository.create(
-        {
-          transaction_id: approvedTransaction.id,
-          user_idx,
-          product_id: product.id,
-          product_name: product.name,
-          base_coins: product.base_coins,
-          bonus_coins: product.bonus_coins,
-          total_coins: product.total_coins,
-          paid_amount: product.price,
-          coin_unit_price: product.price / product.total_coins,
-        },
-        tx,
-      );
-
-      // 5. 충전 상태를 COMPLETED로 업데이트
-      await this.coinTopupRepository.updateStatus(
-        coinTopup.id,
-        TopupStatus.COMPLETED,
-        tx,
-      );
-
-      // 6. WalletBalance 업데이트 (코인 잔액 증가)
-      const updatedWallet = await this.walletBalanceService.addCoinsFromTopup(
-        user_idx,
-        product.total_coins,
-        tx,
-      );
-
-      return {
-        success: true,
-        message: '충전이 완료되었습니다.',
-        data: {
-          topup: coinTopup,
-          wallet: updatedWallet,
-          product: {
-            id: product.id,
-            name: product.name,
-            total_coins: product.total_coins,
-          },
-        },
-      };
-    });
-  }
 
   /**
    * 코인 충전 처리 (결제 성공 후 호출)

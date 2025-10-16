@@ -12,14 +12,27 @@ import {
 import { PaymentTransactionService } from './payment-transaction.service';
 import { CreatePaymentTransactionDto } from './dto/create-payment-transaction.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
+import { PurchaseProductDto } from './dto/purchase-product.dto';
 import { MemberGuard } from '../auth/guard/jwt.member.guard';
 import { GetUser } from '../auth/get-user.decorator';
 
-@Controller('payment-transactions')
+@Controller('payments')
 export class PaymentTransactionController {
   constructor(
     private readonly paymentTransactionService: PaymentTransactionService,
   ) {}
+
+  @Post('purchase')
+  @UseGuards(MemberGuard)
+  async purchaseProduct(
+    @GetUser() user: { user_idx: number },
+    @Body() purchaseDto: PurchaseProductDto,
+  ) {
+    return await this.paymentTransactionService.purchaseProductWithMock(
+      user.user_idx,
+      purchaseDto.product_id,
+    );
+  }
 
   @Post()
   @UseGuards(MemberGuard)
