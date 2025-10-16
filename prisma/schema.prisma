@@ -31,9 +31,6 @@ model User {
   coin                Coin?
   
   streams        Stream? @relation("StreamData")
-  // Gift relations
-  sentGifts      Gift[] @relation("GiftSender")
-  receivedGifts  Gift[] @relation("GiftRecipient")
 
   // Posts relations
   sentPosts      Posts[] @relation("SentPosts")
@@ -70,6 +67,17 @@ model User {
 
   // Policy Agreement relations
   policyAgreements PolicyAgreement[] @relation("UserPolicyAgreements") // 내가 동의한 정책들
+
+  // Payment relations (1단계: 결제 시스템)
+  paymentTransactions PaymentTransaction[]
+
+  // Coin Topup relations (2단계: 충전 시스템)
+  coinTopups         CoinTopup[]
+  walletBalance      WalletBalance? // 1:1 관계 (사용자당 하나의 지갑)
+
+  // Donation relations (3단계: 후원 시스템)
+  sentDonations      Donation[] @relation("SentDonations")
+  receivedDonations  Donation[] @relation("ReceivedDonations")
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -243,20 +251,6 @@ model Coin {
   user            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 }
 
-// 선물(후원) 기록 테이블 - 사용자 간 코인 선물 기록
-model Gift {
-  id              Int      @id @default(autoincrement())
-  sender_idx      Int      // 선물을 보낸 사용자
-  recipient_idx   Int      // 선물을 받은 사용자
-  amount          Int      // 선물한 코인 양
-  message         String?  // 선물과 함께 보낸 메시지
-  stream_idx      Int?     // 연결된 스트림 (선물이 특정 스트림에서 이루어진 경우)
-  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  
-  // Relations
-  sender          User     @relation("GiftSender", fields: [sender_idx], references: [idx])
-  recipient       User     @relation("GiftRecipient", fields: [recipient_idx], references: [idx])
-}
 
 
 // 팬 관계 테이블 - 사용자간 팬 관계 관리
@@ -411,11 +405,183 @@ model PolicyAgreement {
   policy_version  String   // 동의 당시 정책 버전
   agreed_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   ip_address      String?  // 동의 시점의 IP 주소 (법적 증명용)
-  
+
   // Relations
   user            User     @relation("UserPolicyAgreements", fields: [user_idx], references: [idx], onDelete: Cascade)
   policy          Policy   @relation(fields: [policy_id], references: [id], onDelete: Cascade)
-  
+
   // 사용자는 같은 정책에 대해 여러 버전에 동의할 수 있지만, 같은 버전에는 한 번만 동의
   @@unique([user_idx, policy_id, policy_version])
+}
+
+// 상품 테이블 (1단계: 기본 상품 시스템)
+model Product {
+  id              Int       @id @default(autoincrement())
+
+  // 상품 정보
+  name            String    // "100 코인"
+  description     String?   // 상품 설명
+  image_url       String?   // 상품 이미지 URL
+  base_coins      Int       // 기본 코인량
+  bonus_coins     Int       @default(0) // 보너스 코인량
+  total_coins     Int       // 실제 지급될 총 코인량 (base_coins + bonus_coins)
+  price           Int       // 가격 (원)
+  product_type    String    @default("star") // 상품 타입: "normal" (일반) 또는 "star" (스타 코인)
+
+  // 상태
+  is_active       Boolean   @default(true)
+  sort_order      Int       @default(0)
+
+  created_at      DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at      DateTime  @updatedAt
+
+  // Relations
+  topups          CoinTopup[]
+
+  @@map("products")
+}
+
+// 결제 거래 내역 테이블 (1단계: 법적 증빙 핵심)
+model PaymentTransaction {
+  id                String    @id @default(cuid())
+  user_idx          Int?      // 결제자 (5년 보관 위해 nullable)
+
+  // PG사 결제 정보 (법적 증빙 필수)
+  pg_provider       String    // "inicis", "toss", "kakaopay"
+  pg_transaction_id String    @unique // PG사 거래 고유번호
+  payment_method    String    // "card", "bank_transfer", "mobile"
+
+  // 결제 금액
+  amount            Int       // 결제 금액 (원 단위)
+  currency          String    @default("KRW")
+
+  // 상태 및 시간
+  status            PaymentTransactionStatus @default(PENDING)
+  requested_at      DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  approved_at       DateTime?
+  canceled_at       DateTime?
+
+  // PG사 응답 원본 (감사용)
+  pg_response       Json?
+
+  // 5년 보관 의무
+  deleted_user_snapshot Json?
+  user_deleted_at   DateTime?
+  should_delete_at  DateTime? // 5년 후 삭제
+
+  // Relations
+  user              User?     @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  topups            CoinTopup[]
+
+  @@map("payment_transactions")
+}
+
+enum PaymentTransactionStatus {
+  PENDING   // 결제 진행중
+  SUCCESS   // 결제 성공
+  FAILED    // 결제 실패
+  CANCELED  // 결제 취소
+}
+
+// 코인 충전 내역 테이블 (2단계: 결제와 지갑 연결)
+model CoinTopup {
+  id              String    @id @default(cuid())
+  transaction_id  String    // 결제 거래 ID
+  user_idx        Int?      // 충전자 (5년 보관 위해 nullable)
+
+  // 상품 정보 (충전 시점 스냅샷)
+  product_id      Int       // 구매한 상품
+
+  // 충전 정보 (시점 고정 - 나중에 상품 정보가 변경되어도 보존)
+  product_name    String    // 상품명 스냅샷
+  base_coins      Int       // 기본 코인량
+  bonus_coins     Int       @default(0) // 보너스 코인량
+  total_coins     Int       // 실제 지급된 총 코인량
+  paid_amount     Int       // 실제 결제 금액
+  coin_unit_price Float     // 코인당 가격
+
+  // 상태 및 시간
+  status          TopupStatus @default(PENDING)
+  topped_up_at    DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // 5년 보관 의무
+  deleted_user_snapshot Json?
+  user_deleted_at DateTime?
+
+  // Relations
+  transaction     PaymentTransaction @relation(fields: [transaction_id], references: [id])
+  user            User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  product         Product @relation(fields: [product_id], references: [id])
+  usages          CoinUsage[] // 이 충전분의 사용 내역
+
+  @@map("coin_topups")
+}
+
+enum TopupStatus {
+  PENDING     // 충전 대기
+  COMPLETED   // 충전 완료
+  FAILED      // 충전 실패
+  REFUNDED    // 환불됨
+}
+
+// 지갑 잔액 테이블 (2단계: 편의성)
+model WalletBalance {
+  user_idx      Int       @id // 사용자 (Primary Key)
+  coin_balance  Int       @default(0) // 현재 코인 잔액
+  updated_at    DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+
+  @@map("wallet_balances")
+}
+
+// 후원 내역 테이블 (3단계: 실제 사용)
+model Donation {
+  id            String    @id @default(cuid())
+  donor_idx     Int?      // 후원자 (5년 보관 위해 nullable)
+  streamer_idx  Int?      // 스트리머 (5년 보관 위해 nullable)
+
+  // 후원 정보 (코인으로 통일)
+  coin_amount   Int       // 후원한 코인량
+  coin_value    Int       // 코인의 원화 가치 (1코인=1원 또는 충전 시점 기준)
+
+  // 메시지
+  message       String?   // 후원 메시지
+
+  // 시간
+  donated_at    DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // 5년 보관 의무
+  deleted_donor_snapshot    Json?     // 후원자 삭제 시
+  deleted_streamer_snapshot Json?     // 스트리머 삭제 시
+  donor_deleted_at          DateTime?
+  streamer_deleted_at       DateTime?
+  should_delete_at          DateTime? // 5년 후 삭제
+
+  // Relations
+  donor         User?       @relation("SentDonations", fields: [donor_idx], references: [idx], onDelete: SetNull)
+  streamer      User?       @relation("ReceivedDonations", fields: [streamer_idx], references: [idx], onDelete: SetNull)
+  usages        CoinUsage[] // 어떤 충전분에서 차감되었는지
+
+  @@map("donations")
+}
+
+// 코인 사용 내역 테이블 (3단계: FIFO 추적)
+model CoinUsage {
+  id            Int         @id @default(autoincrement())
+  topup_id      String      // 충전 ID (어떤 충전분에서 차감되었는지)
+  donation_id   String?     // 후원 ID (후원으로 사용된 경우)
+
+  // 사용 정보
+  used_coins    Int         // 사용된 코인량
+
+  // 시간
+  used_at       DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // Relations
+  topup         CoinTopup   @relation(fields: [topup_id], references: [id])
+  donation      Donation?   @relation(fields: [donation_id], references: [id])
+
+  @@map("coin_usages")
 }

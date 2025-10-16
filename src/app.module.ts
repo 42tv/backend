@@ -28,6 +28,7 @@ import { BookmarkModule } from './bookmark/bookmark.module';
 import { BlacklistModule } from './blacklist/blacklist.module';
 import { ArticleModule } from './article/article.module';
 import { PolicyModule } from './policy/policy.module';
+import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { PolicyModule } from './policy/policy.module';
     BlacklistModule,
     ArticleModule,
     PolicyModule,
+    ProductModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],
