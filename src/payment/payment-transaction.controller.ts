@@ -92,12 +92,7 @@ export class PaymentTransactionController {
     );
   }
 
-  @Get(':id')
-  async findById(@Param('id') id: string) {
-    return await this.paymentTransactionService.findById(id);
-  }
-
-  @Get('user/me')
+  @Get('me')
   @UseGuards(MemberGuard)
   async getMyTransactions(
     @GetUser() user: { user_idx: number },
@@ -107,5 +102,10 @@ export class PaymentTransactionController {
       user.user_idx,
       limit,
     );
+  }
+
+  @Get(':id')
+  async findById(@Param('id') id: string) {
+    return await this.paymentTransactionService.findById(id);
   }
 }

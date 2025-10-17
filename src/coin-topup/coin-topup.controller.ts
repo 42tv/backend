@@ -40,13 +40,7 @@ export class CoinTopupController {
     return await this.coinTopupService.processRefund(topup_id);
   }
 
-  @Get(':id')
-  @UseGuards(MemberGuard)
-  async findById(@Param('id') id: string) {
-    return await this.coinTopupService.findById(id);
-  }
-
-  @Get('user/me')
+  @Get('me')
   @UseGuards(MemberGuard)
   async getMyTopups(
     @GetUser() user: { user_idx: number },
@@ -55,15 +49,21 @@ export class CoinTopupController {
     return await this.coinTopupService.findByUserId(user.user_idx, limit);
   }
 
-  @Get('user/me/available')
+  @Get('me/available')
   @UseGuards(MemberGuard)
   async getAvailableTopups(@GetUser() user: { user_idx: number }) {
     return await this.coinTopupService.getAvailableTopups(user.user_idx);
   }
 
-  @Get('user/me/stats')
+  @Get('me/stats')
   @UseGuards(MemberGuard)
   async getMyTopupStats(@GetUser() user: { user_idx: number }) {
     return await this.coinTopupService.getTopupStats(user.user_idx);
+  }
+
+  @Get(':id')
+  @UseGuards(MemberGuard)
+  async findById(@Param('id') id: string) {
+    return await this.coinTopupService.findById(id);
   }
 }
