@@ -2,6 +2,8 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PaymentTransactionRepository } from './payment-transaction.repository';
 import { CreatePaymentTransactionDto } from './dto/create-payment-transaction.dto';
@@ -15,6 +17,7 @@ export class PaymentTransactionService {
   constructor(
     private readonly paymentTransactionRepository: PaymentTransactionRepository,
     private readonly prismaService: PrismaService,
+    @Inject(forwardRef(() => CoinTopupService))
     private readonly coinTopupService: CoinTopupService,
     private readonly productService: ProductService,
   ) {}

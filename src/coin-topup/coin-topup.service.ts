@@ -2,6 +2,8 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { CoinTopupRepository } from './coin-topup.repository';
 import { ProcessTopupDto } from './dto/create-coin-topup.dto';
@@ -18,6 +20,7 @@ export class CoinTopupService {
   constructor(
     private readonly coinTopupRepository: CoinTopupRepository,
     private readonly productService: ProductService,
+    @Inject(forwardRef(() => PaymentTransactionService))
     private readonly paymentTransactionService: PaymentTransactionService,
     private readonly walletBalanceService: WalletBalanceService,
     private readonly coinUsageService: CoinUsageService,

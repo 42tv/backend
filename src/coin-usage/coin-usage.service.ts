@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { CoinUsageRepository } from './coin-usage.repository';
 import { CoinTopupService } from '../coin-topup/coin-topup.service';
 import { WalletBalanceService } from '../wallet-balance/wallet-balance.service';
@@ -9,6 +14,7 @@ import { UseCoinDto } from './dto/use-coin.dto';
 export class CoinUsageService {
   constructor(
     private readonly coinUsageRepository: CoinUsageRepository,
+    @Inject(forwardRef(() => CoinTopupService))
     private readonly coinTopupService: CoinTopupService,
     private readonly walletBalanceService: WalletBalanceService,
     private readonly prismaService: PrismaService,
