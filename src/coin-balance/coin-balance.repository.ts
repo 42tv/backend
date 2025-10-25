@@ -3,30 +3,30 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
-export class WalletBalanceRepository {
+export class CoinBalanceRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * 사용자의 지갑 잔액 조회
+   * 사용자의 코인 잔액 조회
    * @param user_idx 사용자 ID
-   * @returns 지갑 잔액
+   * @returns 코인 잔액
    */
   async findByUserId(user_idx: number) {
-    return await this.prisma.walletBalance.findUnique({
+    return await this.prisma.coinBalance.findUnique({
       where: { user_idx },
     });
   }
 
   /**
-   * 지갑 잔액 생성 (User 생성 시 호출)
+   * 코인 잔액 생성 (User 생성 시 호출)
    * @param user_idx 사용자 ID
    * @param tx 트랜잭션 클라이언트 (선택사항)
-   * @returns 생성된 지갑 잔액
+   * @returns 생성된 코인 잔액
    */
   async create(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
 
-    return await prismaClient.walletBalance.create({
+    return await prismaClient.coinBalance.create({
       data: {
         user_idx,
         coin_balance: 0,
@@ -38,11 +38,11 @@ export class WalletBalanceRepository {
   }
 
   /**
-   * 지갑 잔액 업데이트
+   * 코인 잔액 업데이트
    * @param user_idx 사용자 ID
    * @param balance 새로운 잔액
    * @param tx 트랜잭션 클라이언트 (선택사항)
-   * @returns 업데이트된 지갑 잔액
+   * @returns 업데이트된 코인 잔액
    */
   async updateBalance(
     user_idx: number,
@@ -51,18 +51,18 @@ export class WalletBalanceRepository {
   ) {
     const prismaClient = tx ?? this.prisma;
 
-    return await prismaClient.walletBalance.update({
+    return await prismaClient.coinBalance.update({
       where: { user_idx },
       data: { coin_balance: balance },
     });
   }
 
   /**
-   * 지갑 잔액 증가 (충전 시)
+   * 코인 잔액 증가 (충전 시)
    * @param user_idx 사용자 ID
    * @param amount 증가할 금액
    * @param tx 트랜잭션 클라이언트 (선택사항)
-   * @returns 업데이트된 지갑 잔액
+   * @returns 업데이트된 코인 잔액
    */
   async increaseBalance(
     user_idx: number,
@@ -71,7 +71,7 @@ export class WalletBalanceRepository {
   ) {
     const prismaClient = tx ?? this.prisma;
 
-    return await prismaClient.walletBalance.update({
+    return await prismaClient.coinBalance.update({
       where: { user_idx },
       data: {
         coin_balance: {
@@ -89,7 +89,7 @@ export class WalletBalanceRepository {
    * @param user_idx 사용자 ID
    * @param amount 받은 금액
    * @param tx 트랜잭션 클라이언트 (선택사항)
-   * @returns 업데이트된 지갑 잔액
+   * @returns 업데이트된 코인 잔액
    */
   async increaseReceivedBalance(
     user_idx: number,
@@ -98,7 +98,7 @@ export class WalletBalanceRepository {
   ) {
     const prismaClient = tx ?? this.prisma;
 
-    return await prismaClient.walletBalance.update({
+    return await prismaClient.coinBalance.update({
       where: { user_idx },
       data: {
         coin_balance: {
@@ -112,11 +112,11 @@ export class WalletBalanceRepository {
   }
 
   /**
-   * 지갑 잔액 감소 (코인 사용 시)
+   * 코인 잔액 감소 (코인 사용 시)
    * @param user_idx 사용자 ID
    * @param amount 감소할 금액
    * @param tx 트랜잭션 클라이언트 (선택사항)
-   * @returns 업데이트된 지갑 잔액
+   * @returns 업데이트된 코인 잔액
    */
   async decreaseBalance(
     user_idx: number,
@@ -125,7 +125,7 @@ export class WalletBalanceRepository {
   ) {
     const prismaClient = tx ?? this.prisma;
 
-    return await prismaClient.walletBalance.update({
+    return await prismaClient.coinBalance.update({
       where: { user_idx },
       data: {
         coin_balance: {
@@ -139,25 +139,25 @@ export class WalletBalanceRepository {
   }
 
   /**
-   * 사용자 삭제 시 지갑 정보 삭제
+   * 사용자 삭제 시 코인 잔액 정보 삭제
    * @param user_idx 사용자 ID
    * @param tx 트랜잭션 클라이언트 (선택사항)
-   * @returns 삭제된 지갑 잔액
+   * @returns 삭제된 코인 잔액
    */
   async deleteByUserId(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx ?? this.prisma;
 
-    return await prismaClient.walletBalance.delete({
+    return await prismaClient.coinBalance.delete({
       where: { user_idx },
     });
   }
 
   /**
-   * 모든 사용자의 지갑 잔액 통계 (관리자용)
-   * @returns 지갑 잔액 통계
+   * 모든 사용자의 코인 잔액 통계 (관리자용)
+   * @returns 코인 잔액 통계
    */
-  async getWalletStats() {
-    const result = await this.prisma.walletBalance.aggregate({
+  async getCoinStats() {
+    const result = await this.prisma.coinBalance.aggregate({
       _sum: {
         coin_balance: true,
         total_charged: true,

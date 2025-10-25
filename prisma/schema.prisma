@@ -72,7 +72,7 @@ model User {
 
   // Coin Topup relations (2단계: 충전 시스템)
   coinTopups         CoinTopup[]
-  walletBalance      WalletBalance? // 1:1 관계 (사용자당 하나의 지갑)
+  coinBalance        CoinBalance? // 1:1 관계 (사용자당 하나의 코인 잔액)
 
   // Donation relations (3단계: 후원 시스템)
   sentDonations      Donation[] @relation("SentDonations")
@@ -508,7 +508,7 @@ enum TopupStatus {
 }
 
 // 지갑 잔액 테이블 (2단계: 편의성)
-model WalletBalance {
+model CoinBalance {
   user_idx          Int       @id // 사용자 (Primary Key)
   coin_balance      Int       @default(0) // 현재 코인 잔액
   total_charged     Int       @default(0) // 총 충전 금액
@@ -520,7 +520,7 @@ model WalletBalance {
   // Relations
   user              User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
-  @@map("wallet_balances")
+  @@map("coin_balances")
 }
 
 // 후원 내역 테이블 (3단계: 실제 사용)

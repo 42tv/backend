@@ -31,7 +31,7 @@ import { PolicyModule } from './policy/policy.module';
 import { ProductModule } from './product/product.module';
 import { PaymentModule } from './payment/payment.module';
 import { CoinTopupModule } from './coin-topup/coin-topup.module';
-import { WalletBalanceModule } from './wallet-balance/wallet-balance.module';
+import { CoinBalanceModule } from './coin-balance/coin-balance.module';
 
 @Module({
   imports: [
@@ -63,7 +63,7 @@ import { WalletBalanceModule } from './wallet-balance/wallet-balance.module';
     ProductModule,
     PaymentModule,
     CoinTopupModule,
-    WalletBalanceModule,
+    CoinBalanceModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],

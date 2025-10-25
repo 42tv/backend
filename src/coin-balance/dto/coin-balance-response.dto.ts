@@ -1,4 +1,4 @@
-export class WalletBalanceResponseDto {
+export class CoinBalanceResponseDto {
   user_idx: number;
   coin_balance: number;
   total_charged: number;
@@ -8,7 +8,7 @@ export class WalletBalanceResponseDto {
   updated_at: Date;
 }
 
-export class WalletStatsResponseDto {
+export class CoinStatsResponseDto {
   total_users: number;
   total_balance: number;
   total_charged: number;
