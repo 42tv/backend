@@ -28,8 +28,7 @@ model User {
   broadcastSetting    BroadcastSetting?
   postSettings        PostSettings?
   UserTerms           UserTerms[]
-  coin                Coin?
-  
+
   streams        Stream? @relation("StreamData")
 
   // Posts relations
@@ -236,22 +235,6 @@ model Posts {
   sender          User     @relation("SentPosts", fields: [sender_idx], references: [idx], onDelete: Cascade)
   receiver        User     @relation("ReceivedPosts", fields: [receiver_idx], references: [idx], onDelete: Cascade)
 }
-
-// 코인 정보 테이블 - 사용자별 코인 잔액 관리
-model Coin {
-  user_idx        Int      @id
-  balance         Int      @default(0)
-  total_received  Int      @default(0)
-  total_spent     Int      @default(0)
-  total_charged   Int      @default(0)
-  last_updated    DateTime @updatedAt
-  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-
-  // Relations
-  user            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
-}
-
-
 
 // 팬 관계 테이블 - 사용자간 팬 관계 관리
 model Fan {
@@ -526,12 +509,16 @@ enum TopupStatus {
 
 // 지갑 잔액 테이블 (2단계: 편의성)
 model WalletBalance {
-  user_idx      Int       @id // 사용자 (Primary Key)
-  coin_balance  Int       @default(0) // 현재 코인 잔액
-  updated_at    DateTime  @updatedAt
+  user_idx          Int       @id // 사용자 (Primary Key)
+  coin_balance      Int       @default(0) // 현재 코인 잔액
+  total_charged     Int       @default(0) // 총 충전 금액
+  total_used        Int       @default(0) // 총 사용 금액
+  total_received    Int       @default(0) // 총 받은 금액 (후원 받은 금액)
+  created_at        DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at        DateTime  @updatedAt
 
   // Relations
-  user          User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  user              User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("wallet_balances")
 }
