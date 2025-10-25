@@ -27,6 +27,30 @@ export class UserInfoDto {
     example: '사용자닉네임',
   })
   nickname: string;
+
+  @ApiProperty({
+    description: '코인 잔액',
+    example: 1000,
+  })
+  coin_balance: number;
+
+  @ApiProperty({
+    description: '총 충전 금액',
+    example: 5000,
+  })
+  total_charged: number;
+
+  @ApiProperty({
+    description: '총 사용 금액',
+    example: 3000,
+  })
+  total_used: number;
+
+  @ApiProperty({
+    description: '총 받은 금액 (후원)',
+    example: 2000,
+  })
+  total_received: number;
 }
 
 /**

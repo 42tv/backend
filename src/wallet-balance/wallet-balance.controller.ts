@@ -11,9 +11,7 @@ export class WalletBalanceController {
   @Get('me')
   @UseGuards(MemberGuard)
   async getMyWalletBalance(@GetUser() user: { user_idx: number }) {
-    return await this.walletBalanceService.getOrCreateWalletBalance(
-      user.user_idx,
-    );
+    return await this.walletBalanceService.getWalletBalance(user.user_idx);
   }
 
   @Get('stats')

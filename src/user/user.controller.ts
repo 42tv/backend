@@ -64,7 +64,7 @@ export class UserController {
   @Get('')
   @UseGuards(MemberGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '사용자 정보 조회' })
+  @ApiOperation({ summary: '사용자 정보 조회 (지갑 잔액 포함)' })
   @ApiResponse({
     status: 200,
     description: '사용자 정보 조회 성공',
@@ -75,14 +75,7 @@ export class UserController {
     type: UserErrorResponseDto,
   })
   async getUser(@Req() req) {
-    const user = await this.userService.findByUserIdx(req.user.idx);
-    const result = {
-      idx: user.idx,
-      user_id: user.user_id,
-      profile_img: user.profile_img,
-      nickname: user.nickname,
-    };
-    return result;
+    return await this.userService.getUserWithWalletBalance(req.user.idx);
   }
 
   @Patch('nickname')

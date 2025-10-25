@@ -14,19 +14,13 @@ export class WalletBalanceService {
   ) {}
 
   /**
-   * 사용자의 지갑 잔액 조회 (없으면 생성)
+   * 지갑 생성 (User 생성 트랜잭션에서 호출)
    * @param user_idx 사용자 ID
-   * @returns 지갑 잔액
+   * @param tx 트랜잭션 클라이언트 (필수)
+   * @returns 생성된 지갑 잔액
    */
-  async getOrCreateWalletBalance(user_idx: number) {
-    let walletBalance =
-      await this.walletBalanceRepository.findByUserId(user_idx);
-
-    if (!walletBalance) {
-      walletBalance = await this.walletBalanceRepository.create(user_idx);
-    }
-
-    return walletBalance;
+  async createWalletBalance(user_idx: number, tx: any) {
+    return await this.walletBalanceRepository.create(user_idx, tx);
   }
 
   /**

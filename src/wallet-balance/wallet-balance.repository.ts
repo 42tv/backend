@@ -18,7 +18,7 @@ export class WalletBalanceRepository {
   }
 
   /**
-   * 지갑 잔액 생성 (사용자 첫 충전 시)
+   * 지갑 잔액 생성 (User 생성 시 호출)
    * @param user_idx 사용자 ID
    * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 생성된 지갑 잔액
@@ -30,6 +30,9 @@ export class WalletBalanceRepository {
       data: {
         user_idx,
         coin_balance: 0,
+        total_charged: 0,
+        total_used: 0,
+        total_received: 0,
       },
     });
   }
