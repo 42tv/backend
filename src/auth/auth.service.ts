@@ -130,22 +130,21 @@ export class AuthService {
       throw new BadRequestException('Invalid user index in token');
     }
 
+    // 사용자 정보와 지갑 정보를 함께 조회
+    const userWithWallet =
+      await this.userService.getUserWithWalletBalance(user_idx);
+
+    // 기본 사용자 정보 조회 (is_admin 확인용)
     const user = await this.userService.findByUserIdx(user_idx);
     if (!user) {
-      // 사용자를 찾을 수 없는 경우 (토큰이 오래되었거나 사용자가 삭제된 경우)
       throw new BadRequestException('User not found');
     }
 
-    // 인증된 사용자 정보 반환
+    // 인증된 사용자 정보 반환 (지갑 정보 포함)
     return {
       is_guest: false,
       is_admin: user.is_admin,
-      user: {
-        idx: user.idx,
-        user_id: user.user_id,
-        nickname: user.nickname,
-        profile_img: user.profile_img,
-      },
+      user: userWithWallet,
     };
   }
 }
