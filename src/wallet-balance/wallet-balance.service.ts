@@ -46,7 +46,7 @@ export class WalletBalanceService {
   }
 
   /**
-   * 코인 충전으로 인한 잔액 증가
+   * 코인 충전으로 인한 잔액 증가 및 총 충전액 업데이트
    * @param user_idx 사용자 ID
    * @param amount 충전 금액
    * @param tx 트랜잭션 클라이언트 (선택사항)
@@ -65,6 +65,7 @@ export class WalletBalanceService {
       await this.walletBalanceRepository.create(user_idx, tx);
     }
 
+    // 잔액 증가 및 총 충전액 증가
     return await this.walletBalanceRepository.increaseBalance(
       user_idx,
       amount,
@@ -73,7 +74,7 @@ export class WalletBalanceService {
   }
 
   /**
-   * 코인 사용으로 인한 잔액 감소
+   * 코인 사용으로 인한 잔액 감소 및 총 사용액 업데이트
    * @param user_idx 사용자 ID
    * @param amount 사용 금액
    * @param tx 트랜잭션 클라이언트 (선택사항)
@@ -95,7 +96,36 @@ export class WalletBalanceService {
       throw new BadRequestException('잔액이 부족합니다.');
     }
 
+    // 잔액 감소 및 총 사용액 증가
     return await this.walletBalanceRepository.decreaseBalance(
+      user_idx,
+      amount,
+      tx,
+    );
+  }
+
+  /**
+   * 후원 받은 코인 증가 (스트리머가 후원을 받을 때)
+   * @param user_idx 사용자 ID
+   * @param amount 받은 금액
+   * @param tx 트랜잭션 클라이언트 (선택사항)
+   * @returns 업데이트된 지갑 잔액
+   */
+  async receiveCoins(user_idx: number, amount: number, tx?: any) {
+    if (amount <= 0) {
+      throw new BadRequestException('받은 금액은 0보다 커야 합니다.');
+    }
+
+    const walletBalance =
+      await this.walletBalanceRepository.findByUserId(user_idx);
+
+    if (!walletBalance) {
+      // 지갑이 없으면 생성
+      await this.walletBalanceRepository.create(user_idx, tx);
+    }
+
+    // 잔액 증가 및 총 받은 금액 증가
+    return await this.walletBalanceRepository.increaseReceivedBalance(
       user_idx,
       amount,
       tx,

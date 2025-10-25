@@ -55,7 +55,7 @@ export class WalletBalanceRepository {
   }
 
   /**
-   * 지갑 잔액 증가
+   * 지갑 잔액 증가 (충전 시)
    * @param user_idx 사용자 ID
    * @param amount 증가할 금액
    * @param tx 트랜잭션 클라이언트 (선택사항)
@@ -74,12 +74,42 @@ export class WalletBalanceRepository {
         coin_balance: {
           increment: amount,
         },
+        total_charged: {
+          increment: amount,
+        },
       },
     });
   }
 
   /**
-   * 지갑 잔액 감소
+   * 후원 받은 금액 증가 (스트리머)
+   * @param user_idx 사용자 ID
+   * @param amount 받은 금액
+   * @param tx 트랜잭션 클라이언트 (선택사항)
+   * @returns 업데이트된 지갑 잔액
+   */
+  async increaseReceivedBalance(
+    user_idx: number,
+    amount: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+
+    return await prismaClient.walletBalance.update({
+      where: { user_idx },
+      data: {
+        coin_balance: {
+          increment: amount,
+        },
+        total_received: {
+          increment: amount,
+        },
+      },
+    });
+  }
+
+  /**
+   * 지갑 잔액 감소 (코인 사용 시)
    * @param user_idx 사용자 ID
    * @param amount 감소할 금액
    * @param tx 트랜잭션 클라이언트 (선택사항)
@@ -97,6 +127,9 @@ export class WalletBalanceRepository {
       data: {
         coin_balance: {
           decrement: amount,
+        },
+        total_used: {
+          increment: amount,
         },
       },
     });
@@ -124,6 +157,9 @@ export class WalletBalanceRepository {
     const result = await this.prisma.walletBalance.aggregate({
       _sum: {
         coin_balance: true,
+        total_charged: true,
+        total_used: true,
+        total_received: true,
       },
       _avg: {
         coin_balance: true,
@@ -136,6 +172,9 @@ export class WalletBalanceRepository {
     return {
       total_users: result._count.user_idx || 0,
       total_balance: result._sum.coin_balance || 0,
+      total_charged: result._sum.total_charged || 0,
+      total_used: result._sum.total_used || 0,
+      total_received: result._sum.total_received || 0,
       average_balance: result._avg.coin_balance || 0,
     };
   }
