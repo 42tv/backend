@@ -38,10 +38,15 @@ export class PaymentTransactionRepository {
   /**
    * PG사 거래 ID로 결제 거래 조회
    * @param pg_transaction_id PG사 거래 고유번호
+   * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 결제 거래 또는 null
    */
-  async findByPgTransactionId(pg_transaction_id: string) {
-    return await this.prisma.paymentTransaction.findUnique({
+  async findByPgTransactionId(
+    pg_transaction_id: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx || this.prisma;
+    return await client.paymentTransaction.findUnique({
       where: { pg_transaction_id },
       include: {
         user: true,
@@ -53,10 +58,12 @@ export class PaymentTransactionRepository {
   /**
    * ID로 결제 거래 조회
    * @param id 결제 거래 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 결제 거래 또는 null
    */
-  async findById(id: string) {
-    return await this.prisma.paymentTransaction.findUnique({
+  async findById(id: string, tx?: Prisma.TransactionClient) {
+    const client = tx || this.prisma;
+    return await client.paymentTransaction.findUnique({
       where: { id },
       include: {
         user: true,

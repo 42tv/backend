@@ -58,9 +58,10 @@ export class CoinTopupService {
     processDto: ProcessTopupDto,
     tx: Prisma.TransactionClient,
   ) {
-    // 1. 결제 거래 확인
+    // 1. 결제 거래 확인 (트랜잭션 내에서)
     const paymentTransaction = await this.paymentTransactionService.findById(
       processDto.transaction_id,
+      tx,
     );
 
     if (paymentTransaction.status !== PaymentTransactionStatus.SUCCESS) {
@@ -71,9 +72,10 @@ export class CoinTopupService {
       throw new BadRequestException('본인의 결제 거래가 아닙니다.');
     }
 
-    // 2. 이미 충전 처리된 거래인지 확인
+    // 2. 이미 충전 처리된 거래인지 확인 (트랜잭션 내에서)
     const existingTopup = await this.coinTopupRepository.findByTransactionId(
       processDto.transaction_id,
+      tx,
     );
 
     if (existingTopup) {

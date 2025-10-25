@@ -39,10 +39,15 @@ export class CoinTopupRepository {
   /**
    * 충전 내역 조회 (거래 ID로)
    * @param transaction_id 결제 거래 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 충전 내역
    */
-  async findByTransactionId(transaction_id: string) {
-    return await this.prisma.coinTopup.findFirst({
+  async findByTransactionId(
+    transaction_id: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx || this.prisma;
+    return await client.coinTopup.findFirst({
       where: { transaction_id },
       include: {
         transaction: true,

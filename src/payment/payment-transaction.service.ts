@@ -6,11 +6,16 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PaymentTransactionRepository } from './payment-transaction.repository';
-import { CreatePaymentTransactionDto } from './dto/create-payment-transaction.dto';
+import {
+  CreatePaymentTransactionDto,
+  PgProvider,
+} from './dto/create-payment-transaction.dto';
 import { PaymentTransactionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CoinTopupService } from '../coin-topup/coin-topup.service';
 import { ProductService } from '../product/product.service';
+import { PgProviderFactory } from './pg-providers/pg-provider.factory';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class PaymentTransactionService {
@@ -20,6 +25,8 @@ export class PaymentTransactionService {
     @Inject(forwardRef(() => CoinTopupService))
     private readonly coinTopupService: CoinTopupService,
     private readonly productService: ProductService,
+    private readonly pgProviderFactory: PgProviderFactory,
+    private readonly userService: UserService,
   ) {}
 
   /**
@@ -63,10 +70,14 @@ export class PaymentTransactionService {
   /**
    * 결제 거래 조회
    * @param id 결제 거래 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 결제 거래
    */
-  async findById(id: string) {
-    const transaction = await this.paymentTransactionRepository.findById(id);
+  async findById(id: string, tx?: any) {
+    const transaction = await this.paymentTransactionRepository.findById(
+      id,
+      tx,
+    );
 
     if (!transaction) {
       throw new NotFoundException('존재하지 않는 결제 거래입니다.');
@@ -149,70 +160,104 @@ export class PaymentTransactionService {
   }
 
   /**
-   * Mock 상품 구매 (결제 + 충전 통합)
-   * - 개발/테스트용: 실제 PG 연동 없이 즉시 처리
+   * 상품 구매 (결제 준비)
+   * - PG Provider를 통한 결제 준비
+   * - Mock: 즉시 승인 처리 + 충전 완료
+   * - Real PG: 결제 창 정보 반환 (Webhook에서 승인 처리)
    * @param user_idx 사용자 ID
    * @param product_id 상품 ID
-   * @returns 충전 완료 결과
+   * @param pg_provider PG사 (기본값: MOCK)
+   * @returns Mock: 충전 완료 결과 / Real PG: 결제 창 정보
    */
-  async purchaseProductWithMock(user_idx: number, product_id: number) {
-    return await this.prismaService.$transaction(async (tx) => {
-      // 1. 상품 조회
-      const product = await this.productService.findActiveProduct(product_id);
+  async purchaseProduct(
+    user_idx: number,
+    product_id: number,
+    pg_provider: PgProvider = PgProvider.MOCK,
+  ) {
+    // 1. PG Provider 선택
+    const provider = this.pgProviderFactory.getProvider(pg_provider);
 
-      // 2. Mock PG 거래 ID 생성
-      const mockPgTransactionId = `MOCK_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    // 2. 상품 조회
+    const product = await this.productService.findActiveProduct(product_id);
 
-      // 3. 결제 거래 생성 (PENDING)
-      await this.paymentTransactionRepository.create(
-        user_idx,
-        {
-          pg_provider: 'mock' as any,
-          pg_transaction_id: mockPgTransactionId,
-          payment_method: 'mock' as any,
-          amount: product.price,
-        },
-        tx,
+    // 3. 사용자 정보 조회 (PG사 요청에 필요)
+    const user = await this.userService.findByUserIdx(user_idx);
+
+    // 4. PG사에 결제 준비 요청
+    const paymentResponse = await provider.preparePayment({
+      product_id,
+      amount: product.price,
+      user_idx,
+      product_name: product.name,
+      user_info: {
+        user_id: user.user_id,
+        nickname: user.nickname,
+      },
+    });
+
+    // 5. DB에 거래 생성 (PENDING)
+    await this.paymentTransactionRepository.create(user_idx, {
+      pg_provider,
+      pg_transaction_id: paymentResponse.pg_transaction_id,
+      payment_method: 'card' as any, // 기본값
+      amount: product.price,
+    });
+
+    // 6-1. Mock인 경우: 즉시 승인 처리 + 충전
+    if (pg_provider === PgProvider.MOCK) {
+      const result = await this.processSuccessfulPayment(
+        paymentResponse.pg_transaction_id,
+        product_id,
+        paymentResponse.pg_data,
       );
 
-      // 4. 즉시 승인 처리 (Mock)
-      const approvedTransaction =
-        await this.paymentTransactionRepository.updateStatus(
-          (await this.paymentTransactionRepository.findByPgTransactionId(
-            mockPgTransactionId,
-          ))!.id,
-          PaymentTransactionStatus.SUCCESS,
-          {
-            mock: true,
-            timestamp: new Date().toISOString(),
-            message: 'Mock payment for development/testing',
-          },
-          tx,
-        );
-
-      // 5. 충전 처리 위임 (CoinTopupService) - 트랜잭션 전달
-      const topupResult = await this.coinTopupService.processTopup(
-        user_idx,
-        {
-          transaction_id: approvedTransaction.id,
-          product_id: product.id,
-        },
-        tx,
-      );
+      // 충전 완료 후 wallet 정보 조회
+      const wallet = await this.prismaService.walletBalance.findUnique({
+        where: { user_idx },
+      });
 
       return {
         success: true,
         message: '충전이 완료되었습니다.',
         data: {
-          topup: topupResult,
+          topup: result.data.topup,
           product: {
             id: product.id,
             name: product.name,
             total_coins: product.total_coins,
           },
+          wallet: wallet || { coin_balance: 0 },
         },
       };
-    });
+    }
+
+    // 6-2. Real PG인 경우: 프론트에 결제 창 정보 반환
+    return {
+      success: true,
+      message: '결제 준비 완료',
+      data: {
+        pg_provider,
+        pg_transaction_id: paymentResponse.pg_transaction_id,
+        redirect_url: paymentResponse.redirect_url,
+        app_scheme: paymentResponse.app_scheme,
+        pg_data: paymentResponse.pg_data,
+        product: {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          total_coins: product.total_coins,
+        },
+      },
+    };
+  }
+
+  /**
+   * Mock 상품 구매 (하위 호환성 유지)
+   * - 기존 코드와의 호환성을 위해 유지
+   * @deprecated purchaseProduct() 사용 권장
+   */
+  async purchaseProductWithMock(user_idx: number, product_id: number) {
+    return await this.purchaseProduct(user_idx, product_id, PgProvider.MOCK);
   }
 
   /**
@@ -229,8 +274,16 @@ export class PaymentTransactionService {
     pg_response?: any,
   ) {
     return await this.prismaService.$transaction(async (tx) => {
-      // 1. 결제 거래 조회
-      const transaction = await this.findByPgTransactionId(pg_transaction_id);
+      // 1. 결제 거래 조회 (트랜잭션 내에서)
+      const transaction =
+        await this.paymentTransactionRepository.findByPgTransactionId(
+          pg_transaction_id,
+          tx,
+        );
+
+      if (!transaction) {
+        throw new NotFoundException('존재하지 않는 결제 거래입니다.');
+      }
 
       if (transaction.status !== PaymentTransactionStatus.PENDING) {
         throw new BadRequestException('이미 처리된 결제 거래입니다.');
