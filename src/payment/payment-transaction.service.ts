@@ -212,7 +212,7 @@ export class PaymentTransactionService {
       );
 
       // 충전 완료 후 wallet 정보 조회
-      const wallet = await this.prismaService.walletBalance.findUnique({
+      const wallet = await this.prismaService.coinBalance.findUnique({
         where: { user_idx },
       });
 

@@ -4,14 +4,10 @@ import { CoinUsageService } from './coin-usage.service';
 import { CoinUsageController } from './coin-usage.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CoinTopupModule } from '../coin-topup/coin-topup.module';
-import { WalletBalanceModule } from '../wallet-balance/wallet-balance.module';
+import { CoinBalanceModule } from '../coin-balance/coin-balance.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    forwardRef(() => CoinTopupModule),
-    WalletBalanceModule,
-  ],
+  imports: [PrismaModule, forwardRef(() => CoinTopupModule), CoinBalanceModule],
   controllers: [CoinUsageController],
   providers: [CoinUsageRepository, CoinUsageService],
   exports: [CoinUsageService, CoinUsageRepository],

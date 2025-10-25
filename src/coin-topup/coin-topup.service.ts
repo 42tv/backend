@@ -9,7 +9,7 @@ import { CoinTopupRepository } from './coin-topup.repository';
 import { ProcessTopupDto } from './dto/create-coin-topup.dto';
 import { ProductService } from '../product/product.service';
 import { PaymentTransactionService } from '../payment/payment-transaction.service';
-import { WalletBalanceService } from '../wallet-balance/wallet-balance.service';
+import { CoinBalanceService } from '../coin-balance/coin-balance.service';
 import { CoinUsageService } from '../coin-usage/coin-usage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TopupStatus, PaymentTransactionStatus } from '@prisma/client';
@@ -22,7 +22,7 @@ export class CoinTopupService {
     private readonly productService: ProductService,
     @Inject(forwardRef(() => PaymentTransactionService))
     private readonly paymentTransactionService: PaymentTransactionService,
-    private readonly walletBalanceService: WalletBalanceService,
+    private readonly coinBalanceService: CoinBalanceService,
     private readonly coinUsageService: CoinUsageService,
     private readonly prismaService: PrismaService,
   ) {}
@@ -118,7 +118,7 @@ export class CoinTopupService {
     );
 
     // 7. WalletBalance 업데이트
-    await this.walletBalanceService.addCoinsFromTopup(
+    await this.coinBalanceService.addCoinsFromTopup(
       user_idx,
       product.total_coins,
       tx,
@@ -222,7 +222,7 @@ export class CoinTopupService {
       );
 
       // WalletBalance에서 코인 차감 처리
-      await this.walletBalanceService.refundCoins(
+      await this.coinBalanceService.refundCoins(
         topup.user_idx,
         topup.total_coins,
         tx,

@@ -1,6 +1,35 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
+ * 코인 정보 DTO
+ */
+export class CoinInfoDto {
+  @ApiProperty({
+    description: '코인 잔액',
+    example: 1000,
+  })
+  balance: number;
+
+  @ApiProperty({
+    description: '총 충전 금액',
+    example: 5000,
+  })
+  charged: number;
+
+  @ApiProperty({
+    description: '총 사용 금액',
+    example: 3000,
+  })
+  used: number;
+
+  @ApiProperty({
+    description: '총 받은 금액 (후원)',
+    example: 2000,
+  })
+  received: number;
+}
+
+/**
  * 사용자 정보 DTO
  */
 export class UserInfoDto {
@@ -29,28 +58,10 @@ export class UserInfoDto {
   nickname: string;
 
   @ApiProperty({
-    description: '코인 잔액',
-    example: 1000,
+    description: '코인 정보',
+    type: CoinInfoDto,
   })
-  coin_balance: number;
-
-  @ApiProperty({
-    description: '총 충전 금액',
-    example: 5000,
-  })
-  total_charged: number;
-
-  @ApiProperty({
-    description: '총 사용 금액',
-    example: 3000,
-  })
-  total_used: number;
-
-  @ApiProperty({
-    description: '총 받은 금액 (후원)',
-    example: 2000,
-  })
-  total_received: number;
+  coin: CoinInfoDto;
 }
 
 /**

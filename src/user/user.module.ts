@@ -12,7 +12,7 @@ import { AwsModule } from 'src/aws/aws.module';
 import { BookmarkModule } from 'src/bookmark/bookmark.module';
 import { BlacklistModule } from 'src/blacklist/blacklist.module';
 import { ChattingRedisModule } from 'src/redis/redis.module';
-import { WalletBalanceModule } from 'src/wallet-balance/wallet-balance.module';
+import { CoinBalanceModule } from 'src/coin-balance/coin-balance.module';
 
 @Module({
   imports: [
@@ -24,7 +24,7 @@ import { WalletBalanceModule } from 'src/wallet-balance/wallet-balance.module';
     AwsModule,
     BookmarkModule,
     BlacklistModule,
-    WalletBalanceModule,
+    CoinBalanceModule,
     forwardRef(() => ChattingRedisModule),
     forwardRef(() => IvsModule),
   ],

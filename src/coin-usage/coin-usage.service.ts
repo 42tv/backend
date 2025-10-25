@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { CoinUsageRepository } from './coin-usage.repository';
 import { CoinTopupService } from '../coin-topup/coin-topup.service';
-import { WalletBalanceService } from '../wallet-balance/wallet-balance.service';
+import { CoinBalanceService } from '../coin-balance/coin-balance.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UseCoinDto } from './dto/use-coin.dto';
 
@@ -16,7 +16,7 @@ export class CoinUsageService {
     private readonly coinUsageRepository: CoinUsageRepository,
     @Inject(forwardRef(() => CoinTopupService))
     private readonly coinTopupService: CoinTopupService,
-    private readonly walletBalanceService: WalletBalanceService,
+    private readonly coinBalanceService: CoinBalanceService,
     private readonly prismaService: PrismaService,
   ) {}
 
@@ -34,11 +34,11 @@ export class CoinUsageService {
     }
 
     return await this.prismaService.$transaction(async (tx) => {
-      // 1. 지갑 잔액 확인
-      const walletBalance =
-        await this.walletBalanceService.getWalletBalance(user_idx);
+      // 1. 코인 잔액 확인
+      const coinBalance =
+        await this.coinBalanceService.getCoinBalance(user_idx);
 
-      if (walletBalance.coin_balance < amount) {
+      if (coinBalance.coin_balance < amount) {
         throw new BadRequestException('코인 잔액이 부족합니다.');
       }
 
@@ -79,7 +79,7 @@ export class CoinUsageService {
       }
 
       // 4. 지갑 잔액 차감
-      await this.walletBalanceService.useCoins(user_idx, amount, tx);
+      await this.coinBalanceService.useCoins(user_idx, amount, tx);
 
       return usageRecords;
     });

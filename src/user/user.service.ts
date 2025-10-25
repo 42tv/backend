@@ -23,7 +23,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { ErrorMessages } from 'src/common/error-messages';
-import { WalletBalanceService } from 'src/wallet-balance/wallet-balance.service';
+import { CoinBalanceService } from 'src/coin-balance/coin-balance.service';
 
 @Injectable()
 export class UserService {
@@ -40,7 +40,7 @@ export class UserService {
     private readonly blacklistService: BlacklistService,
     @Inject(forwardRef(() => RedisService))
     private readonly redisService: RedisService,
-    private readonly walletBalanceService: WalletBalanceService,
+    private readonly coinBalanceService: CoinBalanceService,
   ) {}
 
   /**
@@ -131,29 +131,30 @@ export class UserService {
   }
 
   /**
-   * 사용자 정보와 지갑 잔액 함께 조회
+   * 사용자 정보와 코인 잔액 함께 조회
    * @param user_idx
    * @returns
    */
-  async getUserWithWalletBalance(user_idx: number) {
+  async getUserWithCoin(user_idx: number) {
     const user = await this.userRepository.findByUserIdx(user_idx);
     if (!user) {
       throw new BadRequestException(ErrorMessages.USER.NOT_FOUND);
     }
 
-    // 지갑 잔액 조회 (User 생성 시 함께 생성되므로 항상 존재)
-    const walletBalance =
-      await this.walletBalanceService.getWalletBalance(user_idx);
+    // 코인 잔액 조회 (User 생성 시 함께 생성되므로 항상 존재)
+    const coinBalance = await this.coinBalanceService.getCoinBalance(user_idx);
 
     return {
       idx: user.idx,
       user_id: user.user_id,
       profile_img: user.profile_img,
       nickname: user.nickname,
-      coin_balance: walletBalance.coin_balance,
-      total_charged: walletBalance.total_charged,
-      total_used: walletBalance.total_used,
-      total_received: walletBalance.total_received,
+      coin: {
+        balance: coinBalance.coin_balance,
+        charged: coinBalance.total_charged,
+        used: coinBalance.total_used,
+        received: coinBalance.total_received,
+      },
     };
   }
 
@@ -216,10 +217,7 @@ export class UserService {
           },
         });
         //지갑 생성
-        await this.walletBalanceService.createWalletBalance(
-          createdUser.idx,
-          tx,
-        );
+        await this.coinBalanceService.createCoinBalance(createdUser.idx, tx);
         const sanitizedUser = { ...createdUser };
         delete sanitizedUser.password;
         return sanitizedUser;
