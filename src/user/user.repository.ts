@@ -142,7 +142,6 @@ export class UserRepository {
         ...(includeOptions.channel && { channel: true }),
         ...(includeOptions.broadcast_setting && { broadcastSetting: true }),
         ...(includeOptions.ivs_channel && { ivs: true }),
-        ...(includeOptions.coin && { coin: true }),
         ...(includeOptions.fan_level && {
           fanLevel: {
             orderBy: {
@@ -176,7 +175,6 @@ export class UserRepository {
         ...(includeOptions.channel && { channel: true }),
         ...(includeOptions.broadcast_setting && { broadcastSetting: true }),
         ...(includeOptions.ivs_channel && { ivs: true }),
-        ...(includeOptions.coin && { coin: true }),
         ...(includeOptions.fan_level && {
           fanLevel: {
             orderBy: {

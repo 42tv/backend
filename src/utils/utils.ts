@@ -37,7 +37,6 @@ export type UserIncludeOptions = {
   channel?: boolean;
   broadcast_setting?: boolean;
   ivs_channel?: boolean;
-  coin?: boolean;
   fan_level?: boolean;
 };
 
