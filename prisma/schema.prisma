@@ -77,6 +77,10 @@ model User {
   // Donation relations (3단계: 후원 시스템)
   sentDonations      Donation[] @relation("SentDonations")
   receivedDonations  Donation[] @relation("ReceivedDonations")
+
+  // Settlement relations (4단계: 정산 시스템)
+  payoutCoins        PayoutCoin[] @relation("PayoutCoins")
+  settlements        Settlement[] @relation("Settlements")
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
@@ -496,6 +500,7 @@ model CoinTopup {
   user            User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
   product         Product @relation(fields: [product_id], references: [id])
   usages          CoinUsage[] // 이 충전분의 사용 내역
+  payoutCoins     PayoutCoin[] // 이 충전분으로 생성된 PayoutCoin들
 
   @@map("coin_topups")
 }
@@ -505,6 +510,7 @@ enum TopupStatus {
   COMPLETED   // 충전 완료
   FAILED      // 충전 실패
   REFUNDED    // 환불됨
+  FROZEN      // 컴플라이언스 차단 (불법 자금 의심)
 }
 
 // 지갑 잔액 테이블 (2단계: 편의성)
@@ -550,6 +556,7 @@ model Donation {
   donor         User?       @relation("SentDonations", fields: [donor_idx], references: [idx], onDelete: SetNull)
   streamer      User?       @relation("ReceivedDonations", fields: [streamer_idx], references: [idx], onDelete: SetNull)
   usages        CoinUsage[] // 어떤 충전분에서 차감되었는지
+  payoutCoins   PayoutCoin[] // 이 후원으로 생성된 PayoutCoin들
 
   @@map("donations")
 }
@@ -569,6 +576,107 @@ model CoinUsage {
   // Relations
   topup         CoinTopup   @relation(fields: [topup_id], references: [id])
   donation      Donation?   @relation(fields: [donation_id], references: [id])
+  payoutCoin    PayoutCoin? // 이 사용 내역으로 생성된 PayoutCoin (1:1 관계)
 
   @@map("coin_usages")
+}
+
+// PayoutCoin 모델 - 스트리머 정산 전용 장부
+// CoinUsage와 1:1 관계 (usage_id에 unique 제약)
+model PayoutCoin {
+  id                   String   @id @default(cuid())
+  streamer_idx         Int?     // 스트리머 (5년 보관 위해 nullable)
+  donation_id          String   // 연결된 후원 ID
+  usage_id             Int      @unique // 연결된 CoinUsage ID (1:1 관계)
+  topup_id             String   // 원천 CoinTopup ID
+
+  // 금액 정보
+  coin_amount          Int      // 코인량
+  coin_value           Int      // 원화 가치
+  donated_at           DateTime // 후원 시각
+
+  // 정산 성숙도
+  settlement_ready_at  DateTime // 정산 가능 시각 (donated_at + 3일)
+  status               PayoutStatus @default(PENDING)
+
+  // 차단 관련
+  block_reason         String?  // 차단 사유
+  blocked_topup_reason String?  // CoinTopup 차단 사유
+
+  // 정산 연결
+  settlement_id        String?  // 연결된 정산 ID
+  last_reviewed_at     DateTime? // 마지막 검토 시각
+
+  created_at           DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at           DateTime @updatedAt
+
+  // Relations
+  streamer    User?      @relation("PayoutCoins", fields: [streamer_idx], references: [idx], onDelete: SetNull)
+  donation    Donation   @relation(fields: [donation_id], references: [id])
+  usage       CoinUsage  @relation(fields: [usage_id], references: [id])
+  topup       CoinTopup  @relation(fields: [topup_id], references: [id])
+  settlement  Settlement? @relation(fields: [settlement_id], references: [id])
+
+  @@index([streamer_idx, status, settlement_ready_at], name: "idx_payout_streamer_status_maturity")
+  @@index([topup_id], name: "idx_payout_topup")
+  @@index([donation_id], name: "idx_payout_donation")
+  @@index([settlement_id], name: "idx_payout_settlement")
+
+  @@map("payout_coins")
+}
+
+enum PayoutStatus {
+  PENDING   // 3일 미경과
+  MATURED   // 정산 가능
+  BLOCKED   // 컴플라이언스 차단
+  SETTLED   // 정산 완료
+}
+
+// Settlement 모델 - 정산 이벤트
+model Settlement {
+  id                String   @id @default(cuid())
+  streamer_idx      Int?     // 스트리머 (5년 보관 위해 nullable)
+
+  // 정산 기간
+  period_start      DateTime // 정산 시작일
+  period_end        DateTime // 정산 종료일
+
+  // 금액 정보
+  total_value       Int      // 총 정산 대상 금액
+  fee_amount        Int      // 수수료
+  payout_amount     Int      // 실제 지급액
+
+  // 상태
+  status            SettlementStatus @default(PENDING)
+
+  // 정산 메타데이터
+  payout_method     String?  // 지급 방법 (bank_transfer 등)
+  payout_account    String?  // 지급 계좌 (암호화 필요)
+  admin_memo        String?  // 관리자 메모
+
+  // 시간
+  requested_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  approved_at       DateTime? // 승인 시각
+  paid_at           DateTime? // 지급 완료 시각
+  rejected_at       DateTime? // 거절 시각
+  reject_reason     String?   // 거절 사유
+
+  created_at        DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at        DateTime @updatedAt
+
+  // Relations
+  streamer          User?      @relation("Settlements", fields: [streamer_idx], references: [idx], onDelete: SetNull)
+  payoutCoins       PayoutCoin[]
+
+  @@index([streamer_idx, status, period_start], name: "idx_settlement_streamer_status_period")
+  @@index([status, created_at], name: "idx_settlement_status_created")
+
+  @@map("settlements")
+}
+
+enum SettlementStatus {
+  PENDING   // 정산 요청됨
+  APPROVED  // 승인됨
+  PAID      // 지급 완료
+  REJECTED  // 거절됨
 }
