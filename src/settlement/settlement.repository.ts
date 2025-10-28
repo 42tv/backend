@@ -187,11 +187,7 @@ export class SettlementRepository {
    * @param tx 트랜잭션 클라이언트 (선택)
    * @returns 업데이트된 Settlement
    */
-  async approve(
-    id: string,
-    approvedAt: Date,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async approve(id: string, approvedAt: Date, tx?: Prisma.TransactionClient) {
     const client = tx || this.prisma;
     return await client.settlement.update({
       where: { id },
@@ -302,10 +298,7 @@ export class SettlementRepository {
    * @param options 필터 옵션
    * @returns Settlement 수
    */
-  async count(options?: {
-    status?: SettlementStatus;
-    streamerIdx?: number;
-  }) {
+  async count(options?: { status?: SettlementStatus; streamerIdx?: number }) {
     const where: Prisma.SettlementWhereInput = {};
 
     if (options?.status) {
