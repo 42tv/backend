@@ -14,6 +14,7 @@ import { CoinUsageService } from '../coin-usage/coin-usage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TopupStatus, PaymentTransactionStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { PayoutCoinService } from '../payout-coin/payout-coin.service';
 
 @Injectable()
 export class CoinTopupService {
@@ -25,6 +26,8 @@ export class CoinTopupService {
     private readonly coinBalanceService: CoinBalanceService,
     private readonly coinUsageService: CoinUsageService,
     private readonly prismaService: PrismaService,
+    @Inject(forwardRef(() => PayoutCoinService))
+    private readonly payoutCoinService: PayoutCoinService,
   ) {}
 
   /**
@@ -230,5 +233,66 @@ export class CoinTopupService {
 
       return topup;
     });
+  }
+
+  /**
+   * CoinTopup을 FROZEN 상태로 변경하고 관련 PayoutCoin 차단
+   * @param topupId CoinTopup ID
+   * @param reason 차단 사유
+   * @returns 처리 결과
+   */
+  async freezeTopup(topupId: string, reason: string) {
+    if (!reason || reason.trim().length === 0) {
+      throw new BadRequestException('Freeze reason is required');
+    }
+
+    return await this.prismaService.$transaction(async (tx) => {
+      const topup = await this.findById(topupId);
+
+      if (topup.status !== TopupStatus.COMPLETED) {
+        throw new BadRequestException('Only COMPLETED topups can be frozen');
+      }
+
+      // 1. CoinTopup을 FROZEN으로 변경
+      await this.coinTopupRepository.updateStatus(
+        topupId,
+        TopupStatus.FROZEN,
+        tx,
+      );
+
+      // 2. 관련 PayoutCoin들을 BLOCKED로 변경
+      const blockedCount = await this.payoutCoinService.blockPayoutCoinsByTopup(
+        topupId,
+        reason,
+        tx,
+      );
+
+      return {
+        topup_id: topupId,
+        status: TopupStatus.FROZEN,
+        blocked_payout_coins: blockedCount,
+        reason,
+      };
+    });
+  }
+
+  /**
+   * FROZEN 상태의 CoinTopup 해제
+   * @param topupId CoinTopup ID
+   * @returns 업데이트된 CoinTopup
+   */
+  async unfreezeTopup(topupId: string) {
+    const topup = await this.findById(topupId);
+
+    if (topup.status !== TopupStatus.FROZEN) {
+      throw new BadRequestException('Topup is not frozen');
+    }
+
+    // CoinTopup을 다시 COMPLETED로 변경
+    // 관련 PayoutCoin은 관리자가 수동으로 검토 후 해제해야 함
+    return await this.coinTopupRepository.updateStatus(
+      topupId,
+      TopupStatus.COMPLETED,
+    );
   }
 }

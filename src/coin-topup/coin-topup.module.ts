@@ -7,6 +7,7 @@ import { ProductModule } from '../product/product.module';
 import { PaymentModule } from '../payment/payment.module';
 import { CoinBalanceModule } from '../coin-balance/coin-balance.module';
 import { CoinUsageModule } from '../coin-usage/coin-usage.module';
+import { PayoutCoinModule } from '../payout-coin/payout-coin.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { CoinUsageModule } from '../coin-usage/coin-usage.module';
     forwardRef(() => PaymentModule),
     CoinBalanceModule,
     forwardRef(() => CoinUsageModule),
+    forwardRef(() => PayoutCoinModule),
   ],
   controllers: [CoinTopupController],
   providers: [CoinTopupRepository, CoinTopupService],
