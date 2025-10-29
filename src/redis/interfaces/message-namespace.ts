@@ -12,6 +12,7 @@ import {
   KickPayload,
   KickedPayload,
   BanPayload,
+  DonationPayload,
 } from './room.message';
 import {
   DuplicateConnectPayload,
@@ -229,6 +230,37 @@ export const RedisMessages = {
         roomId: roomId,
         disconnectId: disconnectId,
       } as DuplicateConnectPayload,
+    };
+  },
+
+  donation(
+    broadcasterId: string,
+    donationId: string,
+    donorIdx: number,
+    donorUserId: string,
+    donorNickname: string,
+    donorProfileImg: string,
+    coinAmount: number,
+    coinValue: number,
+    message: string | null,
+    donatedAt: string,
+    fanLevel?: { name: string; color: string },
+  ): ChatRoomMessage {
+    return {
+      op: OpCode.DONATION,
+      broadcaster_id: broadcasterId,
+      payload: {
+        donation_id: donationId,
+        donor_idx: donorIdx,
+        donor_user_id: donorUserId,
+        donor_nickname: donorNickname,
+        donor_profile_img: donorProfileImg,
+        coin_amount: coinAmount,
+        coin_value: coinValue,
+        message,
+        donated_at: donatedAt,
+        fan_level: fanLevel,
+      } as DonationPayload,
     };
   },
 };

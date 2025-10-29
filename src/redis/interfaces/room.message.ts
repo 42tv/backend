@@ -10,6 +10,7 @@ export enum OpCode {
   ROLE_CHANGE = 'role_change',
   VIEWER_COUNT = 'viewer_count',
   VIEWER_LIST = 'viewer_list',
+  DONATION = 'donation',
 }
 
 export enum RoleChangeType {
@@ -47,7 +48,8 @@ export interface ChatRoomMessage {
     | KickPayload
     | KickedPayload
     | BanPayload
-    | ViewerListPayload;
+    | ViewerListPayload
+    | DonationPayload;
 }
 
 export interface ChatPayload {
@@ -154,6 +156,23 @@ export interface ViewerInfo {
   profile_img: string;
   grade: string;
   color: string;
+}
+
+// 후원 정보 타입
+export interface DonationPayload {
+  donation_id: string;
+  donor_idx: number;
+  donor_user_id: string;
+  donor_nickname: string;
+  donor_profile_img: string;
+  coin_amount: number;
+  coin_value: number;
+  message: string | null;
+  donated_at: string;
+  fan_level?: {
+    name: string;
+    color: string;
+  };
 }
 
 // // 서버 커맨드 메시지 타입

@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { PayoutCoinService } from '../payout-coin/payout-coin.service';
 
 @Injectable()

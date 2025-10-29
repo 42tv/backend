@@ -130,6 +130,9 @@ export class RedisService {
       case OpCode.KICK:
         await this.handleKickMessage(message);
         break;
+      case OpCode.DONATION:
+        await this.handleDonationMessage(message);
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
     }
@@ -295,6 +298,19 @@ export class RedisService {
         kicked_by: kickPayload.kicked_by,
         reason: kickPayload.reason,
       },
+    );
+  }
+
+  /**
+   * 후원 메시지 처리
+   * @param message 후원 메시지
+   */
+  private async handleDonationMessage(message: ChatRoomMessage) {
+    console.log(`[Donation] received:`, message);
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
     );
   }
 
