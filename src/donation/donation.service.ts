@@ -2,12 +2,19 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { DonationRepository } from './donation.repository';
 import { CoinUsageService } from '../coin-usage/coin-usage.service';
 import { CoinBalanceService } from '../coin-balance/coin-balance.service';
 import { PayoutCoinService } from '../payout-coin/payout-coin.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { FanService } from '../fan/fan.service';
+import { FanRepository } from '../fan/fan.repository';
+import { RedisService } from '../redis/redis.service';
+import { RedisMessages } from '../redis/interfaces/message-namespace';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class DonationService {
@@ -17,6 +24,12 @@ export class DonationService {
     private readonly coinBalanceService: CoinBalanceService,
     private readonly payoutCoinService: PayoutCoinService,
     private readonly prisma: PrismaService,
+    private readonly fanService: FanService,
+    private readonly fanRepository: FanRepository,
+    @Inject(forwardRef(() => RedisService))
+    private readonly redisService: RedisService,
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
   ) {}
 
   /**
@@ -94,8 +107,103 @@ export class DonationService {
       // 6. 스트리머 CoinBalance.total_received 업데이트
       await this.coinBalanceService.receiveCoins(streamerIdx, coinAmount, tx);
 
+      // 7. 팬 관계 확인 및 생성/업데이트
+      const fan = await this.fanRepository.findFan(donorIdx, streamerIdx, tx);
+      if (!fan) {
+        await this.fanRepository.createFanRelation(
+          donorIdx,
+          streamerIdx,
+          coinAmount,
+          tx,
+        );
+      } else {
+        await this.fanRepository.updateTotalDonation(
+          donorIdx,
+          streamerIdx,
+          coinAmount,
+          tx,
+        );
+      }
+
       return donation;
     });
+  }
+
+  /**
+   * 후원 생성 및 실시간 알림 발송 (user_id 기반)
+   * @param donorIdx 후원자 인덱스
+   * @param streamerUserId 스트리머 user_id
+   * @param coinAmount 후원 코인량
+   * @param message 후원 메시지 (선택)
+   * @returns 생성된 Donation
+   */
+  async createDonationByUserId(
+    donorIdx: number,
+    streamerUserId: string,
+    coinAmount: number,
+    message?: string,
+  ) {
+    // 스트리머 조회
+    const streamer = await this.userService.findByUserId(streamerUserId);
+
+    if (!streamer) {
+      throw new NotFoundException('존재하지 않는 사용자입니다');
+    }
+
+    return await this.createDonationWithNotification(
+      donorIdx,
+      streamer.idx,
+      coinAmount,
+      message,
+    );
+  }
+
+  /**
+   * 후원 생성 및 실시간 알림 발송 (idx 기반)
+   * @param donorIdx 후원자 인덱스
+   * @param streamerIdx 스트리머 인덱스
+   * @param coinAmount 후원 코인량
+   * @param message 후원 메시지 (선택)
+   * @returns 생성된 Donation
+   */
+  async createDonationWithNotification(
+    donorIdx: number,
+    streamerIdx: number,
+    coinAmount: number,
+    message?: string,
+  ) {
+    const donation = await this.createDonation(
+      donorIdx,
+      streamerIdx,
+      coinAmount,
+      message,
+    );
+
+    // 8. 팬 레벨 계산
+    const fanLevel = await this.fanService.matchFanLevel(donorIdx, streamerIdx);
+
+    // 9. Redis Pub/Sub으로 실시간 알림 발송
+    const donationMessage = RedisMessages.donation(
+      streamerIdx.toString(),
+      donation.id,
+      donation.donor.idx,
+      donation.donor.user_id,
+      donation.donor.nickname,
+      donation.donor.profile_img || '',
+      donation.coin_amount,
+      donation.coin_value,
+      donation.message,
+      donation.donated_at.toISOString(),
+      fanLevel ? { name: fanLevel.name, color: fanLevel.color } : undefined,
+    );
+
+    // room:{broadcaster_id} 채널에 발행
+    await this.redisService.publishRoomMessage(
+      `room:${streamerIdx}`,
+      donationMessage,
+    );
+
+    return donation;
   }
 
   /**

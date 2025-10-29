@@ -25,6 +25,7 @@ export class DonationRepository {
             idx: true,
             nickname: true,
             user_id: true,
+            profile_img: true,
           },
         },
         streamer: {
@@ -32,6 +33,7 @@ export class DonationRepository {
             idx: true,
             nickname: true,
             user_id: true,
+            profile_img: true,
           },
         },
       },
