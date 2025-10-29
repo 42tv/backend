@@ -32,6 +32,11 @@ import { ProductModule } from './product/product.module';
 import { PaymentModule } from './payment/payment.module';
 import { CoinTopupModule } from './coin-topup/coin-topup.module';
 import { CoinBalanceModule } from './coin-balance/coin-balance.module';
+import { DonationModule } from './donation/donation.module';
+import { CoinUsageModule } from './coin-usage/coin-usage.module';
+import { PayoutCoinModule } from './payout-coin/payout-coin.module';
+import { SettlementModule } from './settlement/settlement.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -64,6 +69,11 @@ import { CoinBalanceModule } from './coin-balance/coin-balance.module';
     PaymentModule,
     CoinTopupModule,
     CoinBalanceModule,
+    DonationModule,
+    CoinUsageModule,
+    PayoutCoinModule,
+    SettlementModule,
+    SchedulerModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],
