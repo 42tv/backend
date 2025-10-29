@@ -120,7 +120,7 @@ export class CoinTopupService {
       tx,
     );
 
-    // 7. WalletBalance 업데이트
+    // 7. CoinBalance 업데이트
     await this.coinBalanceService.addCoinsFromTopup(
       user_idx,
       product.total_coins,
@@ -224,7 +224,7 @@ export class CoinTopupService {
         tx,
       );
 
-      // WalletBalance에서 코인 차감 처리
+      // CoinBalance에서 코인 차감 처리
       await this.coinBalanceService.refundCoins(
         topup.user_idx,
         topup.total_coins,
