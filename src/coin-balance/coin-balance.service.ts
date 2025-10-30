@@ -26,10 +26,14 @@ export class CoinBalanceService {
   /**
    * 사용자의 코인 잔액 조회
    * @param user_idx 사용자 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 코인 잔액
    */
-  async getCoinBalance(user_idx: number) {
-    const coinBalance = await this.coinBalanceRepository.findByUserId(user_idx);
+  async getCoinBalance(user_idx: number, tx?: any) {
+    const coinBalance = await this.coinBalanceRepository.findByUserId(
+      user_idx,
+      tx,
+    );
 
     if (!coinBalance) {
       throw new NotFoundException('코인 잔액 정보를 찾을 수 없습니다.');

@@ -55,21 +55,17 @@ export class DonationService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // 1. 후원자의 코인 잔액 확인
-      const donorBalance =
-        await this.coinBalanceService.getCoinBalance(donorIdx);
+      // 1. 후원자의 코인 잔액 확인 (트랜잭션 내부에서)
+      const donorBalance = await this.coinBalanceService.getCoinBalance(
+        donorIdx,
+        tx,
+      );
 
       if (donorBalance.coin_balance < coinAmount) {
         throw new BadRequestException('Insufficient coin balance');
       }
 
-      // 2. CoinUsage 생성 (FIFO - 후원자의 코인 사용)
-      const coinUsages = await this.coinUsageService.useCoins(donorIdx, {
-        amount: coinAmount,
-        donation_id: null, // 아직 donation_id가 없으므로 나중에 연결
-      });
-
-      // 3. Donation 생성
+      // 2. Donation 먼저 생성 (CoinUsage가 바로 참조할 수 있도록)
       const donation = await this.donationRepository.create(
         {
           donor: {
@@ -85,29 +81,27 @@ export class DonationService {
         tx,
       );
 
-      // 4. CoinUsage에 donation_id 연결
-      await tx.coinUsage.updateMany({
-        where: {
-          id: {
-            in: coinUsages.map((usage) => usage.id),
-          },
+      // 3. CoinUsage 생성 (donation_id를 바로 전달 - UPDATE 불필요!)
+      const coinUsages = await this.coinUsageService.useCoins(
+        donorIdx,
+        {
+          amount: coinAmount,
+          donation_id: donation.id, // ✅ 바로 연결!
         },
-        data: {
-          donation_id: donation.id,
-        },
-      });
+        tx,
+      );
 
-      // 5. PayoutCoin 자동 생성 (스트리머가 받을 정산 코인)
+      // 4. PayoutCoin 자동 생성 (스트리머가 받을 정산 코인)
       await this.payoutCoinService.createPayoutCoinsFromDonation(
         donation,
         coinUsages,
         tx,
       );
 
-      // 6. 스트리머 CoinBalance.total_received 업데이트
+      // 5. 스트리머 CoinBalance.total_received 업데이트
       await this.coinBalanceService.receiveCoins(streamerIdx, coinAmount, tx);
 
-      // 7. 팬 관계 확인 및 생성/업데이트
+      // 6. 팬 관계 확인 및 생성/업데이트
       const fan = await this.fanRepository.findFan(donorIdx, streamerIdx, tx);
       if (!fan) {
         await this.fanRepository.createFanRelation(

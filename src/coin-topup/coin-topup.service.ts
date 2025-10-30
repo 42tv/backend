@@ -107,6 +107,7 @@ export class CoinTopupService {
         base_coins: product.base_coins,
         bonus_coins: product.bonus_coins,
         total_coins: product.total_coins,
+        remaining_coins: product.total_coins, // 초기값은 total_coins와 동일
         paid_amount: paymentTransaction.amount,
         coin_unit_price: paymentTransaction.amount / product.total_coins,
       },
@@ -156,10 +157,14 @@ export class CoinTopupService {
   /**
    * 사용자의 사용 가능한 충전 내역 조회 (FIFO용)
    * @param user_idx 사용자 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 사용 가능한 충전 내역
    */
-  async getAvailableTopups(user_idx: number) {
-    return await this.coinTopupRepository.findAvailableTopupsForUser(user_idx);
+  async getAvailableTopups(user_idx: number, tx?: Prisma.TransactionClient) {
+    return await this.coinTopupRepository.findAvailableTopupsForUser(
+      user_idx,
+      tx,
+    );
   }
 
   /**

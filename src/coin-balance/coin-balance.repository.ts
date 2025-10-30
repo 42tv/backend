@@ -9,10 +9,13 @@ export class CoinBalanceRepository {
   /**
    * 사용자의 코인 잔액 조회
    * @param user_idx 사용자 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 코인 잔액
    */
-  async findByUserId(user_idx: number) {
-    return await this.prisma.coinBalance.findUnique({
+  async findByUserId(user_idx: number, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+
+    return await prismaClient.coinBalance.findUnique({
       where: { user_idx },
     });
   }

@@ -21,6 +21,7 @@ export class CoinTopupRepository {
       base_coins: number;
       bonus_coins: number;
       total_coins: number;
+      remaining_coins: number;
       paid_amount: number;
       coin_unit_price: number;
     },
@@ -95,32 +96,34 @@ export class CoinTopupRepository {
   /**
    * 사용자의 사용 가능한 충전 내역 조회 (FIFO용)
    * @param user_idx 사용자 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 사용 가능한 충전 내역 (오래된 순)
    */
-  async findAvailableTopupsForUser(user_idx: number) {
-    const result = await this.prisma.$queryRaw<
-      Array<{
-        id: string;
-        total_coins: number;
-        topped_up_at: Date;
-        remaining_coins: number;
-      }>
-    >`
-      SELECT
-        ct.id,
-        ct.total_coins,
-        ct.topped_up_at,
-        (ct.total_coins - COALESCE(SUM(cu.used_coins), 0)) as remaining_coins
-      FROM coin_topups ct
-      LEFT JOIN coin_usages cu ON ct.id = cu.topup_id
-      WHERE ct.user_idx = ${user_idx}
-        AND ct.status = 'COMPLETED'
-      GROUP BY ct.id, ct.total_coins, ct.topped_up_at
-      HAVING (ct.total_coins - COALESCE(SUM(cu.used_coins), 0)) > 0
-      ORDER BY ct.topped_up_at ASC
-    `;
+  async findAvailableTopupsForUser(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
 
-    return result;
+    // remaining_coins 컬럼 사용으로 성능 최적화 (JOIN 제거)
+    return await prismaClient.coinTopup.findMany({
+      where: {
+        user_idx,
+        status: TopupStatus.COMPLETED,
+        remaining_coins: {
+          gt: 0, // 남은 코인이 있는 것만
+        },
+      },
+      orderBy: {
+        topped_up_at: 'asc', // FIFO
+      },
+      select: {
+        id: true,
+        total_coins: true,
+        remaining_coins: true,
+        topped_up_at: true,
+      },
+    });
   }
 
   /**
