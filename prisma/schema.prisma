@@ -246,15 +246,18 @@ model Fan {
 
   total_donation      Int      @default(0) // 팬이 보낸 총 선물 수
   hidden              Boolean  @default(false) // 팬 등급 숨김 여부
+  current_level_id    Int?     // 현재 팬 레벨 (캐시/성능 최적화용)
   created_at          DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at          DateTime @updatedAt
-  
+
   // Relations
   broadcaster_idx     Int      // 방송인(팔로우 당하는 사람) 인덱스
   broadcaster         User     @relation("UserFans", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
 
   fan_idx             Int      // 팬(팔로우 하는 사람) 인덱스
   fan                 User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
+
+  current_level       FanLevel? @relation("FanCurrentLevel", fields: [current_level_id], references: [id], onDelete: SetNull)
 
   // Ensure a user can only follow another user once
   @@unique([broadcaster_idx, fan_idx])
@@ -274,7 +277,8 @@ model FanLevel {
   user_idx         Int      // 크리에이터(등급 소유자) 인덱스
   user             User     @relation("CreatorRankTiers", fields: [user_idx], references: [idx], onDelete: Cascade)
   postSettings     PostSettings[] // 이 팬레벨을 최소 요구사항으로 설정한 쪽지 설정들
-  
+  fans             Fan[]    @relation("FanCurrentLevel") // 이 레벨을 현재 레벨로 가진 팬들
+
   // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
   @@unique([user_idx, name])
 }

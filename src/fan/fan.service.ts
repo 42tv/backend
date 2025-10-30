@@ -73,4 +73,36 @@ export class FanService {
     // 어떤 레벨에도 도달하지 못한 경우 null 반환
     return null;
   }
+
+  /**
+   * 후원 금액으로 팬 레벨을 계산하는 함수 (Fan 조회 없이)
+   * 레벨 업그레이드 체크 시 사용 (후원 전/후 금액으로 각각 계산)
+   * @param broadcaster_idx 방송인의 user idx
+   * @param totalDonation 누적 후원 금액
+   * @returns 해당하는 팬 레벨 정보 (id, name, color)
+   */
+  async matchFanLevelByAmount(
+    broadcaster_idx: number,
+    totalDonation: number,
+  ): Promise<{ id: number; name: string; color: string } | null> {
+    // 방송인의 팬 레벨 목록을 높은 금액순으로 조회
+    const fanLevels = await this.fanLevelService.findByUserIdx(
+      broadcaster_idx,
+      'desc',
+    );
+
+    // 높은 금액부터 내림차순으로 정렬된 팬 레벨에서 맞는 레벨 찾기
+    for (const level of fanLevels) {
+      if (totalDonation >= level.min_donation) {
+        return {
+          id: level.id,
+          name: level.name,
+          color: level.color,
+        };
+      }
+    }
+
+    // 어떤 레벨에도 도달하지 못한 경우 null 반환
+    return null;
+  }
 }
