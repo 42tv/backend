@@ -484,6 +484,7 @@ model CoinTopup {
   base_coins      Int       // 기본 코인량
   bonus_coins     Int       @default(0) // 보너스 코인량
   total_coins     Int       // 실제 지급된 총 코인량
+  remaining_coins Int       // 남은 코인량 (성능 최적화용)
   paid_amount     Int       // 실제 결제 금액
   coin_unit_price Float     // 코인당 가격
 
