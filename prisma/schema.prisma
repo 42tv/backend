@@ -241,12 +241,13 @@ model Posts {
 }
 
 // 팬 관계 테이블 - 사용자간 팬 관계 관리
+// 후원 시 자동으로 Fan으로 등록됨 (최소한 기본 레벨 보유)
 model Fan {
   id                  Int      @id @default(autoincrement())
 
   total_donation      Int      @default(0) // 팬이 보낸 총 선물 수
   hidden              Boolean  @default(false) // 팬 등급 숨김 여부
-  current_level_id    Int?     // 현재 팬 레벨 (캐시/성능 최적화용)
+  current_level_id    Int      // 현재 팬 레벨 (캐시/성능 최적화용, 기본 레벨 포함)
   created_at          DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at          DateTime @updatedAt
 
@@ -257,22 +258,24 @@ model Fan {
   fan_idx             Int      // 팬(팔로우 하는 사람) 인덱스
   fan                 User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
 
-  current_level       FanLevel? @relation("FanCurrentLevel", fields: [current_level_id], references: [id], onDelete: SetNull)
+  current_level       FanLevel @relation("FanCurrentLevel", fields: [current_level_id], references: [id], onDelete: Cascade)
 
   // Ensure a user can only follow another user once
   @@unique([broadcaster_idx, fan_idx])
 }
 
 // 팬 등급 시스템 - 각 크리에이터별 팬 등급 정의
+// 중요: 모든 크리에이터는 min_donation: 0 인 기본 레벨을 가져야 함 (예: "일반 팬")
+// 이를 통해 모든 후원자는 최소한 기본 팬 레벨을 보유하게 됨
 model FanLevel {
   id               Int      @id @default(autoincrement())
-  
-  name             String   // 등급 이름 (예: "브론즈", "실버", "골드")
-  min_donation     Int      // 해당 등급에 도달하기 위한 최소 후원 금액
+
+  name             String   // 등급 이름 (예: "일반 팬", "브론즈", "실버", "골드")
+  min_donation     Int      // 해당 등급에 도달하기 위한 최소 후원 금액 (기본 레벨은 0)
   color            String   @default("#808080") // 팬 등급 색상 (헥스 코드)
   created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at       DateTime @updatedAt
-  
+
   // Relations
   user_idx         Int      // 크리에이터(등급 소유자) 인덱스
   user             User     @relation("CreatorRankTiers", fields: [user_idx], references: [idx], onDelete: Cascade)

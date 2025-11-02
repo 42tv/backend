@@ -11,6 +11,7 @@ export enum OpCode {
   VIEWER_COUNT = 'viewer_count',
   VIEWER_LIST = 'viewer_list',
   DONATION = 'donation',
+  FAN_LEVEL_UP = 'fan_level_up',
 }
 
 export enum RoleChangeType {
@@ -49,7 +50,8 @@ export interface ChatRoomMessage {
     | KickedPayload
     | BanPayload
     | ViewerListPayload
-    | DonationPayload;
+    | DonationPayload
+    | FanLevelUpPayload;
 }
 
 export interface ChatPayload {
@@ -173,6 +175,27 @@ export interface DonationPayload {
     name: string;
     color: string;
   };
+}
+
+// 팬 레벨 업 정보 타입
+export interface FanLevelUpPayload {
+  fan_idx: number;
+  fan: {
+    user_id: string;
+    nickname: string;
+    profile_img: string;
+  };
+  old_level: {
+    name: string;
+    color: string;
+  } | null;
+  new_level: {
+    name: string;
+    color: string;
+  };
+  total_donation: number;
+  triggered_by_donation_id: string;
+  upgraded_at: string;
 }
 
 // // 서버 커맨드 메시지 타입

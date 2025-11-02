@@ -7,13 +7,29 @@ export class FanLevelRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * 초기 5개 팬레벨 생성
+   * 초기 팬레벨 생성 (기본 레벨 포함 6개)
+   * 중요: 첫 번째 레벨은 min_donation: 0 인 기본 레벨
    * @param user_idx
    * @param tx
    * @returns
    */
   async createInitFanLevel(user_idx, tx?: Prisma.TransactionClient) {
     const prismaClient = tx || this.prisma;
+
+    // 기본 레벨 (min_donation: 0) - 필수!
+    await prismaClient.fanLevel.create({
+      data: {
+        user: {
+          connect: {
+            idx: user_idx,
+          },
+        },
+        name: 'Normal',
+        min_donation: 0,
+        color: '#9CA3AF',
+      },
+    });
+
     await prismaClient.fanLevel.create({
       data: {
         user: {

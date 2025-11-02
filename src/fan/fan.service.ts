@@ -24,6 +24,17 @@ export class FanService {
   }
 
   /**
+   * 팬 관계가 존재하는지 확인하는 함수
+   * @param fan_idx 팬의 user idx
+   * @param broadcaster_idx 방송인의 user idx
+   * @returns 팬 관계 존재 여부
+   */
+  async isFan(fanIdx: number, broadcasterIdx: number): Promise<boolean> {
+    const fan = await this.fanRepository.findFan(fanIdx, broadcasterIdx);
+    return fan !== null;
+  }
+
+  /**
    * 팬이 방송인에게 후원한 총 금액을 조회하는 함수
    * @param fan_idx 팬의 user idx
    * @param broadcaster_idx 방송인의 user idx
@@ -44,7 +55,7 @@ export class FanService {
    * 맞는 팬 레벨을 찾는 함수
    * @param fan_idx 팬의 user idx
    * @param broadcaster_idx 방송인의 user idx
-   * @returns 해당하는 팬 레벨 정보
+   * @returns 해당하는 팬 레벨 정보 (total_donation 포함)
    */
   async matchFanLevel(fan_idx: number, broadcaster_idx: number) {
     // 팬 정보 조회
@@ -53,25 +64,22 @@ export class FanService {
       return null;
     }
 
-    // 방송인의 팬 레벨 목록을 높은 금액순으로 조회
-    const fanLevels = await this.fanLevelService.findByUserIdx(
+    // matchFanLevelByAmount 재사용 (중복 로직 제거)
+    const level = await this.matchFanLevelByAmount(
       broadcaster_idx,
-      'desc',
+      fan.total_donation,
     );
 
-    // 높은 금액부터 내림차순으로 정렬된 팬 레벨에서 맞는 레벨 찾기
-    for (const level of fanLevels) {
-      if (fan.total_donation >= level.min_donation) {
-        return {
-          name: level.name,
-          color: level.color,
-          total_donation: fan.total_donation,
-        };
-      }
+    if (!level) {
+      return null;
     }
 
-    // 어떤 레벨에도 도달하지 못한 경우 null 반환
-    return null;
+    // total_donation 추가하여 반환
+    return {
+      name: level.name,
+      color: level.color,
+      total_donation: fan.total_donation,
+    };
   }
 
   /**

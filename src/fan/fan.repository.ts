@@ -26,21 +26,26 @@ export class FanRepository {
           fan_idx: fan_idx,
         },
       },
+      include: {
+        current_level: true, // 현재 레벨 정보 포함
+      },
     });
   }
 
   /**
-   * 팬 관계 생성
+   * 팬 관계 생성 (레벨에 도달해야만 생성 가능)
    * @param fan_idx 팬의 user idx
    * @param broadcaster_idx 방송인의 user idx
-   * @param initial_donation 초기 후원 금액 (기본값: 0)
+   * @param initial_donation 초기 후원 금액
+   * @param level_id 현재 팬 레벨 ID (필수)
    * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 생성된 팬 관계
    */
   async createFanRelation(
     fan_idx: number,
     broadcaster_idx: number,
-    initial_donation: number = 0,
+    initial_donation: number,
+    level_id: number,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
@@ -49,6 +54,7 @@ export class FanRepository {
         fan_idx,
         broadcaster_idx: broadcaster_idx,
         total_donation: initial_donation,
+        current_level_id: level_id,
       },
     });
   }
@@ -149,14 +155,14 @@ export class FanRepository {
    * 팬의 현재 레벨 업데이트 (캐시)
    * @param fan_idx 팬의 user idx
    * @param broadcaster_idx 방송인의 user idx
-   * @param level_id 새로운 레벨 ID (null이면 레벨 없음)
+   * @param level_id 새로운 레벨 ID
    * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 업데이트된 팬 관계
    */
   async updateCurrentLevel(
     fan_idx: number,
     broadcaster_idx: number,
-    level_id: number | null,
+    level_id: number,
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;

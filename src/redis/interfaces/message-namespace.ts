@@ -13,6 +13,7 @@ import {
   KickedPayload,
   BanPayload,
   DonationPayload,
+  FanLevelUpPayload,
 } from './room.message';
 import {
   DuplicateConnectPayload,
@@ -261,6 +262,37 @@ export const RedisMessages = {
         donated_at: donatedAt,
         fan_level: fanLevel,
       } as DonationPayload,
+    };
+  },
+
+  fanLevelUp(
+    broadcasterId: string,
+    fanIdx: number,
+    fanUserId: string,
+    fanNickname: string,
+    fanProfileImg: string,
+    oldLevel: { name: string; color: string } | null,
+    newLevel: { name: string; color: string },
+    totalDonation: number,
+    donationId: string,
+    upgradedAt: string,
+  ): ChatRoomMessage {
+    return {
+      op: OpCode.FAN_LEVEL_UP,
+      broadcaster_id: broadcasterId,
+      payload: {
+        fan_idx: fanIdx,
+        fan: {
+          user_id: fanUserId,
+          nickname: fanNickname,
+          profile_img: fanProfileImg,
+        },
+        old_level: oldLevel,
+        new_level: newLevel,
+        total_donation: totalDonation,
+        triggered_by_donation_id: donationId,
+        upgraded_at: upgradedAt,
+      } as FanLevelUpPayload,
     };
   },
 };
