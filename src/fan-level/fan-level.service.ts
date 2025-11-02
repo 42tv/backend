@@ -23,15 +23,23 @@ export class FanLevelService {
   /**
    * user_idx의 팬레벨 조회
    * @param user_idx
+   * @param orderBy
    * @param tx
+   * @param includeDefault 기본 레벨 포함 여부 (기본값: false)
    * @returns
    */
   async findByUserIdx(
-    user_idx,
+    user_idx: number,
     orderBy: 'asc' | 'desc' = 'desc',
     tx?: Prisma.TransactionClient,
+    includeDefault: boolean = false,
   ) {
-    return await this.fanLevelRepository.findByUserIdx(user_idx, orderBy, tx);
+    return await this.fanLevelRepository.findByUserIdx(
+      user_idx,
+      orderBy,
+      tx,
+      includeDefault,
+    );
   } /**
    * 사용자의 팬레벨 설정을 업데이트 (트랜잭션 내에서 처리)
    * @param user_idx 사용자 인덱스

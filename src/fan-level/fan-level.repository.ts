@@ -13,7 +13,7 @@ export class FanLevelRepository {
    * @param tx
    * @returns
    */
-  async createInitFanLevel(user_idx, tx?: Prisma.TransactionClient) {
+  async createInitFanLevel(user_idx: number, tx?: Prisma.TransactionClient) {
     const prismaClient = tx || this.prisma;
 
     // 기본 레벨 (min_donation: 0) - 필수!
@@ -96,19 +96,30 @@ export class FanLevelRepository {
   /**
    * user_idx의 팬레벨 조회
    * @param user_idx
+   * @param orderBy
    * @param tx
+   * @param includeDefault 기본 레벨(min_donation: 0) 포함 여부 (기본값: false)
    * @returns
    */
   async findByUserIdx(
-    user_idx,
+    user_idx: number,
     orderBy: 'asc' | 'desc' = 'desc',
     tx?: Prisma.TransactionClient,
+    includeDefault: boolean = false,
   ) {
     const prismaClient = tx || this.prisma;
+
+    const whereClause: Prisma.FanLevelWhereInput = {
+      user_idx: user_idx,
+    };
+
+    // 기본 레벨 제외 (includeDefault가 false일 때만)
+    if (!includeDefault) {
+      whereClause.min_donation = { gt: 0 };
+    }
+
     return await prismaClient.fanLevel.findMany({
-      where: {
-        user_idx: user_idx,
-      },
+      where: whereClause,
       orderBy: {
         min_donation: orderBy,
       },
