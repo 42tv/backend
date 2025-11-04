@@ -90,6 +90,39 @@ export class FanRepository {
   }
 
   /**
+   * 팬의 총 후원 금액과 레벨 함께 업데이트
+   * @param fan_idx 팬의 user idx
+   * @param broadcaster_idx 방송인의 user idx
+   * @param donation_amount 추가할 후원 금액
+   * @param level_id 새로운 레벨 ID
+   * @param tx 트랜잭션 클라이언트 (선택사항)
+   * @returns 업데이트된 팬 관계
+   */
+  async updateTotalDonationAndLevel(
+    fan_idx: number,
+    broadcaster_idx: number,
+    donation_amount: number,
+    level_id: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.fan.update({
+      where: {
+        broadcaster_idx_fan_idx: {
+          broadcaster_idx: broadcaster_idx,
+          fan_idx: fan_idx,
+        },
+      },
+      data: {
+        total_donation: {
+          increment: donation_amount,
+        },
+        current_level_id: level_id,
+      },
+    });
+  }
+
+  /**
    * 팬 관계 삭제
    * @param fan_idx 팬의 user idx
    * @param broadcaster_idx 방송인의 user idx
@@ -175,6 +208,9 @@ export class FanRepository {
       },
       data: {
         current_level_id: level_id,
+      },
+      include: {
+        current_level: true, // 업데이트된 레벨 정보 포함
       },
     });
   }

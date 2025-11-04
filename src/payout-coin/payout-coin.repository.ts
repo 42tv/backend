@@ -417,4 +417,17 @@ export class PayoutCoinRepository {
 
     return result._sum.coin_value || 0;
   }
+
+  /**
+   * CoinTopup 조회 (트랜잭션 컨텍스트)
+   * @param topupId CoinTopup ID
+   * @param tx 트랜잭션 클라이언트 (선택)
+   * @returns CoinTopup 또는 null
+   */
+  async findTopupById(topupId: string, tx?: Prisma.TransactionClient) {
+    const client = tx || this.prisma;
+    return await client.coinTopup.findUnique({
+      where: { id: topupId },
+    });
+  }
 }

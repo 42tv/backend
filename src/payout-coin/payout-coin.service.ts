@@ -4,15 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PayoutCoinRepository } from './payout-coin.repository';
-import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, PayoutStatus, TopupStatus } from '@prisma/client';
 
 @Injectable()
 export class PayoutCoinService {
-  constructor(
-    private readonly payoutCoinRepository: PayoutCoinRepository,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly payoutCoinRepository: PayoutCoinRepository) {}
 
   /**
    * Donation 생성 시 CoinUsage 기반으로 PayoutCoin 자동 생성
@@ -31,9 +27,10 @@ export class PayoutCoinService {
     // 각 CoinUsage마다 정확히 1개의 PayoutCoin 생성 (1:1 관계)
     for (const usage of coinUsages) {
       // CoinTopup 정보 조회 (coin_unit_price 필요)
-      const topup = await tx.coinTopup.findUnique({
-        where: { id: usage.topup_id },
-      });
+      const topup = await this.payoutCoinRepository.findTopupById(
+        usage.topup_id,
+        tx,
+      );
 
       if (!topup) {
         throw new NotFoundException(`CoinTopup not found: ${usage.topup_id}`);

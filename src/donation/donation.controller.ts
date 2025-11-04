@@ -27,12 +27,11 @@ export class DonationController {
    */
   @Post()
   @UseGuards(MemberGuard)
-  async createDonation(
+  async donate(
     @Body() createDonationDto: CreateDonationDto,
     @GetUser('idx') donorIdx: number,
   ) {
-    // 후원 생성 및 실시간 알림 (서비스에서 스트리머 검증 처리)
-    const donation = await this.donationService.createDonationByUserId(
+    const donation = await this.donationService.donate(
       donorIdx,
       createDonationDto.streamer_user_id,
       createDonationDto.coin_amount,

@@ -16,7 +16,7 @@ export class FanLevelService {
    * @param tx
    * @returns
    */
-  async createInitFanLevel(user_idx, tx?: Prisma.TransactionClient) {
+  async createInitFanLevel(user_idx: number, tx?: Prisma.TransactionClient) {
     return await this.fanLevelRepository.createInitFanLevel(user_idx, tx);
   }
 

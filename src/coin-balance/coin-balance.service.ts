@@ -4,14 +4,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { CoinBalanceRepository } from './coin-balance.repository';
-import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CoinBalanceService {
-  constructor(
-    private readonly coinBalanceRepository: CoinBalanceRepository,
-    private readonly prismaService: PrismaService,
-  ) {}
+  constructor(private readonly coinBalanceRepository: CoinBalanceRepository) {}
 
   /**
    * 코인 잔액 생성 (User 생성 트랜잭션에서 호출)
