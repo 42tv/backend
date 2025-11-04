@@ -1,3 +1,5 @@
+import { FanLevelInfo } from '../../fan/interfaces/fan-level.interface';
+
 export enum OpCode {
   CHAT = 'chat',
   KICK = 'kick',
@@ -27,9 +29,7 @@ export interface JwtDecode {
   profile_img: string;
   is_guest: boolean;
   guest_id?: string;
-  fan_level: {
-    name: string;
-    color: string;
+  fan_level: FanLevelInfo & {
     total_donation: number;
   }; // 팬 레벨 정보 (게스트가 아닌 경우에만 존재)
 }
@@ -171,10 +171,7 @@ export interface DonationPayload {
   coin_value: number;
   message: string | null;
   donated_at: string;
-  fan_level?: {
-    name: string;
-    color: string;
-  };
+  fan_level?: FanLevelInfo;
 }
 
 // 팬 레벨 업 정보 타입
@@ -185,14 +182,8 @@ export interface FanLevelUpPayload {
     nickname: string;
     profile_img: string;
   };
-  old_level: {
-    name: string;
-    color: string;
-  } | null;
-  new_level: {
-    name: string;
-    color: string;
-  };
+  old_level: FanLevelInfo | null;
+  new_level: FanLevelInfo;
   total_donation: number;
   triggered_by_donation_id: string;
   upgraded_at: string;

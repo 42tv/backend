@@ -15,6 +15,8 @@ import { FanRepository } from '../fan/fan.repository';
 import { RedisService } from '../redis/redis.service';
 import { RedisMessages } from '../redis/interfaces/message-namespace';
 import { UserService } from '../user/user.service';
+import { FanLevelInfo } from '../fan/interfaces/fan-level.interface';
+import { DonationTransactionResult } from './dto/donation-transaction-result.dto';
 
 @Injectable()
 export class DonationService {
@@ -46,12 +48,52 @@ export class DonationService {
     coinAmount: number,
     message?: string,
   ) {
-    // 1. 입력값 검증
+    // 1. 검증 및 스트리머 조회
+    const streamerIdx = await this.validateAndGetStreamer(
+      donorIdx,
+      streamerUserId,
+      coinAmount,
+    );
+
+    // 2. 트랜잭션 처리
+    const { donation, isLevelUpgraded, oldLevel, updatedFan } =
+      await this.processDonationTransaction(
+        donorIdx,
+        streamerIdx,
+        coinAmount,
+        message,
+      );
+
+    // 3. 실시간 알림 발송
+    await this.sendDonationNotifications(
+      donation,
+      streamerIdx,
+      isLevelUpgraded,
+      oldLevel,
+      updatedFan,
+    );
+
+    return donation;
+  }
+
+  /**
+   * 후원 검증 및 스트리머 조회
+   * @param donorIdx 후원자 인덱스
+   * @param streamerUserId 스트리머 user_id
+   * @param coinAmount 후원 코인량
+   * @returns 스트리머 인덱스
+   */
+  private async validateAndGetStreamer(
+    donorIdx: number,
+    streamerUserId: string,
+    coinAmount: number,
+  ): Promise<number> {
+    // 입력값 검증
     if (coinAmount <= 0) {
       throw new BadRequestException('Coin amount must be greater than 0');
     }
 
-    // 2. 스트리머 조회
+    // 스트리머 조회
     const streamer = await this.userService.findByUserId(streamerUserId);
     if (!streamer) {
       throw new NotFoundException('존재하지 않는 사용자입니다');
@@ -59,103 +101,147 @@ export class DonationService {
 
     const streamerIdx = streamer.idx;
 
-    // 3. 자기 자신에게 후원 방지
+    // 자기 자신에게 후원 방지
     if (donorIdx === streamerIdx) {
       throw new BadRequestException('Cannot donate to yourself');
     }
 
-    // 4. 트랜잭션 처리
-    const { donation, isLevelUpgraded, oldLevel, updatedFan } =
-      await this.prisma.$transaction(async (tx) => {
-        // 4-1. 후원자의 코인 잔액 확인 (트랜잭션 내부에서)
-        const donorBalance = await this.coinBalanceService.getCoinBalance(
-          donorIdx,
-          tx,
-        );
+    return streamerIdx;
+  }
 
-        if (donorBalance.coin_balance < coinAmount) {
-          throw new BadRequestException('Insufficient coin balance');
-        }
+  /**
+   * 후원 트랜잭션 처리
+   * @param donorIdx 후원자 인덱스
+   * @param streamerIdx 스트리머 인덱스
+   * @param coinAmount 후원 코인량
+   * @param message 후원 메시지 (선택)
+   * @returns 트랜잭션 결과
+   */
+  private async processDonationTransaction(
+    donorIdx: number,
+    streamerIdx: number,
+    coinAmount: number,
+    message?: string,
+  ): Promise<DonationTransactionResult> {
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. 후원자의 코인 잔액 확인
+      const donorBalance = await this.coinBalanceService.getCoinBalance(
+        donorIdx,
+        tx,
+      );
 
-        // 4-2. Donation 먼저 생성 (CoinUsage가 바로 참조할 수 있도록)
-        const donation = await this.donationRepository.create(
-          {
-            donor: {
-              connect: { idx: donorIdx },
-            },
-            streamer: {
-              connect: { idx: streamerIdx },
-            },
-            coin_amount: coinAmount,
-            coin_value: coinAmount,
-            message: message || null,
+      if (donorBalance.coin_balance < coinAmount) {
+        throw new BadRequestException('Insufficient coin balance');
+      }
+
+      // 2. Donation 생성
+      const donation = await this.donationRepository.create(
+        {
+          donor: {
+            connect: { idx: donorIdx },
           },
-          tx,
-        );
-
-        // 4-3. CoinUsage 생성 (donation_id를 바로 전달 - UPDATE 불필요!)
-        const coinUsages = await this.coinUsageService.useCoins(
-          donorIdx,
-          {
-            amount: coinAmount,
-            donation_id: donation.id, // ✅ 바로 연결!
+          streamer: {
+            connect: { idx: streamerIdx },
           },
-          tx,
-        );
+          coin_amount: coinAmount,
+          coin_value: coinAmount,
+          message: message || null,
+        },
+        tx,
+      );
 
-        // 4-4. PayoutCoin 자동 생성 (스트리머가 받을 정산 코인)
-        await this.payoutCoinService.createPayoutCoinsFromDonation(
-          donation,
-          coinUsages,
-          tx,
-        );
+      // 3. CoinUsage 생성
+      const coinUsages = await this.coinUsageService.useCoins(
+        donorIdx,
+        {
+          amount: coinAmount,
+          donation_id: donation.id,
+        },
+        tx,
+      );
 
-        // 4-5. 스트리머 CoinBalance.total_received 업데이트
-        await this.coinBalanceService.receiveCoins(streamerIdx, coinAmount, tx);
+      // 4. PayoutCoin 자동 생성
+      await this.payoutCoinService.createPayoutCoinsFromDonation(
+        donation,
+        coinUsages,
+        tx,
+      );
 
-        // 4-6. 현재 Fan 정보 저장 (업그레이드 판단용)
-        const fanBeforeDonation = await this.fanRepository.findFan(
-          donorIdx,
-          streamerIdx,
-          tx,
-        );
-        const oldLevelId = fanBeforeDonation?.current_level_id || null;
-        const oldLevel = fanBeforeDonation?.current_level
-          ? {
-              name: fanBeforeDonation.current_level.name,
-              color: fanBeforeDonation.current_level.color,
-            }
-          : null;
+      // 5. 스트리머 CoinBalance.total_received 업데이트
+      await this.coinBalanceService.receiveCoins(streamerIdx, coinAmount, tx);
 
-        // 4-7. Fan의 total_donation 증가 (레벨은 아직 변경하지 않음)
-        await this.updateFanTotalDonation(
-          donorIdx,
-          streamerIdx,
-          coinAmount,
-          tx,
-        );
+      // 6. 현재 Fan 레벨 정보 저장 (업그레이드 판단용)
+      const fanBeforeDonation = await this.fanRepository.findFan(
+        donorIdx,
+        streamerIdx,
+        tx,
+      );
+      const oldLevelId = fanBeforeDonation?.current_level_id || null;
+      const oldLevel = fanBeforeDonation?.current_level
+        ? this.extractFanLevelInfo(fanBeforeDonation)
+        : null;
 
-        // 4-8. 증가한 total_donation에 맞는 FanLevel 설정 및 최신 Fan 정보 반환
-        const updatedFan = await this.updateCurrentLevel(
-          donorIdx,
-          streamerIdx,
-          tx,
-        );
+      // 7. Fan의 total_donation 증가
+      await this.updateFanTotalDonation(donorIdx, streamerIdx, coinAmount, tx);
 
-        // 4-9. 팬 레벨 업그레이드 여부 판단 (oldLevelId와 현재 레벨 비교)
-        const isLevelUpgraded =
-          oldLevelId !== null && oldLevelId !== updatedFan.current_level_id;
+      // 8. 증가한 total_donation에 맞는 FanLevel 설정
+      const updatedFan = await this.updateCurrentLevel(
+        donorIdx,
+        streamerIdx,
+        tx,
+      );
 
-        return { donation, isLevelUpgraded, oldLevel, updatedFan };
-      });
+      // 9. 팬 레벨 업그레이드 여부 판단
+      const isLevelUpgraded =
+        oldLevelId !== null && oldLevelId !== updatedFan.current_level_id;
 
-    // 5. 업데이트된 Fan 정보에서 레벨 추출 (실시간 알림용)
-    const fanLevel = {
-      name: updatedFan.current_level.name,
-      color: updatedFan.current_level.color,
-    };
+      return { donation, isLevelUpgraded, oldLevel, updatedFan };
+    });
+  }
 
-    // 6. Redis Pub/Sub으로 실시간 후원 알림 발송
+  /**
+   * 후원 알림 발송
+   * @param donation 후원 정보
+   * @param streamerIdx 스트리머 인덱스
+   * @param isLevelUpgraded 레벨 업그레이드 여부
+   * @param oldLevel 이전 레벨 정보
+   * @param updatedFan 업데이트된 팬 정보
+   */
+  private async sendDonationNotifications(
+    donation: any,
+    streamerIdx: number,
+    isLevelUpgraded: boolean,
+    oldLevel: FanLevelInfo | null,
+    updatedFan: any,
+  ): Promise<void> {
+    const fanLevel = this.extractFanLevelInfo(updatedFan);
+
+    // 후원 알림 발송
+    await this.sendDonationMessage(donation, streamerIdx, fanLevel);
+
+    // 레벨 업 알림 발송 (업그레이드된 경우에만)
+    if (isLevelUpgraded) {
+      await this.sendLevelUpMessage(
+        donation,
+        streamerIdx,
+        oldLevel,
+        fanLevel,
+        updatedFan.total_donation,
+      );
+    }
+  }
+
+  /**
+   * 후원 메시지 발송
+   * @param donation 후원 정보
+   * @param streamerIdx 스트리머 인덱스
+   * @param fanLevel 팬 레벨 정보
+   */
+  private async sendDonationMessage(
+    donation: any,
+    streamerIdx: number,
+    fanLevel: FanLevelInfo,
+  ): Promise<void> {
     const donationMessage = RedisMessages.donation(
       streamerIdx.toString(),
       donation.id,
@@ -170,34 +256,56 @@ export class DonationService {
       fanLevel,
     );
 
-    // room:{broadcaster_id} 채널에 발행
     await this.redisService.publishRoomMessage(
       `room:${streamerIdx}`,
       donationMessage,
     );
+  }
 
-    // 7. 레벨 업 알림 발송 (레벨이 업그레이드된 경우에만)
-    if (isLevelUpgraded) {
-      const levelUpMessage = RedisMessages.fanLevelUp(
-        streamerIdx.toString(),
-        donorIdx,
-        donation.donor.user_id,
-        donation.donor.nickname,
-        donation.donor.profile_img || '',
-        oldLevel,
-        fanLevel,
-        updatedFan.total_donation,
-        donation.id,
-        new Date().toISOString(),
-      );
+  /**
+   * 레벨 업 메시지 발송
+   * @param donation 후원 정보
+   * @param streamerIdx 스트리머 인덱스
+   * @param oldLevel 이전 레벨 정보
+   * @param newLevel 새 레벨 정보
+   * @param totalDonation 총 후원 금액
+   */
+  private async sendLevelUpMessage(
+    donation: any,
+    streamerIdx: number,
+    oldLevel: FanLevelInfo | null,
+    newLevel: FanLevelInfo,
+    totalDonation: number,
+  ): Promise<void> {
+    const levelUpMessage = RedisMessages.fanLevelUp(
+      streamerIdx.toString(),
+      donation.donor.idx,
+      donation.donor.user_id,
+      donation.donor.nickname,
+      donation.donor.profile_img || '',
+      oldLevel,
+      newLevel,
+      totalDonation,
+      donation.id,
+      new Date().toISOString(),
+    );
 
-      await this.redisService.publishRoomMessage(
-        `room:${streamerIdx}`,
-        levelUpMessage,
-      );
-    }
+    await this.redisService.publishRoomMessage(
+      `room:${streamerIdx}`,
+      levelUpMessage,
+    );
+  }
 
-    return donation;
+  /**
+   * Fan 객체에서 레벨 정보 추출
+   * @param fan Fan 객체
+   * @returns 레벨 정보
+   */
+  private extractFanLevelInfo(fan: any): FanLevelInfo {
+    return {
+      name: fan.current_level.name,
+      color: fan.current_level.color,
+    };
   }
 
   /**
