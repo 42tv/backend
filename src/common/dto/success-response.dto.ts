@@ -5,15 +5,6 @@ export class SuccessResponseDto<T> {
   success: true;
   data: T;
   message?: string;
-  meta?: ResponseMetaDto;
-}
-
-/**
- * 응답 메타데이터 DTO
- */
-export class ResponseMetaDto {
-  timestamp?: string;
-  requestId?: string;
   pagination?: PaginationMetaDto;
 }
 
