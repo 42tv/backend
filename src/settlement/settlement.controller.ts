@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { SettlementService } from './settlement.service';
 import { SettlementStatus } from '@prisma/client';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 // DTO 정의
 class CreateSettlementDto {
@@ -39,14 +41,14 @@ export class SettlementController {
   async createMySettlement(
     @Request() req: any,
     @Body() dto: CreateSettlementDto,
-  ) {
+  ): Promise<SuccessResponseDto<any>> {
     const streamerIdx = req.user?.idx || 1;
 
     if (!dto.payout_coin_ids || dto.payout_coin_ids.length === 0) {
       throw new BadRequestException('payout_coin_ids is required');
     }
 
-    return await this.settlementService.createSettlement(
+    const settlement = await this.settlementService.createSettlement(
       streamerIdx,
       dto.payout_coin_ids,
       {
@@ -55,6 +57,7 @@ export class SettlementController {
         admin_memo: dto.admin_memo,
       },
     );
+    return ResponseWrapper.success(settlement, '정산을 요청했습니다.');
   }
 
   /**
@@ -68,7 +71,7 @@ export class SettlementController {
     @Query('status') status?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-  ) {
+  ): Promise<SuccessResponseDto<{ settlements: any[] }>> {
     const streamerIdx = req.user?.idx || 1;
 
     let settlementStatus: SettlementStatus | undefined;
@@ -79,11 +82,28 @@ export class SettlementController {
       settlementStatus = status as SettlementStatus;
     }
 
-    return await this.settlementService.findByStreamerIdx(streamerIdx, {
-      status: settlementStatus,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      offset: offset ? parseInt(offset, 10) : undefined,
-    });
+    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    const parsedOffset = offset ? parseInt(offset, 10) : 0;
+    const { items, total } = await this.settlementService.findByStreamerIdx(
+      streamerIdx,
+      {
+        status: settlementStatus,
+        limit: parsedLimit,
+        offset: parsedOffset,
+      },
+    );
+    const take = parsedLimit || 20;
+    const pagination = {
+      page: Math.floor(parsedOffset / take) + 1,
+      limit: take,
+      total,
+      totalPages: Math.ceil(total / take) || 1,
+    };
+    return ResponseWrapper.success(
+      { settlements: items },
+      '정산 내역을 조회했습니다.',
+      pagination,
+    );
   }
 
   /**
@@ -92,7 +112,10 @@ export class SettlementController {
    */
   @Get('my/:id')
   // @UseGuards(MemberGuard)
-  async getMySettlementById(@Request() req: any, @Param('id') id: string) {
+  async getMySettlementById(
+    @Request() req: any,
+    @Param('id') id: string,
+  ): Promise<SuccessResponseDto<any>> {
     const streamerIdx = req.user?.idx || 1;
     const settlement = await this.settlementService.findById(id);
 
@@ -101,7 +124,7 @@ export class SettlementController {
       throw new BadRequestException('Access denied');
     }
 
-    return settlement;
+    return ResponseWrapper.success(settlement, '정산 상세를 조회했습니다.');
   }
 
   /**
@@ -110,10 +133,13 @@ export class SettlementController {
    */
   @Get('my/stats')
   // @UseGuards(MemberGuard)
-  async getMySettlementStats(@Request() req: any) {
+  async getMySettlementStats(
+    @Request() req: any,
+  ): Promise<SuccessResponseDto<any>> {
     const streamerIdx = req.user?.idx || 1;
 
-    return await this.settlementService.getSettlementStats(streamerIdx);
+    const stats = await this.settlementService.getSettlementStats(streamerIdx);
+    return ResponseWrapper.success(stats, '정산 통계를 조회했습니다.');
   }
 
   // ===== 관리자 API =====
@@ -131,7 +157,7 @@ export class SettlementController {
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-  ) {
+  ): Promise<SuccessResponseDto<{ settlements: any[] }>> {
     let settlementStatus: SettlementStatus | undefined;
     if (
       status &&
@@ -140,14 +166,28 @@ export class SettlementController {
       settlementStatus = status as SettlementStatus;
     }
 
-    return await this.settlementService.findAll({
+    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    const parsedOffset = offset ? parseInt(offset, 10) : 0;
+    const { items, total } = await this.settlementService.findAll({
       status: settlementStatus,
       streamerIdx: streamerIdx ? parseInt(streamerIdx, 10) : undefined,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      offset: offset ? parseInt(offset, 10) : undefined,
+      limit: parsedLimit,
+      offset: parsedOffset,
     });
+    const take = parsedLimit || 50;
+    const pagination = {
+      page: Math.floor(parsedOffset / take) + 1,
+      limit: take,
+      total,
+      totalPages: Math.ceil(total / take) || 1,
+    };
+    return ResponseWrapper.success(
+      { settlements: items },
+      '정산 내역을 조회했습니다.',
+      pagination,
+    );
   }
 
   /**
@@ -156,8 +196,12 @@ export class SettlementController {
    */
   @Get('admin/pending')
   // @UseGuards(AdminGuard)
-  async getPendingSettlements() {
-    return await this.settlementService.findPendingSettlements();
+  async getPendingSettlements(): Promise<SuccessResponseDto<any>> {
+    const settlements = await this.settlementService.findPendingSettlements();
+    return ResponseWrapper.success(
+      settlements,
+      '승인 대기 중인 정산을 조회했습니다.',
+    );
   }
 
   /**
@@ -166,8 +210,11 @@ export class SettlementController {
    */
   @Get('admin/:id')
   // @UseGuards(AdminGuard)
-  async getSettlementById(@Param('id') id: string) {
-    return await this.settlementService.findById(id);
+  async getSettlementById(
+    @Param('id') id: string,
+  ): Promise<SuccessResponseDto<any>> {
+    const settlement = await this.settlementService.findById(id);
+    return ResponseWrapper.success(settlement, '정산 상세를 조회했습니다.');
   }
 
   /**
@@ -176,8 +223,11 @@ export class SettlementController {
    */
   @Post('admin/:id/approve')
   // @UseGuards(AdminGuard)
-  async approveSettlement(@Param('id') id: string) {
-    return await this.settlementService.approveSettlement(id);
+  async approveSettlement(
+    @Param('id') id: string,
+  ): Promise<SuccessResponseDto<any>> {
+    const settlement = await this.settlementService.approveSettlement(id);
+    return ResponseWrapper.success(settlement, '정산을 승인했습니다.');
   }
 
   /**
@@ -186,8 +236,14 @@ export class SettlementController {
    */
   @Post('admin/:id/pay')
   // @UseGuards(AdminGuard)
-  async markSettlementAsPaid(@Param('id') id: string) {
-    return await this.settlementService.markSettlementAsPaid(id);
+  async markSettlementAsPaid(
+    @Param('id') id: string,
+  ): Promise<SuccessResponseDto<any>> {
+    const settlement = await this.settlementService.markSettlementAsPaid(id);
+    return ResponseWrapper.success(
+      settlement,
+      '정산을 지급 완료 처리했습니다.',
+    );
   }
 
   /**
@@ -199,12 +255,16 @@ export class SettlementController {
   async rejectSettlement(
     @Param('id') id: string,
     @Body() dto: RejectSettlementDto,
-  ) {
+  ): Promise<SuccessResponseDto<any>> {
     if (!dto.reason) {
       throw new BadRequestException('reason is required');
     }
 
-    return await this.settlementService.rejectSettlement(id, dto.reason);
+    const settlement = await this.settlementService.rejectSettlement(
+      id,
+      dto.reason,
+    );
+    return ResponseWrapper.success(settlement, '정산을 거절했습니다.');
   }
 
   /**
@@ -218,7 +278,7 @@ export class SettlementController {
     @Query('status') status?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-  ) {
+  ): Promise<SuccessResponseDto<{ settlements: any[] }>> {
     let settlementStatus: SettlementStatus | undefined;
     if (
       status &&
@@ -227,11 +287,28 @@ export class SettlementController {
       settlementStatus = status as SettlementStatus;
     }
 
-    return await this.settlementService.findByStreamerIdx(streamerIdx, {
-      status: settlementStatus,
-      limit: limit ? parseInt(limit, 10) : undefined,
-      offset: offset ? parseInt(offset, 10) : undefined,
-    });
+    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    const parsedOffset = offset ? parseInt(offset, 10) : 0;
+    const { items, total } = await this.settlementService.findByStreamerIdx(
+      streamerIdx,
+      {
+        status: settlementStatus,
+        limit: parsedLimit,
+        offset: parsedOffset,
+      },
+    );
+    const take = parsedLimit || 20;
+    const pagination = {
+      page: Math.floor(parsedOffset / take) + 1,
+      limit: take,
+      total,
+      totalPages: Math.ceil(total / take) || 1,
+    };
+    return ResponseWrapper.success(
+      { settlements: items },
+      '스트리머 정산 내역을 조회했습니다.',
+      pagination,
+    );
   }
 
   /**
@@ -242,7 +319,8 @@ export class SettlementController {
   // @UseGuards(AdminGuard)
   async getStreamerSettlementStats(
     @Param('streamerIdx', ParseIntPipe) streamerIdx: number,
-  ) {
-    return await this.settlementService.getSettlementStats(streamerIdx);
+  ): Promise<SuccessResponseDto<any>> {
+    const stats = await this.settlementService.getSettlementStats(streamerIdx);
+    return ResponseWrapper.success(stats, '스트리머 정산 통계를 조회했습니다.');
   }
 }

@@ -4,10 +4,7 @@ import {
   CreatePolicyDto,
   VersionIncrementType,
 } from './dto/policy-request.dto';
-import {
-  PolicyResponseDto,
-  PolicyListResponseDto,
-} from './dto/policy-response.dto';
+import { PolicyResponseDto } from './dto/policy-response.dto';
 
 @Injectable()
 export class PolicyService {
@@ -78,19 +75,14 @@ export class PolicyService {
     return newVersion;
   }
 
-  async getAllPolicies(): Promise<PolicyListResponseDto> {
+  async getAllPolicies() {
     const policies = await this.prisma.policy.findMany({
       where: {
         is_active: true,
       },
       orderBy: { created_at: 'desc' },
     });
-
-    return {
-      success: true,
-      message: '정책 목록 조회 성공',
-      data: policies,
-    };
+    return policies;
   }
 
   async getPolicyByPage(page: string): Promise<PolicyResponseDto> {

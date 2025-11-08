@@ -2,6 +2,8 @@ import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { SendChatDto } from './dto/send-chat.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -47,13 +49,17 @@ export class ChatController {
       },
     },
   })
-  async sendChattingMessage(@Req() req, @Body() sendChatDto: SendChatDto) {
+  async sendChattingMessage(
+    @Req() req,
+    @Body() sendChatDto: SendChatDto,
+  ): Promise<SuccessResponseDto<null>> {
     const userIdx = req.user.idx;
     const { broadcaster_id, message } = sendChatDto;
-    return await this.chatService.sendChattingMessage(
+    await this.chatService.sendChattingMessage(
       userIdx,
       broadcaster_id,
       message,
     );
+    return ResponseWrapper.success(null, '성공적으로 채팅을 전송했습니다.');
   }
 }

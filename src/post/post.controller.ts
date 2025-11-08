@@ -30,6 +30,8 @@ import {
   CustomBadRequestResponse,
   CustomInternalServerErrorResponse,
 } from 'src/utils/utils';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import {
   GetPostsResponseDto,
   PostCreateResponseDto,
@@ -72,8 +74,13 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async getPosts(@Req() req, @Query('kind') kind, @Query('nickname') nickname) {
-    return await this.postService.getPosts(req.user.idx, kind, nickname);
+  async getPosts(
+    @Req() req,
+    @Query('kind') kind: string,
+    @Query('nickname') nickname?: string,
+  ): Promise<SuccessResponseDto<any[]>> {
+    const posts = await this.postService.getPosts(req.user.idx, kind, nickname);
+    return ResponseWrapper.success(posts, '쪽지 목록을 조회했습니다.');
   }
 
   @Post()
@@ -93,11 +100,12 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async createPost(@Req() req, @Body() postDto: PostDto) {
+  async createPost(
+    @Req() req,
+    @Body() postDto: PostDto,
+  ): Promise<SuccessResponseDto<null>> {
     await this.postService.createPost(req.user.idx, postDto);
-    return {
-      message: '쪽지를 성공적으로 보냈습니다.',
-    };
+    return ResponseWrapper.success(null, '쪽지를 성공적으로 보냈습니다.');
   }
 
   @Put(':postId')
@@ -121,11 +129,12 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async readPosts(@Req() req, @Param('postId') postId) {
+  async readPosts(
+    @Req() req,
+    @Param('postId') postId: string,
+  ): Promise<SuccessResponseDto<null>> {
     await this.postService.readPosts(req.user.idx, postId);
-    return {
-      message: '쪽지를 읽었습니다.',
-    };
+    return ResponseWrapper.success(null, '쪽지를 읽었습니다.');
   }
 
   @Delete()
@@ -145,7 +154,10 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async deletePosts(@Req() req, @Body() deletePostsDto: DeletePostsDto) {
+  async deletePosts(
+    @Req() req,
+    @Body() deletePostsDto: DeletePostsDto,
+  ): Promise<SuccessResponseDto<null>> {
     if (deletePostsDto.type === 'sent') {
       await this.postService.deleteSentPosts(
         req.user.idx,
@@ -157,9 +169,7 @@ export class PostController {
         deletePostsDto.postIds,
       );
     }
-    return {
-      message: '쪽지를 삭제했습니다.',
-    };
+    return ResponseWrapper.success(null, '쪽지를 삭제했습니다.');
   }
 
   @Delete(':postId')
@@ -194,15 +204,13 @@ export class PostController {
     @Req() req,
     @Param('postId') postId,
     @Query('type') type: 'sent' | 'received',
-  ) {
+  ): Promise<SuccessResponseDto<null>> {
     if (type === 'sent') {
       await this.postService.deleteSentPost(req.user.idx, postId);
     } else {
       await this.postService.deleteReceivedPost(req.user.idx, postId);
     }
-    return {
-      message: '쪽지를 삭제했습니다.',
-    };
+    return ResponseWrapper.success(null, '쪽지를 삭제했습니다.');
   }
 
   @Get('block/user')
@@ -221,8 +229,14 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async getBlockedPostUser(@Req() req) {
-    return await this.postService.getBlockedPostUser(req.user.idx);
+  async getBlockedPostUser(@Req() req): Promise<SuccessResponseDto<any[]>> {
+    const blockedUsers = await this.postService.getBlockedPostUser(
+      req.user.idx,
+    );
+    return ResponseWrapper.success(
+      blockedUsers,
+      '차단된 유저 목록을 조회했습니다.',
+    );
   }
 
   @Post('block/user/:blockedUserIdx')
@@ -246,11 +260,12 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async blockUser(@Req() req, @Param('blockedUserIdx') blockedUserIdx) {
+  async blockUser(
+    @Req() req,
+    @Param('blockedUserIdx') blockedUserIdx: number,
+  ): Promise<SuccessResponseDto<null>> {
     await this.postService.blockUser(req.user.idx, blockedUserIdx);
-    return {
-      message: '유저를 차단했습니다.',
-    };
+    return ResponseWrapper.success(null, '유저를 차단했습니다.');
   }
 
   @Delete('block/user')
@@ -283,12 +298,13 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async unblockUsers(@Req() req, @Body('blockedUserIdxs') blockedUserIdxs) {
+  async unblockUsers(
+    @Req() req,
+    @Body('blockedUserIdxs') blockedUserIdxs: number[],
+  ): Promise<SuccessResponseDto<null>> {
     console.log(blockedUserIdxs);
     await this.postService.unblockUsers(req.user.idx, blockedUserIdxs);
-    return {
-      message: '유저를 차단 해제했습니다.',
-    };
+    return ResponseWrapper.success(null, '유저를 차단 해제했습니다.');
   }
 
   @Delete('block/user/:blockedUserIdx')
@@ -315,11 +331,9 @@ export class PostController {
   async unblockUser(
     @Req() req,
     @Param('blockedUserIdx') blockedUserIdx: number,
-  ) {
+  ): Promise<SuccessResponseDto<null>> {
     await this.postService.unblockUser(req.user.idx, blockedUserIdx);
-    return {
-      message: '유저를 차단 해제했습니다.',
-    };
+    return ResponseWrapper.success(null, '유저를 차단 해제했습니다.');
   }
 
   @Get('setting')
@@ -338,8 +352,11 @@ export class PostController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBearerAuth()
-  async getPostSettings(@Req() req) {
-    return await this.postService.getPostSettings(req.user.idx);
+  async getPostSettings(
+    @Req() req,
+  ): Promise<SuccessResponseDto<Record<string, unknown>>> {
+    const settings = await this.postService.getPostSettings(req.user.idx);
+    return ResponseWrapper.success(settings, '쪽지 설정을 조회했습니다.');
   }
 
   @Put('/setting/level')
@@ -362,11 +379,12 @@ export class PostController {
   async updatePostSettings(
     @Req() req,
     @Body() updateData: UpdatePostSettingsDto,
-  ) {
+  ): Promise<SuccessResponseDto<null>> {
     console.log(updateData);
-    return await this.postService.updatePostSettings(
+    const { message } = await this.postService.updatePostSettings(
       req.user.idx,
       updateData.minFanLevel,
     );
+    return ResponseWrapper.success(null, message);
   }
 }

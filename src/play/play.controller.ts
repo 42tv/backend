@@ -15,6 +15,8 @@ import {
   PlayErrorResponseDto,
   PlayForbiddenResponseDto,
 } from './dto/play-response.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @ApiTags('play')
 @Controller('play')
@@ -41,17 +43,21 @@ export class PlayController {
     description: '접근 금지',
     type: PlayForbiddenResponseDto,
   })
-  async play(@Req() req, @Body() body: PlayStreamDto): Promise<PlayResponse> {
+  async play(
+    @Req() req,
+    @Body() body: PlayStreamDto,
+  ): Promise<SuccessResponseDto<PlayResponse>> {
     const isGuest = req.user.is_guest;
     const userIdx = req.user.idx;
     const guestId = req.user.guest_id;
     const { stream_id, password } = body;
-    return await this.playService.play(
+    const playInfo = await this.playService.play(
       userIdx,
       stream_id,
       isGuest,
       guestId,
       password,
     );
+    return ResponseWrapper.success(playInfo, '시청 정보를 발급했습니다.');
   }
 }

@@ -19,6 +19,8 @@ import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { AdminGuard } from '../auth/guard/admin.guard';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 
 @Controller('products')
 export class ProductController {
@@ -35,27 +37,42 @@ export class ProductController {
       },
     }),
   )
-  create(
+  async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() createProductDto: CreateProductDto,
-  ) {
-    return this.productService.createWithImage(createProductDto, file);
+  ): Promise<SuccessResponseDto<{ product: any }>> {
+    const product = await this.productService.createWithImage(
+      createProductDto,
+      file,
+    );
+    return ResponseWrapper.success(
+      { product },
+      '상품을 성공적으로 생성했습니다.',
+    );
   }
 
   @Get()
-  findAll() {
-    return this.productService.findActiveProducts();
+  async findAll(): Promise<SuccessResponseDto<any>> {
+    const products = await this.productService.findActiveProducts();
+    return ResponseWrapper.success(
+      products,
+      '활성화된 상품 목록을 조회했습니다.',
+    );
   }
 
   @Get('all')
   @UseGuards(AdminGuard)
-  findAllForAdmin() {
-    return this.productService.findAll();
+  async findAllForAdmin(): Promise<SuccessResponseDto<any>> {
+    const products = await this.productService.findAll();
+    return ResponseWrapper.success(products, '전체 상품 목록을 조회했습니다.');
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.productService.findById(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SuccessResponseDto<any>> {
+    const product = await this.productService.findById(id);
+    return ResponseWrapper.success(product, '상품 정보를 조회했습니다.');
   }
 
   @Patch(':id')
@@ -69,29 +86,43 @@ export class ProductController {
       },
     }),
   )
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: Express.Multer.File,
     @Body() updateProductDto: UpdateProductDto,
-  ) {
-    return this.productService.updateWithImage(id, updateProductDto, file);
+  ): Promise<SuccessResponseDto<any>> {
+    const product = await this.productService.updateWithImage(
+      id,
+      updateProductDto,
+      file,
+    );
+    return ResponseWrapper.success(product, '상품 정보를 수정했습니다.');
   }
 
   @Patch(':id/activate')
   @UseGuards(AdminGuard)
-  activate(@Param('id', ParseIntPipe) id: number) {
-    return this.productService.activate(id);
+  async activate(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SuccessResponseDto<any>> {
+    const product = await this.productService.activate(id);
+    return ResponseWrapper.success(product, '상품을 활성화했습니다.');
   }
 
   @Patch(':id/deactivate')
   @UseGuards(AdminGuard)
-  deactivate(@Param('id', ParseIntPipe) id: number) {
-    return this.productService.deactivate(id);
+  async deactivate(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SuccessResponseDto<any>> {
+    const product = await this.productService.deactivate(id);
+    return ResponseWrapper.success(product, '상품을 비활성화했습니다.');
   }
 
   @Delete(':id')
   @UseGuards(AdminGuard)
-  delete(@Param('id', ParseIntPipe) id: number) {
-    return this.productService.delete(id);
+  async delete(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SuccessResponseDto<null>> {
+    await this.productService.delete(id);
+    return ResponseWrapper.success(null, '상품을 삭제했습니다.');
   }
 }

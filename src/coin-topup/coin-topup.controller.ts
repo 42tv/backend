@@ -14,6 +14,8 @@ import { ProcessTopupDto } from './dto/create-coin-topup.dto';
 import { MemberGuard } from '../auth/guard/jwt.member.guard';
 import { AdminGuard } from '../auth/guard/admin.guard';
 import { GetUser } from '../auth/get-user.decorator';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @Controller('coin-topups')
 export class CoinTopupController {
@@ -24,20 +26,33 @@ export class CoinTopupController {
   async processTopup(
     @GetUser() user: { user_idx: number },
     @Body() processDto: ProcessTopupDto,
-  ) {
-    return await this.coinTopupService.processTopup(user.user_idx, processDto);
+  ): Promise<SuccessResponseDto<any>> {
+    const topup = await this.coinTopupService.processTopup(
+      user.user_idx,
+      processDto,
+    );
+    return ResponseWrapper.success(topup, '코인 충전을 처리했습니다.');
   }
 
   @Post(':transaction_id/fail')
   @UseGuards(AdminGuard)
-  async failTopup(@Param('transaction_id') transaction_id: string) {
-    return await this.coinTopupService.failTopup(transaction_id);
+  async failTopup(
+    @Param('transaction_id') transaction_id: string,
+  ): Promise<SuccessResponseDto<any>> {
+    const result = await this.coinTopupService.failTopup(transaction_id);
+    return ResponseWrapper.success(
+      result,
+      '충전 트랜잭션을 실패 처리했습니다.',
+    );
   }
 
   @Post(':topup_id/refund')
   @UseGuards(AdminGuard)
-  async processRefund(@Param('topup_id') topup_id: string) {
-    return await this.coinTopupService.processRefund(topup_id);
+  async processRefund(
+    @Param('topup_id') topup_id: string,
+  ): Promise<SuccessResponseDto<any>> {
+    const refund = await this.coinTopupService.processRefund(topup_id);
+    return ResponseWrapper.success(refund, '코인 환불을 처리했습니다.');
   }
 
   @Get('me')
@@ -45,25 +60,41 @@ export class CoinTopupController {
   async getMyTopups(
     @GetUser() user: { user_idx: number },
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-  ) {
-    return await this.coinTopupService.findByUserId(user.user_idx, limit);
+  ): Promise<SuccessResponseDto<{ topups: any[] }>> {
+    const topups = await this.coinTopupService.findByUserId(
+      user.user_idx,
+      limit,
+    );
+    return ResponseWrapper.success({ topups }, '충전 내역을 조회했습니다.');
   }
 
   @Get('me/available')
   @UseGuards(MemberGuard)
-  async getAvailableTopups(@GetUser() user: { user_idx: number }) {
-    return await this.coinTopupService.getAvailableTopups(user.user_idx);
+  async getAvailableTopups(
+    @GetUser() user: { user_idx: number },
+  ): Promise<SuccessResponseDto<any>> {
+    const topups = await this.coinTopupService.getAvailableTopups(
+      user.user_idx,
+    );
+    return ResponseWrapper.success(
+      topups,
+      '사용 가능한 충전 내역을 조회했습니다.',
+    );
   }
 
   @Get('me/stats')
   @UseGuards(MemberGuard)
-  async getMyTopupStats(@GetUser() user: { user_idx: number }) {
-    return await this.coinTopupService.getTopupStats(user.user_idx);
+  async getMyTopupStats(
+    @GetUser() user: { user_idx: number },
+  ): Promise<SuccessResponseDto<any>> {
+    const stats = await this.coinTopupService.getTopupStats(user.user_idx);
+    return ResponseWrapper.success(stats, '충전 통계를 조회했습니다.');
   }
 
   @Get(':id')
   @UseGuards(MemberGuard)
-  async findById(@Param('id') id: string) {
-    return await this.coinTopupService.findById(id);
+  async findById(@Param('id') id: string): Promise<SuccessResponseDto<any>> {
+    const topup = await this.coinTopupService.findById(id);
+    return ResponseWrapper.success(topup, '충전 상세를 조회했습니다.');
   }
 }

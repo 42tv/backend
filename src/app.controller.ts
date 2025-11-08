@@ -1,6 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ResponseWrapper } from './common/utils/response-wrapper.util';
+import { SuccessResponseDto } from './common/dto/success-response.dto';
 
 @ApiTags('health')
 @Controller()
@@ -17,7 +19,8 @@ export class AppController {
       example: 'Hello World!',
     },
   })
-  getHello(): string {
-    return this.appService.getHello();
+  getHello(): SuccessResponseDto<{ status: string }> {
+    const status = this.appService.getHello();
+    return ResponseWrapper.success({ status }, '서버 상태를 확인했습니다.');
   }
 }

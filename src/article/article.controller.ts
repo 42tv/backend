@@ -18,6 +18,8 @@ import * as multer from 'multer';
 import { ArticleService } from './article.service';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { GetArticlesQueryDto } from './dto/get-articles-query.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @Controller('article')
 export class ArticleController {
@@ -44,25 +46,40 @@ export class ArticleController {
     @Req() req: any,
     @Body() createArticleDto: { title: string; content: string },
     @UploadedFiles() images?: Express.Multer.File[],
-  ) {
+  ): Promise<SuccessResponseDto<any>> {
     const userIdx = req.user.idx;
-    return await this.articleService.createArticle(
+    const result = await this.articleService.createArticle(
       userIdx,
       createArticleDto.title,
       createArticleDto.content,
       images,
     );
+    return ResponseWrapper.success(result, '게시글을 생성했습니다.');
   }
 
   @Get()
   async getArticles(
     @Query(new ValidationPipe({ transform: true })) query: GetArticlesQueryDto,
-  ) {
-    return await this.articleService.getArticlesWithPagination(
+  ): Promise<SuccessResponseDto<{ articles: any; pageMeta: any }>> {
+    const result = await this.articleService.getArticlesWithPagination(
       query.userId,
       query.page,
       query.offset,
       query.limit || 5,
+    );
+    const paginationMeta = {
+      page: result.pagination.currentPage,
+      limit: result.pagination.limit,
+      total: result.pagination.total,
+      totalPages: result.pagination.totalPages,
+    };
+    return ResponseWrapper.success(
+      {
+        articles: result.data,
+        pageMeta: result.pagination,
+      },
+      '게시글 목록을 조회했습니다.',
+      paginationMeta,
     );
   }
 
@@ -89,7 +106,7 @@ export class ArticleController {
     @Body()
     updateArticleDto: { title?: string; content?: string; keepImages?: string },
     @UploadedFiles() images?: Express.Multer.File[],
-  ) {
+  ): Promise<SuccessResponseDto<any>> {
     const articleId = parseInt(id);
     const userIdx = req.user.idx;
     const keepImageIds = updateArticleDto.keepImages
@@ -99,7 +116,7 @@ export class ArticleController {
           .filter((id) => !isNaN(id))
       : [];
 
-    return await this.articleService.updateArticle(
+    const article = await this.articleService.updateArticle(
       articleId,
       userIdx,
       {
@@ -109,13 +126,18 @@ export class ArticleController {
       },
       images,
     );
+    return ResponseWrapper.success(article, '게시글을 수정했습니다.');
   }
 
   @Delete(':id')
   @UseGuards(MemberGuard)
-  async deleteArticle(@Param('id') id: string, @Req() req: any) {
+  async deleteArticle(
+    @Param('id') id: string,
+    @Req() req: any,
+  ): Promise<SuccessResponseDto<null>> {
     const articleId = parseInt(id);
     const userIdx = req.user.idx;
-    return await this.articleService.deleteArticle(articleId, userIdx);
+    await this.articleService.deleteArticle(articleId, userIdx);
+    return ResponseWrapper.success(null, '게시글을 삭제했습니다.');
   }
 }

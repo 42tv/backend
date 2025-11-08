@@ -20,20 +20,19 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtRefreshGaurd } from './guard/jwt.refresh.guard';
-import { UserService } from 'src/user/user.service';
 import { Response } from 'express';
 import { LoginDto, LoginFailResponse, LoginResponseDto } from './dto/login.dto';
 import { RefreshDto, RefreshResponseDto } from './dto/refresh.dto';
 import { LogoutResponseDto } from './dto/logout.dto';
 import { LoginInfoResponseDto } from './dto/login.info.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
+import { TokenPair } from './interfaces/auth.interface';
 
 @ApiTags('Authentication - 인증 관련 API')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private userService: UserService,
-  ) {}
+  constructor(private authService: AuthService) {}
 
   /**
    * 기본 local 인증을 사용한 로그인(username, password)
@@ -59,12 +58,14 @@ export class AuthController {
     type: LoginFailResponse,
   })
   @UseGuards(LocalAuthGuard)
-  async login(@Request() req, @Res() res) {
-    const { access_token, refresh_token } = this.authService.login(req.user);
-    res.cookie('jwt', access_token, { httpOnly: true });
-    res.cookie('refresh', refresh_token, { httpOnly: true });
-    res.send({ access_token, refresh_token });
-    return { access_token, refresh_token };
+  async login(
+    @Request() req,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<SuccessResponseDto<{ tokens: TokenPair }>> {
+    const tokens = this.authService.login(req.user);
+    res.cookie('jwt', tokens.access_token, { httpOnly: true });
+    res.cookie('refresh', tokens.refresh_token, { httpOnly: true });
+    return ResponseWrapper.success({ tokens }, '로그인에 성공했습니다.');
   }
 
   @Post('refresh')
@@ -87,12 +88,14 @@ export class AuthController {
     type: LoginFailResponse,
   })
   @UseGuards(JwtRefreshGaurd)
-  async refresh(@Request() req, @Res() res) {
-    const { access_token, refresh_token } = this.authService.login(req.user);
-    res.cookie('jwt', access_token, { httpOnly: true });
-    res.cookie('refresh', refresh_token, { httpOnly: true });
-    res.send({ access_token, refresh_token });
-    return { access_token, refresh_token };
+  async refresh(
+    @Request() req,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<SuccessResponseDto<{ tokens: TokenPair }>> {
+    const tokens = this.authService.login(req.user);
+    res.cookie('jwt', tokens.access_token, { httpOnly: true });
+    res.cookie('refresh', tokens.refresh_token, { httpOnly: true });
+    return ResponseWrapper.success({ tokens }, '토큰을 갱신했습니다.');
   }
 
   /**
@@ -110,9 +113,9 @@ export class AuthController {
     description: '인증되지 않은 사용자',
   })
   @UseGuards(MemberGuard)
-  async phoneVerification(@Request() req) {
-    console.log(req.user);
-    return await this.authService.verifyPhone(req.user);
+  async phoneVerification(@Request() req): Promise<SuccessResponseDto<null>> {
+    await this.authService.verifyPhone(req.user);
+    return ResponseWrapper.success(null, '휴대폰 본인 인증이 완료되었습니다.');
   }
 
   /**
@@ -130,11 +133,13 @@ export class AuthController {
     description: '로그아웃 성공',
     type: LogoutResponseDto,
   })
-  async logout(@Res() res) {
+  async logout(
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<SuccessResponseDto<null>> {
     // Clear authentication cookies by setting to empty with expired date
     res.cookie('jwt', '', { httpOnly: true, expires: new Date(0) });
     res.cookie('refresh', '', { httpOnly: true, expires: new Date(0) });
-    res.send({ message: 'Successfully logged out' });
+    return ResponseWrapper.success(null, '성공적으로 로그아웃되었습니다.');
   }
 
   /**
@@ -155,7 +160,10 @@ export class AuthController {
     type: LoginInfoResponseDto,
   })
   @ApiBearerAuth()
-  async getLoginInfo(@Req() req, @Res({ passthrough: true }) res: Response) {
+  async getLoginInfo(
+    @Req() req,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<SuccessResponseDto<Record<string, unknown>>> {
     const authorizationHeader = req.headers.authorization;
     const loginInfo = await this.authService.getLoginInfo(authorizationHeader);
 
@@ -164,6 +172,6 @@ export class AuthController {
       res.cookie('jwt', loginInfo.tokens.access_token, { httpOnly: true });
       delete loginInfo.tokens;
     }
-    return loginInfo; // 로그인 정보 또는 게스트 상태 반환
+    return ResponseWrapper.success(loginInfo, '로그인 정보를 조회했습니다.');
   }
 }

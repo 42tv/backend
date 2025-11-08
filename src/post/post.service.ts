@@ -310,7 +310,7 @@ export class PostService {
    * @param blockedUserIdxs
    * @returns
    */
-  async unblockUsers(blocker_idx: number, blockedUserIdxs: []) {
+  async unblockUsers(blocker_idx: number, blockedUserIdxs: number[]) {
     for (const blockedUserIdx of blockedUserIdxs) {
       try {
         await this.unblockUser(blocker_idx, blockedUserIdx);
