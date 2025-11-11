@@ -65,17 +65,25 @@ export class SettlementRepository {
       where.status = options.status;
     }
 
-    return await this.prisma.settlement.findMany({
-      where,
-      include: {
-        payoutCoins: true,
-      },
-      orderBy: {
-        created_at: 'desc',
-      },
-      take: options?.limit || 20,
-      skip: options?.offset || 0,
-    });
+    const take = options?.limit || 20;
+    const skip = options?.offset || 0;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.settlement.findMany({
+        where,
+        include: {
+          payoutCoins: true,
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+        take,
+        skip,
+      }),
+      this.prisma.settlement.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   /**
@@ -136,24 +144,32 @@ export class SettlementRepository {
       }
     }
 
-    return await this.prisma.settlement.findMany({
-      where,
-      include: {
-        streamer: {
-          select: {
-            idx: true,
-            nickname: true,
-            user_id: true,
+    const take = options?.limit || 50;
+    const skip = options?.offset || 0;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.settlement.findMany({
+        where,
+        include: {
+          streamer: {
+            select: {
+              idx: true,
+              nickname: true,
+              user_id: true,
+            },
           },
+          payoutCoins: true,
         },
-        payoutCoins: true,
-      },
-      orderBy: {
-        created_at: 'desc',
-      },
-      take: options?.limit || 50,
-      skip: options?.offset || 0,
-    });
+        orderBy: {
+          created_at: 'desc',
+        },
+        take,
+        skip,
+      }),
+      this.prisma.settlement.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   /**

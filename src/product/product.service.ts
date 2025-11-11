@@ -147,8 +147,7 @@ export class ProductService {
    * @returns 활성화된 상품 목록
    */
   async findActiveProducts() {
-    const products = await this.productRepository.findActiveProducts();
-    return { products };
+    return this.productRepository.findActiveProducts();
   }
 
   /**
@@ -156,8 +155,7 @@ export class ProductService {
    * @returns 모든 상품 목록
    */
   async findAll() {
-    const products = await this.productRepository.findAll();
-    return { products };
+    return this.productRepository.findAll();
   }
 
   /**

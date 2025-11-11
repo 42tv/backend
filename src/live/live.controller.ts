@@ -18,6 +18,8 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { KickViewerDto } from './dto/kick-viewer.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @ApiTags('live')
 @Controller('live')
@@ -76,13 +78,12 @@ export class LiveController {
       },
     },
   })
-  async getLiveList() {
+  async getLiveList(): Promise<SuccessResponseDto<any[]>> {
     const liveList = await this.liveService.getLiveList();
-    return {
-      code: 200,
-      message: 'success',
-      lives: liveList,
-    };
+    return ResponseWrapper.success(
+      liveList,
+      '실시간 방송 목록을 조회했습니다.',
+    );
   }
 
   @Post('recommend')
@@ -142,16 +143,13 @@ export class LiveController {
   async recommendLiveStream(
     @Req() req: any,
     @Body('broadcaster_idx') broadcaster_idx: number,
-  ) {
+  ): Promise<SuccessResponseDto<null>> {
     const recommender_idx = req.user.idx; // MemberGuard를 통해 설정된 사용자 정보
     await this.liveService.recommendLiveStream(
       recommender_idx,
       broadcaster_idx,
     );
-    return {
-      code: 200,
-      message: 'Live stream recommended successfully',
-    };
+    return ResponseWrapper.success(null, '라이브 방송을 추천했습니다.');
   }
 
   @Get(':broadcasterId/viewers')
@@ -188,16 +186,12 @@ export class LiveController {
   async getBroadcasterViewers(
     @Req() req: any,
     @Param('broadcasterId') broadcasterId: string,
-  ) {
+  ): Promise<SuccessResponseDto<any[]>> {
     const viewers = await this.liveService.getBroadcasterViewers(
       req.user.idx,
       broadcasterId,
     );
-    return {
-      code: 200,
-      message: 'success',
-      viewers,
-    };
+    return ResponseWrapper.success(viewers, '시청자 목록을 조회했습니다.');
   }
 
   @Post(':broadcasterId/kick')
@@ -254,15 +248,12 @@ export class LiveController {
     @Req() req: any,
     @Param('broadcasterId') broadcasterId: string,
     @Body() kickViewerDto: KickViewerDto,
-  ) {
+  ): Promise<SuccessResponseDto<null>> {
     const message = await this.liveService.kickViewer(
       req.user.idx,
       broadcasterId,
       kickViewerDto,
     );
-    return {
-      code: 200,
-      message,
-    };
+    return ResponseWrapper.success(null, message);
   }
 }

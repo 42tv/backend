@@ -12,11 +12,9 @@ import {
 import { PolicyService } from './policy.service';
 import { AdminGuard } from '../auth/guard/admin.guard';
 import { CreatePolicyDto, GetPolicyQueryDto } from './dto/policy-request.dto';
-import {
-  PolicyResponseDto,
-  PolicyListResponseDto,
-  PolicyCreateSuccessResponseDto,
-} from './dto/policy-response.dto';
+import { PolicyResponseDto } from './dto/policy-response.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @Controller('policy')
 export class PolicyController {
@@ -26,30 +24,32 @@ export class PolicyController {
   @UseGuards(AdminGuard)
   async createPolicy(
     @Body() createPolicyDto: CreatePolicyDto,
-  ): Promise<PolicyCreateSuccessResponseDto> {
+  ): Promise<SuccessResponseDto<{ policy: PolicyResponseDto }>> {
     const policy = await this.policyService.createPolicy(createPolicyDto);
-    return {
-      success: '정책 생성 성공',
-      policy,
-    };
+    return ResponseWrapper.success(
+      { policy },
+      '정책을 성공적으로 생성했습니다.',
+    );
   }
 
   @Get()
   async getPolicies(
     @Query() query: GetPolicyQueryDto,
-  ): Promise<PolicyResponseDto | PolicyListResponseDto> {
+  ): Promise<SuccessResponseDto<any>> {
     if (query.page) {
-      return this.policyService.getPolicyByPage(query.page);
+      const policy = await this.policyService.getPolicyByPage(query.page);
+      return ResponseWrapper.success(policy, '정책을 조회했습니다.');
     }
-    return this.policyService.getAllPolicies();
+    const policies = await this.policyService.getAllPolicies();
+    return ResponseWrapper.success({ policies }, '정책 목록을 조회했습니다.');
   }
 
   @Delete(':id')
   @UseGuards(AdminGuard)
   async deletePolicy(
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<{ message: string }> {
+  ): Promise<SuccessResponseDto<null>> {
     await this.policyService.deletePolicy(id);
-    return { message: '정책이 성공적으로 삭제되었습니다.' };
+    return ResponseWrapper.success(null, '정책이 성공적으로 삭제되었습니다.');
   }
 }

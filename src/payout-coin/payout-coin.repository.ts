@@ -90,19 +90,27 @@ export class PayoutCoinRepository {
       }
     }
 
-    return await this.prisma.payoutCoin.findMany({
-      where,
-      include: {
-        donation: true,
-        topup: true,
-        settlement: true,
-      },
-      orderBy: {
-        donated_at: 'desc',
-      },
-      take: options?.limit || 50,
-      skip: options?.offset || 0,
-    });
+    const take = options?.limit || 50;
+    const skip = options?.offset || 0;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.payoutCoin.findMany({
+        where,
+        include: {
+          donation: true,
+          topup: true,
+          settlement: true,
+        },
+        orderBy: {
+          donated_at: 'desc',
+        },
+        take,
+        skip,
+      }),
+      this.prisma.payoutCoin.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   /**
@@ -167,21 +175,31 @@ export class PayoutCoinRepository {
       offset?: number;
     },
   ) {
-    return await this.prisma.payoutCoin.findMany({
-      where: {
-        streamer_idx: streamerIdx,
-        status: PayoutStatus.MATURED,
-      },
-      include: {
-        donation: true,
-        topup: true,
-      },
-      orderBy: {
-        settlement_ready_at: 'asc',
-      },
-      take: options?.limit || 100,
-      skip: options?.offset || 0,
-    });
+    const take = options?.limit || 100;
+    const skip = options?.offset || 0;
+
+    const where: Prisma.PayoutCoinWhereInput = {
+      streamer_idx: streamerIdx,
+      status: PayoutStatus.MATURED,
+    };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.payoutCoin.findMany({
+        where,
+        include: {
+          donation: true,
+          topup: true,
+        },
+        orderBy: {
+          settlement_ready_at: 'asc',
+        },
+        take,
+        skip,
+      }),
+      this.prisma.payoutCoin.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   /**

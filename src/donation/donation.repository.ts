@@ -104,24 +104,29 @@ export class DonationRepository {
       }
     }
 
-    return await this.prisma.donation.findMany({
-      where,
-      include: {
-        donor: {
-          select: {
-            idx: true,
-            nickname: true,
-            user_id: true,
-            profile_img: true,
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.donation.findMany({
+        where,
+        include: {
+          donor: {
+            select: {
+              idx: true,
+              nickname: true,
+              user_id: true,
+              profile_img: true,
+            },
           },
         },
-      },
-      orderBy: {
-        donated_at: 'desc',
-      },
-      take: options?.limit || 50,
-      skip: options?.offset || 0,
-    });
+        orderBy: {
+          donated_at: 'desc',
+        },
+        take: options?.limit || 50,
+        skip: options?.offset || 0,
+      }),
+      this.prisma.donation.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   /**
@@ -153,24 +158,29 @@ export class DonationRepository {
       }
     }
 
-    return await this.prisma.donation.findMany({
-      where,
-      include: {
-        streamer: {
-          select: {
-            idx: true,
-            nickname: true,
-            user_id: true,
-            profile_img: true,
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.donation.findMany({
+        where,
+        include: {
+          streamer: {
+            select: {
+              idx: true,
+              nickname: true,
+              user_id: true,
+              profile_img: true,
+            },
           },
         },
-      },
-      orderBy: {
-        donated_at: 'desc',
-      },
-      take: options?.limit || 50,
-      skip: options?.offset || 0,
-    });
+        orderBy: {
+          donated_at: 'desc',
+        },
+        take: options?.limit || 50,
+        skip: options?.offset || 0,
+      }),
+      this.prisma.donation.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   /**

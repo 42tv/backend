@@ -14,6 +14,8 @@ import { GetStatsQueryDto } from './dto/get-stats-query.dto';
 import { MemberGuard } from '../auth/guard/jwt.member.guard';
 import { AdminGuard } from '../auth/guard/admin.guard';
 import { GetUser } from '../auth/get-user.decorator';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @Controller('donation')
 export class DonationController {
@@ -30,7 +32,7 @@ export class DonationController {
   async donate(
     @Body() createDonationDto: CreateDonationDto,
     @GetUser('idx') donorIdx: number,
-  ) {
+  ): Promise<SuccessResponseDto<{ donation: any }>> {
     const donation = await this.donationService.donate(
       donorIdx,
       createDonationDto.streamer_user_id,
@@ -38,21 +40,23 @@ export class DonationController {
       createDonationDto.message,
     );
 
-    return {
-      message: '후원이 완료되었습니다',
-      donation: {
-        id: donation.id,
-        coin_amount: donation.coin_amount,
-        coin_value: donation.coin_value,
-        message: donation.message,
-        donated_at: donation.donated_at.toISOString(),
-        streamer: {
-          idx: donation.streamer.idx,
-          nickname: donation.streamer.nickname,
-          profile_img: donation.streamer.profile_img || '',
+    return ResponseWrapper.success(
+      {
+        donation: {
+          id: donation.id,
+          coin_amount: donation.coin_amount,
+          coin_value: donation.coin_value,
+          message: donation.message,
+          donated_at: donation.donated_at.toISOString(),
+          streamer: {
+            idx: donation.streamer.idx,
+            nickname: donation.streamer.nickname,
+            profile_img: donation.streamer.profile_img || '',
+          },
         },
       },
-    };
+      '후원이 완료되었습니다.',
+    );
   }
 
   /**
@@ -66,7 +70,7 @@ export class DonationController {
   async getReceivedDonations(
     @Query() query: GetDonationsQueryDto,
     @GetUser('idx') streamerIdx: number,
-  ) {
+  ): Promise<SuccessResponseDto<{ donations: any[] }>> {
     const options = {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
@@ -74,32 +78,35 @@ export class DonationController {
       offset: query.offset || 0,
     };
 
-    const donations = await this.donationService.findReceivedByStreamerIdx(
-      streamerIdx,
-      options,
-    );
-
-    // Total count 조회 (간단하게 donations 배열 길이 사용)
-    const total = donations.length;
-
-    return {
-      donations: donations.map((d) => ({
-        id: d.id,
-        coin_amount: d.coin_amount,
-        coin_value: d.coin_value,
-        message: d.message,
-        donated_at: d.donated_at.toISOString(),
-        donor: {
-          idx: d.donor.idx,
-          nickname: d.donor.nickname,
-          user_id: d.donor.user_id,
-          profile_img: d.donor.profile_img || '',
-        },
-      })),
-      total,
+    const { items, total } =
+      await this.donationService.findReceivedByStreamerIdx(
+        streamerIdx,
+        options,
+      );
+    const donations = items.map((d) => ({
+      id: d.id,
+      coin_amount: d.coin_amount,
+      coin_value: d.coin_value,
+      message: d.message,
+      donated_at: d.donated_at.toISOString(),
+      donor: {
+        idx: d.donor.idx,
+        nickname: d.donor.nickname,
+        user_id: d.donor.user_id,
+        profile_img: d.donor.profile_img || '',
+      },
+    }));
+    const pagination = {
+      page: Math.floor((options.offset || 0) / options.limit) + 1,
       limit: options.limit,
-      offset: options.offset,
+      total,
+      totalPages: Math.ceil(total / options.limit),
     };
+    return ResponseWrapper.success(
+      { donations },
+      '받은 후원 목록을 조회했습니다.',
+      pagination,
+    );
   }
 
   /**
@@ -113,7 +120,7 @@ export class DonationController {
   async getSentDonations(
     @Query() query: GetDonationsQueryDto,
     @GetUser('idx') donorIdx: number,
-  ) {
+  ): Promise<SuccessResponseDto<{ donations: any[] }>> {
     const options = {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
@@ -121,31 +128,34 @@ export class DonationController {
       offset: query.offset || 0,
     };
 
-    const donations = await this.donationService.findSentByDonorIdx(
+    const { items, total } = await this.donationService.findSentByDonorIdx(
       donorIdx,
       options,
     );
-
-    const total = donations.length;
-
-    return {
-      donations: donations.map((d) => ({
-        id: d.id,
-        coin_amount: d.coin_amount,
-        coin_value: d.coin_value,
-        message: d.message,
-        donated_at: d.donated_at.toISOString(),
-        streamer: {
-          idx: d.streamer.idx,
-          nickname: d.streamer.nickname,
-          user_id: d.streamer.user_id,
-          profile_img: d.streamer.profile_img || '',
-        },
-      })),
-      total,
+    const donations = items.map((d) => ({
+      id: d.id,
+      coin_amount: d.coin_amount,
+      coin_value: d.coin_value,
+      message: d.message,
+      donated_at: d.donated_at.toISOString(),
+      streamer: {
+        idx: d.streamer.idx,
+        nickname: d.streamer.nickname,
+        user_id: d.streamer.user_id,
+        profile_img: d.streamer.profile_img || '',
+      },
+    }));
+    const pagination = {
+      page: Math.floor((options.offset || 0) / options.limit) + 1,
       limit: options.limit,
-      offset: options.offset,
+      total,
+      totalPages: Math.ceil(total / options.limit),
     };
+    return ResponseWrapper.success(
+      { donations },
+      '보낸 후원 목록을 조회했습니다.',
+      pagination,
+    );
   }
 
   /**
@@ -159,7 +169,7 @@ export class DonationController {
   async getStats(
     @Query() query: GetStatsQueryDto,
     @GetUser('idx') streamerIdx: number,
-  ) {
+  ): Promise<SuccessResponseDto<any>> {
     const options = {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
@@ -170,7 +180,7 @@ export class DonationController {
       options,
     );
 
-    return stats;
+    return ResponseWrapper.success(stats, '후원 통계를 조회했습니다.');
   }
 
   /**
@@ -180,36 +190,43 @@ export class DonationController {
    */
   @Get(':id')
   @UseGuards(AdminGuard)
-  async getDonationById(@Param('id') id: string) {
+  async getDonationById(
+    @Param('id') id: string,
+  ): Promise<SuccessResponseDto<{ donation: any }>> {
     const donation = await this.donationService.findById(id);
 
-    return {
-      id: donation.id,
-      coin_amount: donation.coin_amount,
-      coin_value: donation.coin_value,
-      message: donation.message,
-      donated_at: donation.donated_at.toISOString(),
-      donor: {
-        idx: donation.donor.idx,
-        nickname: donation.donor.nickname,
-        user_id: donation.donor.user_id,
-        profile_img: donation.donor.profile_img || '',
-      },
-      streamer: {
-        idx: donation.streamer.idx,
-        nickname: donation.streamer.nickname,
-        user_id: donation.streamer.user_id,
-        profile_img: donation.streamer.profile_img || '',
-      },
-      usages: donation.usages.map((usage) => ({
-        id: usage.id,
-        used_coins: usage.used_coins,
-        topup: {
-          id: usage.topup.id,
-          product_name: usage.topup.product_name,
-          topped_up_at: usage.topup.topped_up_at.toISOString(),
+    return ResponseWrapper.success(
+      {
+        donation: {
+          id: donation.id,
+          coin_amount: donation.coin_amount,
+          coin_value: donation.coin_value,
+          message: donation.message,
+          donated_at: donation.donated_at.toISOString(),
+          donor: {
+            idx: donation.donor.idx,
+            nickname: donation.donor.nickname,
+            user_id: donation.donor.user_id,
+            profile_img: donation.donor.profile_img || '',
+          },
+          streamer: {
+            idx: donation.streamer.idx,
+            nickname: donation.streamer.nickname,
+            user_id: donation.streamer.user_id,
+            profile_img: donation.streamer.profile_img || '',
+          },
+          usages: donation.usages.map((usage) => ({
+            id: usage.id,
+            used_coins: usage.used_coins,
+            topup: {
+              id: usage.topup.id,
+              product_name: usage.topup.product_name,
+              topped_up_at: usage.topup.topped_up_at.toISOString(),
+            },
+          })),
         },
-      })),
-    };
+      },
+      '후원 상세 정보를 조회했습니다.',
+    );
   }
 }

@@ -19,6 +19,8 @@ import { MemberGuard } from '../auth/guard/jwt.member.guard';
 import { GetUser } from '../auth/get-user.decorator';
 import { PgProviderFactory } from './pg-providers/pg-provider.factory';
 import { PgProvider } from './dto/create-payment-transaction.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @Controller('payments')
 export class PaymentTransactionController {
@@ -32,12 +34,13 @@ export class PaymentTransactionController {
   async purchaseProduct(
     @GetUser() user,
     @Body() purchaseDto: PurchaseProductDto,
-  ) {
-    return await this.paymentTransactionService.purchaseProduct(
+  ): Promise<SuccessResponseDto<any>> {
+    const purchase = await this.paymentTransactionService.purchaseProduct(
       user.idx,
       purchaseDto.product_id,
       purchaseDto.pg_provider, // PG사 선택 (기본값: MOCK)
     );
+    return ResponseWrapper.success(purchase, '상품 결제를 시작했습니다.');
   }
 
   @Post()
@@ -45,10 +48,14 @@ export class PaymentTransactionController {
   async create(
     @GetUser() user: { user_idx: number },
     @Body() createDto: CreatePaymentTransactionDto,
-  ) {
-    return await this.paymentTransactionService.create(
+  ): Promise<SuccessResponseDto<any>> {
+    const transaction = await this.paymentTransactionService.create(
       user.user_idx,
       createDto,
+    );
+    return ResponseWrapper.success(
+      transaction,
+      '결제 트랜잭션을 생성했습니다.',
     );
   }
 
@@ -57,45 +64,58 @@ export class PaymentTransactionController {
     @Body('pg_transaction_id') pg_transaction_id: string,
     @Body('product_id', ParseIntPipe) product_id: number,
     @Body('pg_response') pg_response?: any,
-  ) {
-    return await this.paymentTransactionService.processSuccessfulPayment(
-      pg_transaction_id,
-      product_id,
-      pg_response,
-    );
+  ): Promise<SuccessResponseDto<any>> {
+    const result =
+      await this.paymentTransactionService.processSuccessfulPayment(
+        pg_transaction_id,
+        product_id,
+        pg_response,
+      );
+    return ResponseWrapper.success(result, '결제를 성공 처리했습니다.');
   }
 
   @Post('approve')
-  async approvePayment(@Body() updateDto: UpdatePaymentStatusDto) {
-    return await this.paymentTransactionService.approvePayment(
+  async approvePayment(
+    @Body() updateDto: UpdatePaymentStatusDto,
+  ): Promise<SuccessResponseDto<any>> {
+    const result = await this.paymentTransactionService.approvePayment(
       updateDto.pg_transaction_id,
       updateDto.pg_response,
     );
+    return ResponseWrapper.success(result, '결제를 승인했습니다.');
   }
 
   @Post('fail')
-  async failPayment(@Body() updateDto: UpdatePaymentStatusDto) {
-    return await this.paymentTransactionService.failPayment(
+  async failPayment(
+    @Body() updateDto: UpdatePaymentStatusDto,
+  ): Promise<SuccessResponseDto<any>> {
+    const result = await this.paymentTransactionService.failPayment(
       updateDto.pg_transaction_id,
       updateDto.pg_response,
     );
+    return ResponseWrapper.success(result, '결제를 실패 처리했습니다.');
   }
 
   @Post('cancel')
-  async cancelPayment(@Body() updateDto: UpdatePaymentStatusDto) {
-    return await this.paymentTransactionService.cancelPayment(
+  async cancelPayment(
+    @Body() updateDto: UpdatePaymentStatusDto,
+  ): Promise<SuccessResponseDto<any>> {
+    const result = await this.paymentTransactionService.cancelPayment(
       updateDto.pg_transaction_id,
       updateDto.pg_response,
     );
+    return ResponseWrapper.success(result, '결제를 취소했습니다.');
   }
 
   @Get('pg/:pg_transaction_id')
   async findByPgTransactionId(
     @Param('pg_transaction_id') pg_transaction_id: string,
-  ) {
-    return await this.paymentTransactionService.findByPgTransactionId(
-      pg_transaction_id,
-    );
+  ): Promise<SuccessResponseDto<any>> {
+    const transaction =
+      await this.paymentTransactionService.findByPgTransactionId(
+        pg_transaction_id,
+      );
+    return ResponseWrapper.success(transaction, '결제 정보를 조회했습니다.');
   }
 
   @Get('me')
@@ -103,16 +123,21 @@ export class PaymentTransactionController {
   async getMyTransactions(
     @GetUser() user: { user_idx: number },
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-  ) {
-    return await this.paymentTransactionService.findByUserId(
+  ): Promise<SuccessResponseDto<any>> {
+    const transactions = await this.paymentTransactionService.findByUserId(
       user.user_idx,
       limit,
+    );
+    return ResponseWrapper.success(
+      transactions,
+      '내 결제 내역을 조회했습니다.',
     );
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return await this.paymentTransactionService.findById(id);
+  async findById(@Param('id') id: string): Promise<SuccessResponseDto<any>> {
+    const transaction = await this.paymentTransactionService.findById(id);
+    return ResponseWrapper.success(transaction, '결제 상세를 조회했습니다.');
   }
 
   /**
@@ -129,7 +154,7 @@ export class PaymentTransactionController {
     @Body() body: any,
     @Headers('x-signature') signature?: string,
     @Headers('authorization') authorization?: string,
-  ) {
+  ): Promise<SuccessResponseDto<any>> {
     // PG Provider 검증
     let pgProviderEnum: PgProvider;
     switch (pg_provider.toLowerCase()) {
@@ -167,24 +192,37 @@ export class PaymentTransactionController {
     switch (webhookData.status) {
       case 'success':
         // 결제 성공: 코인 충전 처리
-        return await this.paymentTransactionService.processSuccessfulPayment(
-          webhookData.pg_transaction_id,
-          body.product_id, // PG사마다 다를 수 있으므로 body에서 직접 추출
-          webhookData.pg_response,
+        const result =
+          await this.paymentTransactionService.processSuccessfulPayment(
+            webhookData.pg_transaction_id,
+            body.product_id, // PG사마다 다를 수 있으므로 body에서 직접 추출
+            webhookData.pg_response,
+          );
+        return ResponseWrapper.success(
+          result,
+          'Webhook 결제를 성공 처리했습니다.',
         );
 
       case 'failed':
         // 결제 실패
-        return await this.paymentTransactionService.failPayment(
+        const failed = await this.paymentTransactionService.failPayment(
           webhookData.pg_transaction_id,
           webhookData.pg_response,
+        );
+        return ResponseWrapper.success(
+          failed,
+          'Webhook 결제를 실패 처리했습니다.',
         );
 
       case 'canceled':
         // 결제 취소
-        return await this.paymentTransactionService.cancelPayment(
+        const canceled = await this.paymentTransactionService.cancelPayment(
           webhookData.pg_transaction_id,
           webhookData.pg_response,
+        );
+        return ResponseWrapper.success(
+          canceled,
+          'Webhook 결제를 취소했습니다.',
         );
 
       default:

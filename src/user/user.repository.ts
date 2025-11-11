@@ -294,6 +294,11 @@ export class UserRepository {
             user_id: true,
             profile_img: true,
             nickname: true,
+            streams: {
+              select: {
+                stream_id: true,
+              },
+            },
           },
         },
       },

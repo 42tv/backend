@@ -157,11 +157,7 @@ export class ManagerService {
       ),
     );
 
-    return {
-      success: true,
-      message: '매니저가 성공적으로 추가되었습니다.',
-      data: manager,
-    };
+    return manager;
   }
 
   /**
@@ -231,9 +227,6 @@ export class ManagerService {
       ),
     );
 
-    return {
-      success: true,
-      message: '매니저가 성공적으로 제거되었습니다.',
-    };
+    return;
   }
 }

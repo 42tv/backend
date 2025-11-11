@@ -23,6 +23,8 @@ import {
 import { CreateIvsResponseDto } from './dto/ivs-response.dto';
 import { CustomInternalServerErrorResponse } from 'src/utils/utils';
 import { IvsEventDto } from './dto/ivs-request.dto';
+import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 // 이 컨트롤러는 테스트 용임으로 차후 삭제할 예정
 @ApiTags('ivs')
@@ -45,12 +47,13 @@ export class IvsController {
   })
   @ApiBearerAuth()
   @UseGuards(MemberGuard)
-  async createChannel(@Request() req) {
+  async createChannel(@Request() req): Promise<SuccessResponseDto<any>> {
     const user: User = req.user;
-    return await this.ivsService.updateIvsChannel(
+    const channel = await this.ivsService.updateIvsChannel(
       user.idx,
       user.userId.replace('@', '_'),
     );
+    return ResponseWrapper.success(channel, 'IVS 채널을 생성했습니다.');
   }
 
   @Put('stream-key')
@@ -67,9 +70,10 @@ export class IvsController {
   @ApiBearerAuth()
   @UseGuards(MemberGuard)
   // ※스트림키 재발급의 경우 방송중인 경우에는 재발급이 불가능하게 막아야함. 아직 방송중 상태를 구현 안해놨음으로 차후 수정해야할 부분
-  async reCreateStreamKey(@Request() req) {
+  async reCreateStreamKey(@Request() req): Promise<SuccessResponseDto<any>> {
     const user: User = req.user;
-    return this.ivsService.reCreateStreamKey(user);
+    const streamKey = await this.ivsService.reCreateStreamKey(user);
+    return ResponseWrapper.success(streamKey, '스트림 키를 재발급했습니다.');
   }
 
   @Post('callback/lambda')
@@ -86,7 +90,9 @@ export class IvsController {
       },
     },
   })
-  async ivsLambdaCallback(@Body() ivsEvent: IvsEventDto) {
+  async ivsLambdaCallback(
+    @Body() ivsEvent: IvsEventDto,
+  ): Promise<SuccessResponseDto<null>> {
     const startTime = Date.now();
 
     // 보안 로깅
@@ -100,9 +106,7 @@ export class IvsController {
       await this.ivsService.handleCallbackStreamEvent(ivsEvent);
 
       this.logger.log(`웹훅 처리 완료: ${Date.now() - startTime}ms`);
-      return {
-        message: 'success',
-      };
+      return ResponseWrapper.success(null, 'success');
     } catch (error) {
       this.logger.error(`웹훅 처리 실패: ${error.message}`, error.stack);
       throw error;
@@ -121,13 +125,11 @@ export class IvsController {
       },
     },
   })
-  async ivsCallbackTest(@Body() ivsEvnet) {
+  async ivsCallbackTest(@Body() ivsEvnet): Promise<SuccessResponseDto<null>> {
     console.log('========this is s3 callback test ==============');
     console.log(ivsEvnet);
     console.log(ivsEvnet.Records[0].s3);
-    return {
-      message: 'success',
-    };
+    return ResponseWrapper.success(null, 'success');
   }
 
   @Delete('sync-channels')
@@ -136,7 +138,8 @@ export class IvsController {
     status: 200,
     description: '동기화 완료',
   })
-  async syncChannels() {
-    return await this.ivsService.syncAndDeleteOrphanedChannels();
+  async syncChannels(): Promise<SuccessResponseDto<any>> {
+    const result = await this.ivsService.syncAndDeleteOrphanedChannels();
+    return ResponseWrapper.success(result, 'IVS 채널을 동기화했습니다.');
   }
 }
