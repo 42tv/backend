@@ -482,11 +482,12 @@ export class UserService {
     const user = await this.userRepository.findByUserIdx(user_idx);
     const bookmarks = await this.userRepository.getBookmarks(user.idx);
     const transformedBookmarks = bookmarks.map((bookmark) => {
-      const { idx, ...rest } = bookmark.bookmarked || {};
+      const { idx, streams, ...rest } = bookmark.bookmarked || {};
       return {
         id: bookmark.id,
         hidden: bookmark.hidden,
         user_idx: idx, // idx를 user_idx로 리네이밍
+        is_live: streams ? true : false, // streams가 존재하면 라이브 중
         ...rest, // 나머지 속성 추가
       };
     });
