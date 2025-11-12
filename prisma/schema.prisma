@@ -21,7 +21,7 @@ model User {
   is_admin            Boolean     @default(false)
   created_at          DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at          DateTime    @updatedAt()
-  
+
   userDetail          UserDetail?
   channel             Channel?
   ivs                 IVSChannel?
@@ -34,18 +34,18 @@ model User {
   // Posts relations
   sentPosts      Posts[] @relation("SentPosts")
   receivedPosts  Posts[] @relation("ReceivedPosts")
-  
+
   // Fan relations
   fans           Fan[] @relation("UserFans")
   following      Fan[] @relation("UserFollowing")
-  
+
   // Fan Rank Tier relation
   fanLevel       FanLevel[] @relation("CreatorRankTiers")
-  
+
   // Block relations
   blockedUsers   PostBlockedUsers[] @relation("PostBlockingUser")
   blockedBy      PostBlockedUsers[] @relation("PostBlockedUser")
-  
+
   // Stream viewer relation
   // viewingSessions StreamViewer[] @relation("StreamViewers")
 
@@ -81,19 +81,23 @@ model User {
   // Settlement relations (4단계: 정산 시스템)
   payoutCoins        PayoutCoin[] @relation("PayoutCoins")
   settlements        Settlement[] @relation("Settlements")
+
+  @@map("users")
 }
 
 // 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
 model UserDetail {
   user_idx        Int      @id
-  name            String   
-  sex             String   
+  name            String
+  sex             String
   resident_number String   // 암호화 필요
   phone           String   // 암호화 필요
   email           String   @unique // 암호화 필요
   address         String   // 암호화 필요
   created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   User            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)  // 반드시 1:1 관계를 유지하도록 설정
+
+  @@map("user_details")
 }
 
 // 이용약관
@@ -104,6 +108,8 @@ model Terms {
   effectiveDate DateTime
   created_at     DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
   UserTerms     UserTerms[]
+
+  @@map("terms")
 }
 
 // 이용약관 동의 여부
@@ -120,11 +126,12 @@ model UserTerms {
 
   // Constraints
   @@unique([user_idx, terms_id]) // 한 사용자당 한 약관 버전에 대해 한 번만 동의 가능
+  @@map("user_terms")
 }
 
 // 채널 테이블
 model Channel {
-  user_idx          Int      @id 
+  user_idx          Int      @id
   title             String   @default("")
   bookmark          Int      @default(0)
   recommend         Int      @default(0)
@@ -136,6 +143,8 @@ model Channel {
 
   // Relations
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+
+  @@map("channels")
 }
 
 model BroadcastSetting {
@@ -152,6 +161,8 @@ model BroadcastSetting {
 
   // Relations
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+
+  @@map("broadcast_settings")
 }
 
 // AWS IVS 채널 정보
@@ -170,9 +181,11 @@ model IVSChannel {
 
   // relations
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+
+  @@map("ivs_channels")
 }
 // Stream 정보
-// 이 정보들은 아마 서비스할때에는 redis에 복사본을 들고있다가 
+// 이 정보들은 아마 서비스할때에는 redis에 복사본을 들고있다가
 // 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
 model Stream {
   idx             Int      @id @default(autoincrement())
@@ -190,26 +203,9 @@ model Stream {
 
   // Stream viewers relation
   // viewers         StreamViewer[]
+
+  @@map("streams")
 }
-
-// 시청자 정보 테이블 - 스트림 시청 정보 관리
-// model StreamViewer {
-//   id              Int      @id @default(autoincrement())
-//   is_guest        Boolean  @default(false) // 게스트 여부, 기본값 false
-//   guest_id        String?  // 게스트 ID (예: 세션 ID), 게스트일 경우에만 값 존재
-
-//   // Relations
-//   stream_idx      Int      // 시청 중인 스트림 ID
-//   viewer_idx      Int?     // 시청자 User ID (로그인 사용자), 게스트일 경우 null
-//   stream          Stream   @relation(fields: [stream_idx], references: [idx], onDelete: Cascade)
-//   viewer          User?    @relation("StreamViewers", fields: [viewer_idx], references: [idx], onDelete: Cascade) // User? 로 변경
-
-//   // 제약 조건:
-//   // 1. 로그인 유저: 한 스트림에 같은 유저 중복 시청 방지 (viewer_idx가 null이 아닐 때)
-//   // 2. 게스트 유저: 한 스트림에 같은 게스트 ID 중복 시청 방지 (guest_id가 null이 아닐 때)
-//   @@unique([stream_idx, viewer_idx], name: "UniqueUserView")
-//   @@unique([stream_idx, guest_id], name: "UniqueGuestView")
-// }
 
 // 쪽지 설정 테이블 - 크리에이터별 쪽지 수신 설정
 model PostSettings {
@@ -221,6 +217,8 @@ model PostSettings {
   // Relations
   user              User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
   minFanLevel       FanLevel? @relation(fields: [min_fan_level_id], references: [id], onDelete: SetNull)
+
+  @@map("post_settings")
 }
 
 // 쪽지 테이블 - 통합된 쪽지 관리
@@ -238,6 +236,8 @@ model Posts {
   receiver_idx    Int      // 받는 사용자
   sender          User     @relation("SentPosts", fields: [sender_idx], references: [idx], onDelete: Cascade)
   receiver        User     @relation("ReceivedPosts", fields: [receiver_idx], references: [idx], onDelete: Cascade)
+
+  @@map("posts")
 }
 
 // 팬 관계 테이블 - 사용자간 팬 관계 관리
@@ -262,6 +262,7 @@ model Fan {
 
   // Ensure a user can only follow another user once
   @@unique([broadcaster_idx, fan_idx])
+  @@map("fans")
 }
 
 // 팬 등급 시스템 - 각 크리에이터별 팬 등급 정의
@@ -284,21 +285,23 @@ model FanLevel {
 
   // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
   @@unique([user_idx, name])
+  @@map("fan_levels")
 }
 
 // 유저 차단 테이블 - 메시지 차단 관리
 model PostBlockedUsers {
   id              Int      @id @default(autoincrement())
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  
+
   // Relations
   blocker_idx     Int      // 차단한 사용자
   blocked_idx     Int      // 차단된 사용자
   blocker         User     @relation("PostBlockingUser", fields: [blocker_idx], references: [idx], onDelete: Cascade)
   blocked         User     @relation("PostBlockedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
-  
+
   // Ensure a user can only block another user once
   @@unique([blocker_idx, blocked_idx])
+  @@map("post_blocked_users")
 }
 
 // 즐겨찾기 테이블 - 사용자 간 즐겨찾기 관계 관리
@@ -315,21 +318,23 @@ model Bookmark {
 
   // Ensure a user can only bookmark another user once
   @@unique([bookmarker_idx, bookmarked_idx])
+  @@map("bookmarks")
 }
 
 // 블랙리스트 테이블 - 방송 시청 차단 관리
 model Blacklist {
   id              Int      @id @default(autoincrement())
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  
+
   // Relations
   broadcaster_idx Int      // 블랙리스트 소유자 (방송인)
   blocked_idx     Int      // 차단된 사용자
   broadcaster     User     @relation("BlacklistOwner", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
   blocked         User     @relation("BlacklistedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
-  
+
   // Ensure a user can only block another user once
   @@unique([broadcaster_idx, blocked_idx])
+  @@map("blacklists")
 }
 
 // 매니저 관계 테이블 - 크리에이터와 매니저 간의 관계 관리
@@ -342,9 +347,10 @@ model Manager {
   manager_idx     Int      // 매니저 (관리하는 사람)
   broadcaster     User     @relation("CreatorManaged", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
   manager         User     @relation("UserManager", fields: [manager_idx], references: [idx], onDelete: Cascade)
-  
+
   // 한 매니저는 같은 크리에이터를 중복해서 관리할 수 없음
   @@unique([broadcaster_idx, manager_idx])
+  @@map("managers")
 }
 
 // 채널 게시글 테이블 - 스트리머가 채널에 남기는 게시글
@@ -362,6 +368,8 @@ model Article {
   author_idx      Int      // 작성자 (스트리머)
   author          User     @relation("ArticleAuthor", fields: [author_idx], references: [idx], onDelete: Cascade)
   images          ArticleImage[] // 첨부된 이미지들
+
+  @@map("articles")
 }
 
 // 게시글 첨부 이미지 테이블 - 게시글에 첨부된 이미지 관리
@@ -374,6 +382,8 @@ model ArticleImage {
   // Relations
   article_id      Int
   article         Article @relation(fields: [article_id], references: [id], onDelete: Cascade)
+
+  @@map("article_images")
 }
 
 // 정책 문서 테이블 - 개인정보처리방침, 이용약관 등
@@ -386,9 +396,11 @@ model Policy {
   is_active       Boolean  @default(true) // 활성화 여부
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
   updated_at      DateTime @updatedAt
-  
+
   // Relations
   agreements      PolicyAgreement[]
+
+  @@map("policies")
 }
 
 // 정책 동의 내역 테이블
@@ -406,6 +418,7 @@ model PolicyAgreement {
 
   // 사용자는 같은 정책에 대해 여러 버전에 동의할 수 있지만, 같은 버전에는 한 번만 동의
   @@unique([user_idx, policy_id, policy_version])
+  @@map("policy_agreements")
 }
 
 // 상품 테이블 (1단계: 기본 상품 시스템)
