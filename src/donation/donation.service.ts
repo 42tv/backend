@@ -243,7 +243,7 @@ export class DonationService {
     fanLevel: FanLevelInfo,
   ): Promise<void> {
     const donationMessage = RedisMessages.donation(
-      streamerIdx.toString(),
+      donation.streamer.user_id,
       donation.id,
       donation.donor.idx,
       donation.donor.user_id,
@@ -257,7 +257,7 @@ export class DonationService {
     );
 
     await this.redisService.publishRoomMessage(
-      `room:${streamerIdx}`,
+      `room:${donation.streamer.user_id}`,
       donationMessage,
     );
   }
@@ -278,7 +278,7 @@ export class DonationService {
     totalDonation: number,
   ): Promise<void> {
     const levelUpMessage = RedisMessages.fanLevelUp(
-      streamerIdx.toString(),
+      donation.streamer.user_id,
       donation.donor.idx,
       donation.donor.user_id,
       donation.donor.nickname,
@@ -291,7 +291,7 @@ export class DonationService {
     );
 
     await this.redisService.publishRoomMessage(
-      `room:${streamerIdx}`,
+      `room:${donation.streamer.user_id}`,
       levelUpMessage,
     );
   }
