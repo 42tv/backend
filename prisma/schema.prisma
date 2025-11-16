@@ -432,7 +432,9 @@ model Product {
   base_coins      Int       // 기본 코인량
   bonus_coins     Int       @default(0) // 보너스 코인량
   total_coins     Int       // 실제 지급될 총 코인량 (base_coins + bonus_coins)
-  price           Int       // 가격 (원)
+  base_price      Int       @default(0) // 공급가 (원, 부가세 제외)
+  vat_rate        Int       @default(10) // 부가가치세율 (%)
+  price           Int       // 최종 가격 (원, 부가세 포함) = base_price * (1 + vat_rate/100)
   product_type    String    @default("star") // 상품 타입: "normal" (일반) 또는 "star" (스타 코인)
 
   // 상태

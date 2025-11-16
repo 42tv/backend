@@ -15,7 +15,11 @@ export class ProductRepository {
    * @returns 생성된 상품
    */
   async create(
-    createProductDto: CreateProductDto & { image_url?: string },
+    createProductDto: CreateProductDto & {
+      image_url?: string;
+      price: number;
+      vat_rate: number;
+    },
     tx?: Prisma.TransactionClient,
   ) {
     const prismaClient = tx ?? this.prisma;
@@ -31,7 +35,10 @@ export class ProductRepository {
         base_coins: createProductDto.base_coins,
         bonus_coins: createProductDto.bonus_coins || 0,
         total_coins,
+        base_price: createProductDto.base_price,
+        vat_rate: createProductDto.vat_rate,
         price: createProductDto.price,
+        product_type: createProductDto.product_type || 'star',
         is_active: createProductDto.is_active ?? true,
         sort_order: createProductDto.sort_order || 0,
       },

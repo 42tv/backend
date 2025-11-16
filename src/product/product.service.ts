@@ -59,10 +59,18 @@ export class ProductService {
           ? `${process.env.CDN_URL}/statics/star_coin.png`
           : imageUrl;
 
+      // VAT rate 고정값(10%) 및 최종 가격 계산
+      const vatRate = 10; // 부가가치세 10% 고정
+      const price = Math.round(
+        createProductDto.base_price * (1 + vatRate / 100),
+      );
+
       const productData = {
         ...createProductDto,
         image_url: finalImageUrl,
         product_type: productType,
+        vat_rate: vatRate,
+        price,
       };
 
       return await this.productRepository.create(productData);
@@ -302,9 +310,19 @@ export class ProductService {
         }
       }
 
+      // base_price가 변경된 경우 최종 가격 재계산 (VAT 10% 고정)
+      let finalPrice = existingProduct.price;
+      if (updateProductDto.base_price !== undefined) {
+        const vatRate = 10; // 부가가치세 10% 고정
+        finalPrice = Math.round(
+          updateProductDto.base_price * (1 + vatRate / 100),
+        );
+      }
+
       const productData = {
         ...productUpdateData,
         image_url: finalImageUrl,
+        ...(finalPrice !== existingProduct.price && { price: finalPrice }),
       };
 
       const updatedProduct = await this.productRepository.update(

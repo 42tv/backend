@@ -48,8 +48,8 @@ export class CreateProductDto {
   bonus_coins?: number;
 
   @ApiProperty({
-    description: '가격 (원)',
-    example: 1000,
+    description: '공급가 (원, 부가세 제외)',
+    example: 10000,
     minimum: 1,
     maximum: 1000000,
   })
@@ -57,7 +57,7 @@ export class CreateProductDto {
   @IsNumber()
   @Min(1)
   @Max(1000000)
-  price: number;
+  base_price: number;
 
   @ApiPropertyOptional({
     description: '상품 타입 (normal: 일반, star: 스타 코인)',
