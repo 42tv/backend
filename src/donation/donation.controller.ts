@@ -74,8 +74,8 @@ export class DonationController {
     const options = {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
-      limit: query.limit || 50,
-      offset: query.offset || 0,
+      limit: query.limit ? Number(query.limit) : 50,
+      offset: query.offset ? Number(query.offset) : 0,
     };
 
     const { items, total } =
@@ -124,8 +124,8 @@ export class DonationController {
     const options = {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
-      limit: query.limit || 50,
-      offset: query.offset || 0,
+      limit: query.limit ? Number(query.limit) : 50,
+      offset: query.offset ? Number(query.offset) : 0,
     };
 
     const { items, total } = await this.donationService.findSentByDonorIdx(
