@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PgProviderInterface } from './pg-provider.interface';
 import { MockPgProvider } from './mock-provider.service';
+import { BootpayProvider } from './bootpay-provider.service';
 import { PgProvider } from '../dto/create-payment-transaction.dto';
 
 /**
@@ -12,6 +13,7 @@ import { PgProvider } from '../dto/create-payment-transaction.dto';
 export class PgProviderFactory {
   constructor(
     private readonly mockProvider: MockPgProvider,
+    private readonly bootpayProvider: BootpayProvider,
     // TODO: 실제 PG 모듈 추가 시 여기에 주입
     // private readonly tossProvider: TossPgProvider,
     // private readonly inicisProvider: InicisPgProvider,
@@ -27,6 +29,9 @@ export class PgProviderFactory {
     switch (pgProvider) {
       case PgProvider.MOCK:
         return this.mockProvider;
+
+      case PgProvider.BOOTPAY:
+        return this.bootpayProvider;
 
       // TODO: 실제 PG 모듈 추가 시 주석 해제
       // case PgProvider.TOSS:
@@ -52,6 +57,7 @@ export class PgProviderFactory {
   getAvailableProviders(): PgProvider[] {
     return [
       PgProvider.MOCK,
+      PgProvider.BOOTPAY,
       // TODO: 실제 PG 모듈 추가 시 여기에 추가
       // PgProvider.TOSS,
       // PgProvider.INICIS,

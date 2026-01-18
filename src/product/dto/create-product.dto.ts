@@ -57,7 +57,7 @@ export class CreateProductDto {
   @IsNumber()
   @Min(1)
   @Max(1000000)
-  base_price: number;
+  price: number;
 
   @ApiPropertyOptional({
     description: '상품 타입 (normal: 일반, star: 스타 코인)',

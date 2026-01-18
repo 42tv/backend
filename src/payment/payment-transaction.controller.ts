@@ -10,11 +10,12 @@ import {
   DefaultValuePipe,
   Headers,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { CreatePaymentTransactionDto } from './dto/create-payment-transaction.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
-import { PurchaseProductDto } from './dto/purchase-product.dto';
+import { PreparePaymentDto } from './dto/prepare-payment.dto';
 import { MemberGuard } from '../auth/guard/jwt.member.guard';
 import { GetUser } from '../auth/get-user.decorator';
 import { PgProviderFactory } from './pg-providers/pg-provider.factory';
@@ -24,23 +25,33 @@ import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 
 @Controller('payments')
 export class PaymentTransactionController {
+  private readonly logger = new Logger(PaymentTransactionController.name);
+
   constructor(
     private readonly paymentTransactionService: PaymentTransactionService,
     private readonly pgProviderFactory: PgProviderFactory,
   ) {}
 
-  @Post('purchase')
+  @Post('prepare')
   @UseGuards(MemberGuard)
-  async purchaseProduct(
+  async preparePayment(
     @GetUser() user,
-    @Body() purchaseDto: PurchaseProductDto,
+    @Body() prepareDto: PreparePaymentDto,
   ): Promise<SuccessResponseDto<any>> {
-    const purchase = await this.paymentTransactionService.purchaseProduct(
+    this.logger.log('===== 결제 준비 요청 =====');
+    this.logger.log(`User ID: ${user.idx}`);
+    this.logger.log(`Request Data: ${JSON.stringify(prepareDto, null, 2)}`);
+
+    const payment = await this.paymentTransactionService.preparePayment(
       user.idx,
-      purchaseDto.product_id,
-      purchaseDto.pg_provider, // PG사 선택 (기본값: MOCK)
+      prepareDto.product_id,
+      prepareDto.pg_provider, // PG사 선택 (기본값: MOCK)
     );
-    return ResponseWrapper.success(purchase, '상품 결제를 시작했습니다.');
+
+    this.logger.log('===== 결제 준비 응답 =====');
+    this.logger.log(`Response Data: ${JSON.stringify(payment, null, 2)}`);
+
+    return ResponseWrapper.success(payment, '결제 준비가 완료되었습니다.');
   }
 
   @Post()
@@ -144,7 +155,7 @@ export class PaymentTransactionController {
    * PG사별 Webhook 엔드포인트
    * - PG사에서 결제 결과를 전송하는 엔드포인트
    * - 각 PG사의 Webhook 설정에 이 URL을 등록해야 함
-   * @param pg_provider PG사 종류 (inicis, toss, kakaopay)
+   * @param pg_provider PG사 종류 (inicis, toss, kakaopay, bootpay)
    * @param body Webhook 요청 body
    * @param signature PG사 서명 (헤더에서 추출)
    */
@@ -154,7 +165,13 @@ export class PaymentTransactionController {
     @Body() body: any,
     @Headers('x-signature') signature?: string,
     @Headers('authorization') authorization?: string,
-  ): Promise<SuccessResponseDto<any>> {
+  ): Promise<{ success: boolean }> {
+    this.logger.log('===== Webhook 수신 =====');
+    this.logger.log(`PG Provider: ${pg_provider}`);
+    this.logger.log(`Body: ${JSON.stringify(body, null, 2)}`);
+    this.logger.log(`Signature: ${signature}`);
+    this.logger.log(`Authorization: ${authorization}`);
+
     // PG Provider 검증
     let pgProviderEnum: PgProvider;
     switch (pg_provider.toLowerCase()) {
@@ -169,6 +186,9 @@ export class PaymentTransactionController {
         break;
       case 'kakaopay':
         pgProviderEnum = PgProvider.KAKAOPAY;
+        break;
+      case 'bootpay':
+        pgProviderEnum = PgProvider.BOOTPAY;
         break;
       default:
         throw new BadRequestException(`지원하지 않는 PG사: ${pg_provider}`);
@@ -192,43 +212,39 @@ export class PaymentTransactionController {
     switch (webhookData.status) {
       case 'success':
         // 결제 성공: 코인 충전 처리
-        const result =
-          await this.paymentTransactionService.processSuccessfulPayment(
-            webhookData.pg_transaction_id,
-            body.product_id, // PG사마다 다를 수 있으므로 body에서 직접 추출
-            webhookData.pg_response,
-          );
-        return ResponseWrapper.success(
-          result,
-          'Webhook 결제를 성공 처리했습니다.',
+        await this.paymentTransactionService.processSuccessfulPayment(
+          webhookData.pg_transaction_id,
+          body.product_id, // PG사마다 다를 수 있으므로 body에서 직접 추출
+          webhookData.pg_response,
         );
+        this.logger.log('Webhook 결제를 성공 처리했습니다.');
+        break;
 
       case 'failed':
         // 결제 실패
-        const failed = await this.paymentTransactionService.failPayment(
+        await this.paymentTransactionService.failPayment(
           webhookData.pg_transaction_id,
           webhookData.pg_response,
         );
-        return ResponseWrapper.success(
-          failed,
-          'Webhook 결제를 실패 처리했습니다.',
-        );
+        this.logger.log('Webhook 결제를 실패 처리했습니다.');
+        break;
 
       case 'canceled':
         // 결제 취소
-        const canceled = await this.paymentTransactionService.cancelPayment(
+        await this.paymentTransactionService.cancelPayment(
           webhookData.pg_transaction_id,
           webhookData.pg_response,
         );
-        return ResponseWrapper.success(
-          canceled,
-          'Webhook 결제를 취소했습니다.',
-        );
+        this.logger.log('Webhook 결제를 취소했습니다.');
+        break;
 
       default:
         throw new BadRequestException(
           `알 수 없는 결제 상태: ${webhookData.status}`,
         );
     }
+
+    // 4. 부트페이 웹훅 응답 형식에 맞게 반환
+    return { success: true };
   }
 }

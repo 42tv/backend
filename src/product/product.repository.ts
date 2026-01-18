@@ -35,7 +35,7 @@ export class ProductRepository {
         base_coins: createProductDto.base_coins,
         bonus_coins: createProductDto.bonus_coins || 0,
         total_coins,
-        base_price: createProductDto.base_price,
+        base_price: createProductDto.price,
         vat_rate: createProductDto.vat_rate,
         price: createProductDto.price,
         product_type: createProductDto.product_type || 'star',

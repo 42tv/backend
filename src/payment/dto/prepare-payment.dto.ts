@@ -1,7 +1,7 @@
 import { IsInt, IsPositive, IsEnum, IsOptional } from 'class-validator';
 import { PgProvider } from './create-payment-transaction.dto';
 
-export class PurchaseProductDto {
+export class PreparePaymentDto {
   @IsInt()
   @IsPositive()
   product_id: number;

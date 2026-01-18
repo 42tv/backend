@@ -4,6 +4,7 @@ export enum PgProvider {
   INICIS = 'inicis',
   TOSS = 'toss',
   KAKAOPAY = 'kakaopay',
+  BOOTPAY = 'bootpay',
   MOCK = 'mock', // 개발/테스트용
 }
 

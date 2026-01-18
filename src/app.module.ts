@@ -37,6 +37,7 @@ import { CoinUsageModule } from './coin-usage/coin-usage.module';
 import { PayoutCoinModule } from './payout-coin/payout-coin.module';
 import { SettlementModule } from './settlement/settlement.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { BootpayModule } from './bootpay/bootpay.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     PayoutCoinModule,
     SettlementModule,
     SchedulerModule,
+    BootpayModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],

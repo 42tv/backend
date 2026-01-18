@@ -61,8 +61,8 @@ export class ProductService {
 
       // VAT rate 고정값(10%) 및 최종 가격 계산
       const vatRate = 10; // 부가가치세 10% 고정
-      const price = Math.round(
-        createProductDto.base_price * (1 + vatRate / 100),
+      const finalPrice = Math.round(
+        createProductDto.price * (1 + vatRate / 100),
       );
 
       const productData = {
@@ -70,7 +70,7 @@ export class ProductService {
         image_url: finalImageUrl,
         product_type: productType,
         vat_rate: vatRate,
-        price,
+        price: finalPrice,
       };
 
       return await this.productRepository.create(productData);
@@ -310,19 +310,21 @@ export class ProductService {
         }
       }
 
-      // base_price가 변경된 경우 최종 가격 재계산 (VAT 10% 고정)
-      let finalPrice = existingProduct.price;
-      if (updateProductDto.base_price !== undefined) {
+      // price가 변경된 경우 최종 가격 재계산 (VAT 10% 고정)
+      let calculatedPrice = existingProduct.price;
+      if (updateProductDto.price !== undefined) {
         const vatRate = 10; // 부가가치세 10% 고정
-        finalPrice = Math.round(
-          updateProductDto.base_price * (1 + vatRate / 100),
+        calculatedPrice = Math.round(
+          updateProductDto.price * (1 + vatRate / 100),
         );
       }
 
       const productData = {
         ...productUpdateData,
         image_url: finalImageUrl,
-        ...(finalPrice !== existingProduct.price && { price: finalPrice }),
+        ...(calculatedPrice !== existingProduct.price && {
+          price: calculatedPrice,
+        }),
       };
 
       const updatedProduct = await this.productRepository.update(

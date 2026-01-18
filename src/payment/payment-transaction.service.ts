@@ -160,7 +160,7 @@ export class PaymentTransactionService {
   }
 
   /**
-   * 상품 구매 (결제 준비)
+   * 결제 준비
    * - PG Provider를 통한 결제 준비
    * - Mock: 즉시 승인 처리 + 충전 완료
    * - Real PG: 결제 창 정보 반환 (Webhook에서 승인 처리)
@@ -169,7 +169,7 @@ export class PaymentTransactionService {
    * @param pg_provider PG사 (기본값: MOCK)
    * @returns Mock: 충전 완료 결과 / Real PG: 결제 창 정보
    */
-  async purchaseProduct(
+  async preparePayment(
     user_idx: number,
     product_id: number,
     pg_provider: PgProvider = PgProvider.MOCK,
@@ -254,10 +254,10 @@ export class PaymentTransactionService {
   /**
    * Mock 상품 구매 (하위 호환성 유지)
    * - 기존 코드와의 호환성을 위해 유지
-   * @deprecated purchaseProduct() 사용 권장
+   * @deprecated preparePayment() 사용 권장
    */
   async purchaseProductWithMock(user_idx: number, product_id: number) {
-    return await this.purchaseProduct(user_idx, product_id, PgProvider.MOCK);
+    return await this.preparePayment(user_idx, product_id, PgProvider.MOCK);
   }
 
   /**
