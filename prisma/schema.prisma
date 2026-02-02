@@ -69,6 +69,7 @@ model User {
 
   // Payment relations (1단계: 결제 시스템)
   paymentTransactions PaymentTransaction[]
+  bootpayTransactions BootpayTransaction[]
 
   // Coin Topup relations (2단계: 충전 시스템)
   coinTopups  CoinTopup[]
@@ -493,11 +494,114 @@ enum PaymentTransactionStatus {
   CANCELED // 결제 취소
 }
 
+// Bootpay 결제 거래 내역 테이블 (PG사 응답 전체 저장)
+model BootpayTransaction {
+  id       String @id @default(cuid())
+  user_idx Int? // 결제자 (5년 보관 위해 nullable)
+
+  // Bootpay 핵심 식별자
+  receipt_id     String @unique // Bootpay 영수증 ID (가장 중요한 키)
+  order_id       String // 주문 ID (우리 시스템에서 생성)
+  application_id String // Bootpay 앱 ID
+
+  // 금액 정보
+  price              Int // 결제 금액 (원)
+  tax_free           Int    @default(0) // 면세 금액
+  cancelled_price    Int    @default(0) // 취소된 금액
+  cancelled_tax_free Int    @default(0) // 취소된 면세 금액
+  currency           String @default("KRW")
+
+  // 주문 정보
+  order_name   String // 주문명 (예: "100 코인")
+  company_name String? // 회사명
+
+  // PG/결제수단 정보
+  pg                   String // PG사 (이니시스, 나이스, 토스 등)
+  method               String // 결제수단 한글 (카드, 계좌이체, 휴대폰 등)
+  method_symbol        String // 결제수단 코드 (card, bank, phone 등)
+  method_origin        String? // 원래 결제수단 (네이버페이, 카카오페이 등)
+  method_origin_symbol String? // 원래 결제수단 코드 (naverpay, kakaopay 등)
+
+  // 상태
+  status        Int // Bootpay 상태코드 (0: 대기, 1: 완료, 2: 승인중, 3: 실패, 20: 취소)
+  status_locale String? // 상태 한글 (결제완료, 결제취소 등)
+
+  // 에스크로 (선택)
+  escrow_status        String?
+  escrow_status_locale String?
+
+  // 시간
+  requested_at DateTime // 결제 요청 시간
+  purchased_at DateTime? // 결제 완료 시간
+  cancelled_at DateTime? // 취소 시간
+
+  // URL 정보
+  gateway_url String? // PG 게이트웨이 URL
+  receipt_url String? // 영수증 URL
+
+  // 메타데이터
+  metadata Json? // 커스텀 메타데이터 (우리가 전송한 추가 정보)
+  sandbox  Boolean @default(false) // 테스트 결제 여부
+
+  // PG 응답 원본 (감사/디버깅용)
+  raw_response Json // Bootpay 응답 전체 저장
+
+  // 5년 보관 의무
+  deleted_user_snapshot Json? // 사용자 삭제 시 스냅샷
+  user_deleted_at       DateTime? // 사용자 삭제 시간
+  should_delete_at      DateTime? // 5년 후 삭제 예정일
+
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  updated_at DateTime @updatedAt
+
+  // Relations
+  user     User?            @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  cardData BootpayCardData?
+  topups   CoinTopup[]
+
+  @@index([user_idx], name: "idx_bootpay_user")
+  @@index([order_id], name: "idx_bootpay_order")
+  @@index([status, created_at], name: "idx_bootpay_status_created")
+  @@index([purchased_at], name: "idx_bootpay_purchased")
+  @@map("bootpay_transactions")
+}
+
+// Bootpay 카드 결제 상세 정보 테이블
+model BootpayCardData {
+  id Int @id @default(autoincrement())
+
+  // PG 거래 정보
+  tid             String // PG사 거래 ID (예: INIMX_CARD...)
+  card_approve_no String // 카드 승인번호
+
+  // 카드 정보 (마스킹됨)
+  card_no           String // 마스킹된 카드번호 (557042*********9)
+  card_company_code String // 카드사 코드 (06 = 국민)
+  card_company      String // 카드사명 (국민계열)
+  card_type         String // 카드 타입 (신용/체크)
+
+  // 할부 정보
+  card_quota    String // 할부 개월 (00 = 일시불)
+  card_interest String // 무이자 여부 (0 = 이자, 1 = 무이자)
+
+  // 영수증
+  receipt_url String? // 카드사 영수증 URL
+
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+
+  // Relations
+  transaction_id String             @unique
+  transaction    BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@map("bootpay_card_data")
+}
+
 // 코인 충전 내역 테이블 (2단계: 결제와 지갑 연결)
 model CoinTopup {
-  id             String @id @default(cuid())
-  transaction_id String // 결제 거래 ID
-  user_idx       Int? // 충전자 (5년 보관 위해 nullable)
+  id                     String  @id @default(cuid())
+  transaction_id         String? // 기존 결제 거래 ID (레거시)
+  bootpay_transaction_id String? // Bootpay 결제 거래 ID
+  user_idx               Int? // 충전자 (5년 보관 위해 nullable)
 
   // 상품 정보 (충전 시점 스냅샷)
   product_id Int // 구매한 상품
@@ -520,12 +624,14 @@ model CoinTopup {
   user_deleted_at       DateTime?
 
   // Relations
-  transaction PaymentTransaction @relation(fields: [transaction_id], references: [id])
-  user        User?              @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
-  product     Product            @relation(fields: [product_id], references: [id])
-  usages      CoinUsage[] // 이 충전분의 사용 내역
-  payoutCoins PayoutCoin[] // 이 충전분으로 생성된 PayoutCoin들
+  transaction        PaymentTransaction?  @relation(fields: [transaction_id], references: [id])
+  bootpayTransaction BootpayTransaction?  @relation(fields: [bootpay_transaction_id], references: [id])
+  user               User?                @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  product            Product              @relation(fields: [product_id], references: [id])
+  usages             CoinUsage[] // 이 충전분의 사용 내역
+  payoutCoins        PayoutCoin[] // 이 충전분으로 생성된 PayoutCoin들
 
+  @@index([bootpay_transaction_id], name: "idx_topup_bootpay_transaction")
   @@map("coin_topups")
 }
 
