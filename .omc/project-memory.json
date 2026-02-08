@@ -178,6 +178,13 @@
       "keyFiles": []
     }
   },
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 3,
+      "lastAccessed": 1770540939401,
+      "type": "file"
+    }
+  ],
   "userDirectives": []
 }
