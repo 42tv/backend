@@ -4,8 +4,10 @@ import {
   NotFoundException,
   Inject,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { PaymentTransactionRepository } from './payment-transaction.repository';
+import { BootpayTransactionRepository } from './bootpay-transaction.repository';
 import {
   CreatePaymentTransactionDto,
   PgProvider,
@@ -16,17 +18,23 @@ import { CoinTopupService } from '../coin-topup/coin-topup.service';
 import { ProductService } from '../product/product.service';
 import { PgProviderFactory } from './pg-providers/pg-provider.factory';
 import { UserService } from '../user/user.service';
+import { ConfigService } from '@nestjs/config';
+import { ReceiptResponseParameters } from '@bootpay/backend-js';
 
 @Injectable()
 export class PaymentTransactionService {
+  private readonly logger = new Logger(PaymentTransactionService.name);
+
   constructor(
     private readonly paymentTransactionRepository: PaymentTransactionRepository,
+    private readonly bootpayTransactionRepository: BootpayTransactionRepository,
     private readonly prismaService: PrismaService,
     @Inject(forwardRef(() => CoinTopupService))
     private readonly coinTopupService: CoinTopupService,
     private readonly productService: ProductService,
     private readonly pgProviderFactory: PgProviderFactory,
     private readonly userService: UserService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -261,6 +269,61 @@ export class PaymentTransactionService {
   }
 
   /**
+   * Bootpay 웹훅 데이터를 DB에 저장
+   * - BootpayTransaction 및 BootpayCardData 테이블에 저장
+   * @param receiptData Bootpay Receipt 응답 데이터
+   * @param user_idx 사용자 ID
+   * @param tx 트랜잭션 클라이언트
+   * @returns 저장된 BootpayTransaction
+   */
+  private async saveBootpayData(
+    receiptData: ReceiptResponseParameters,
+    user_idx: number,
+    tx: any,
+  ) {
+    const applicationId =
+      this.configService.get<string>('BOOTPAY_APPLICATION_ID') ||
+      '5b8f6a4d396fa665fdc2b5e7';
+
+    // 1. BootpayTransaction 저장
+    const bootpayTransactionDto =
+      BootpayTransactionRepository.fromReceiptResponse(
+        receiptData,
+        user_idx,
+        applicationId,
+      );
+
+    const bootpayTransaction =
+      await this.bootpayTransactionRepository.createOrUpdate(
+        bootpayTransactionDto,
+        tx,
+      );
+
+    this.logger.log(
+      `Bootpay transaction saved: ${bootpayTransaction.receipt_id}`,
+    );
+
+    // 2. 카드 결제인 경우 BootpayCardData 저장
+    if (receiptData.card_data) {
+      const cardDataDto = BootpayTransactionRepository.fromCardData(
+        receiptData.card_data,
+        bootpayTransaction.id,
+      );
+
+      await this.bootpayTransactionRepository.createOrUpdateCardData(
+        cardDataDto,
+        tx,
+      );
+
+      this.logger.log(
+        `Bootpay card data saved for transaction: ${bootpayTransaction.id}`,
+      );
+    }
+
+    return bootpayTransaction;
+  }
+
+  /**
    * Webhook: 결제 성공 및 코인 충전 처리
    * - 실제 PG 연동 시 사용 (Webhook에서 호출)
    * @param pg_transaction_id PG사 거래 ID
@@ -289,7 +352,28 @@ export class PaymentTransactionService {
         throw new BadRequestException('이미 처리된 결제 거래입니다.');
       }
 
-      // 2. 결제 승인 처리
+      // 2. Bootpay인 경우 상세 데이터 저장
+      if (
+        transaction.pg_provider === PgProvider.BOOTPAY &&
+        pg_response &&
+        typeof pg_response === 'object'
+      ) {
+        try {
+          await this.saveBootpayData(
+            pg_response as ReceiptResponseParameters,
+            transaction.user_idx!,
+            tx,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to save Bootpay data: ${error.message}`,
+            error.stack,
+          );
+          // Bootpay 데이터 저장 실패해도 결제 처리는 계속 진행
+        }
+      }
+
+      // 3. 결제 승인 처리
       const approvedTransaction =
         await this.paymentTransactionRepository.updateStatus(
           transaction.id,
@@ -298,7 +382,7 @@ export class PaymentTransactionService {
           tx,
         );
 
-      // 3. 충전 처리 위임 (CoinTopupService) - 트랜잭션 전달
+      // 4. 충전 처리 위임 (CoinTopupService) - 트랜잭션 전달
       const topupResult = await this.coinTopupService.processTopup(
         approvedTransaction.user_idx!,
         {
