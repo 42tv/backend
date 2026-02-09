@@ -25,6 +25,7 @@ import { PgProvider } from './dto/create-payment-transaction.dto';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { WebhookData } from './pg-providers/pg-provider.interface';
+import { RedisService } from '../redis/redis.service';
 
 @Controller('payments')
 export class PaymentTransactionController {
@@ -33,6 +34,7 @@ export class PaymentTransactionController {
   constructor(
     private readonly paymentTransactionService: PaymentTransactionService,
     private readonly pgProviderFactory: PgProviderFactory,
+    private readonly redisService: RedisService,
   ) {}
 
   @Post('prepare')
@@ -203,6 +205,16 @@ export class PaymentTransactionController {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       this.logger.error('Webhook 처리 오류', error);
+
+      // 일시적 에러 (DB/Redis 연결 실패 등)는 503 반환하여 PG사 재시도 유도
+      if (this.isRetryableError(error)) {
+        return {
+          success: false,
+          error_code: 'WEBHOOK_TEMPORARY_ERROR',
+          error: '일시적 오류가 발생했습니다. 잠시 후 재시도해주세요.',
+        };
+      }
+
       return {
         success: false,
         error_code: 'WEBHOOK_PROCESSING_ERROR',
@@ -310,18 +322,32 @@ export class PaymentTransactionController {
   private async processWebhookByStatus(
     webhookData: WebhookData,
   ): Promise<void> {
-    switch (webhookData.status) {
-      case 'success':
-        await this.handleSuccessWebhook(webhookData);
-        break;
-      case 'failed':
-        await this.handleFailedWebhook(webhookData);
-        break;
-      case 'canceled':
-        await this.handleCanceledWebhook(webhookData);
-        break;
-      default:
-        this.logger.warn(`알 수 없는 Webhook 상태: ${webhookData.status}`);
+    const lockKey = `webhook:${webhookData.pg_transaction_id}`;
+    const acquired = await this.redisService.acquireLock(lockKey, 60);
+
+    if (!acquired) {
+      this.logger.warn(
+        `Webhook 중복 처리 방지 - TX: ${webhookData.pg_transaction_id}`,
+      );
+      return;
+    }
+
+    try {
+      switch (webhookData.status) {
+        case 'success':
+          await this.handleSuccessWebhook(webhookData);
+          break;
+        case 'failed':
+          await this.handleFailedWebhook(webhookData);
+          break;
+        case 'canceled':
+          await this.handleCanceledWebhook(webhookData);
+          break;
+        default:
+          this.logger.warn(`알 수 없는 Webhook 상태: ${webhookData.status}`);
+      }
+    } finally {
+      await this.redisService.releaseLock(lockKey);
     }
   }
 
@@ -391,6 +417,22 @@ export class PaymentTransactionController {
 
     this.logger.log(
       `결제 취소 처리 완료 - TX: ${webhookData.pg_transaction_id}`,
+    );
+  }
+
+  /**
+   * 재시도 가능한 에러인지 판별
+   */
+  private isRetryableError(error: any): boolean {
+    if (!error) return false;
+    const message = error.message || '';
+    return (
+      error.code === 'P2024' || // Prisma connection pool timeout
+      error.code === 'P2028' || // Prisma transaction error
+      error.name === 'TimeoutError' ||
+      message.includes('ECONNREFUSED') ||
+      message.includes('ETIMEDOUT') ||
+      message.includes('Redis')
     );
   }
 }
