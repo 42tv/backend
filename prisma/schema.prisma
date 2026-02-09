@@ -446,7 +446,8 @@ model Product {
   updated_at DateTime @updatedAt
 
   // Relations
-  topups CoinTopup[]
+  topups       CoinTopup[]
+  transactions PaymentTransaction[]
 
   @@map("products")
 }
@@ -455,6 +456,7 @@ model Product {
 model PaymentTransaction {
   id       String @id @default(cuid())
   user_idx Int? // 결제자 (5년 보관 위해 nullable)
+  product_id Int? // 결제 상품 (웹훅 처리용)
 
   // PG사 결제 정보 (법적 증빙 필수)
   pg_provider       String // "inicis", "toss", "kakaopay"
@@ -480,8 +482,9 @@ model PaymentTransaction {
   should_delete_at      DateTime? // 5년 후 삭제
 
   // Relations
-  user   User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
-  topups CoinTopup[]
+  user    User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  product Product?    @relation(fields: [product_id], references: [id])
+  topups  CoinTopup[]
 
   @@map("payment_transactions")
 }

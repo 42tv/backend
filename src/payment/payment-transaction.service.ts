@@ -209,6 +209,7 @@ export class PaymentTransactionService {
       pg_transaction_id: paymentResponse.pg_transaction_id,
       payment_method: 'card' as any, // 기본값
       amount: product.price,
+      product_id: product_id,
     });
 
     // 6-1. Mock인 경우: 즉시 승인 처리 + 충전

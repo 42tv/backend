@@ -34,5 +34,9 @@ export class CreatePaymentTransactionDto {
   currency?: string;
 
   @IsOptional()
+  @IsNumber()
+  product_id?: number;
+
+  @IsOptional()
   pg_response?: any;
 }
