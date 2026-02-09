@@ -18,8 +18,8 @@ model User {
   oauth_provider    String?
   oauth_provider_id String?
   is_admin          Boolean  @default(false)
-  created_at        DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  updated_at        DateTime @updatedAt()
+  created_at        DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at        DateTime @updatedAt
 
   userDetail       UserDetail?
   channel          Channel?
@@ -94,7 +94,7 @@ model UserDetail {
   phone           String // 암호화 필요
   email           String   @unique // 암호화 필요
   address         String // 암호화 필요
-  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   User            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade) // 반드시 1:1 관계를 유지하도록 설정
 
   @@map("user_details")
@@ -106,7 +106,7 @@ model Terms {
   version       Float
   content       String
   effectiveDate DateTime
-  created_at    DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at    DateTime    @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   UserTerms     UserTerms[]
 
   @@map("terms")
@@ -116,7 +116,7 @@ model Terms {
 model UserTerms {
   id        Int      @id @default(autoincrement())
   agreedAt  DateTime
-  createdAt DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  createdAt DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   user_idx Int
@@ -139,7 +139,7 @@ model Channel {
   month_time       Int       @default(0)
   total_time       Int       @default(0)
   first_start_time DateTime?
-  createdAt        DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  createdAt        DateTime  @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
@@ -156,8 +156,8 @@ model BroadcastSetting {
   is_fan    Boolean  @default(false)
   fan_level Int      @default(1)
   password  String? // 비밀번호 (암호화 필요)
-  createdAt DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
-  updatedAt DateTime @updatedAt()
+  createdAt DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updatedAt DateTime @updatedAt
 
   // Relations
   User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
@@ -212,7 +212,7 @@ model Stream {
 model PostSettings {
   user_idx         Int      @id
   min_fan_level_id Int? // 쪽지를 보낼 수 있는 최소 팬 레벨 ID (null이면 제한 없음)
-  created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at       DateTime @updatedAt
 
   // Relations
@@ -226,7 +226,7 @@ model PostSettings {
 model Posts {
   id               Int       @id @default(autoincrement())
   content          String // 쪽지 내용
-  sent_at          DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  sent_at          DateTime  @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   read_at          DateTime? // 읽은 시간
   is_read          Boolean   @default(false) // 읽음 상태
   sender_deleted   Boolean   @default(false) // 보낸 사람이 삭제했는지 여부
@@ -249,7 +249,7 @@ model Fan {
   total_donation   Int      @default(0) // 팬이 보낸 총 선물 수
   hidden           Boolean  @default(false) // 팬 등급 숨김 여부
   current_level_id Int // 현재 팬 레벨 (캐시/성능 최적화용, 기본 레벨 포함)
-  created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at       DateTime @updatedAt
 
   // Relations
@@ -275,7 +275,7 @@ model FanLevel {
   name         String // 등급 이름 (예: "일반 팬", "브론즈", "실버", "골드")
   min_donation Int // 해당 등급에 도달하기 위한 최소 후원 금액 (기본 레벨은 0)
   color        String   @default("#808080") // 팬 등급 색상 (헥스 코드)
-  created_at   DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at   DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at   DateTime @updatedAt
 
   // Relations
@@ -292,7 +292,7 @@ model FanLevel {
 // 유저 차단 테이블 - 메시지 차단 관리
 model PostBlockedUsers {
   id         Int      @id @default(autoincrement())
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   blocker_idx Int // 차단한 사용자
@@ -309,7 +309,7 @@ model PostBlockedUsers {
 model Bookmark {
   id         Int      @id @default(autoincrement())
   hidden     Boolean  @default(false) // 즐겨찾기 숨김 여부
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   bookmarker_idx Int // 즐겨찾기 한 사용자
@@ -325,7 +325,7 @@ model Bookmark {
 // 블랙리스트 테이블 - 방송 시청 차단 관리
 model Blacklist {
   id         Int      @id @default(autoincrement())
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   broadcaster_idx Int // 블랙리스트 소유자 (방송인)
@@ -341,7 +341,7 @@ model Blacklist {
 // 매니저 관계 테이블 - 크리에이터와 매니저 간의 관계 관리
 model Manager {
   id         Int      @id @default(autoincrement())
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   broadcaster_idx Int // 크리에이터 (관리 받는 사람)
@@ -362,7 +362,7 @@ model Article {
   is_pinned  Boolean  @default(false) // 상단 고정 여부
   is_active  Boolean  @default(true) // 활성화 여부
   view_count Int      @default(0) // 조회수
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at DateTime @updatedAt
 
   // Relations
@@ -378,7 +378,7 @@ model ArticleImage {
   id          Int      @id @default(autoincrement())
   image_url   String // S3 이미지 URL
   image_order Int      @default(0) // 이미지 순서
-  created_at  DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at  DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   article_id Int
@@ -395,7 +395,7 @@ model Policy {
   content    String // 정책 내용
   version    String // 버전
   is_active  Boolean  @default(true) // 활성화 여부
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at DateTime @updatedAt
 
   // Relations
@@ -410,7 +410,7 @@ model PolicyAgreement {
   user_idx       Int // 동의한 사용자
   policy_id      Int // 동의한 정책
   policy_version String // 동의 당시 정책 버전
-  agreed_at      DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  agreed_at      DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   ip_address     String? // 동의 시점의 IP 주소 (법적 증명용)
 
   // Relations
@@ -442,7 +442,7 @@ model Product {
   is_active  Boolean @default(true)
   sort_order Int     @default(0)
 
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at DateTime @updatedAt
 
   // Relations
@@ -467,7 +467,7 @@ model PaymentTransaction {
 
   // 상태 및 시간
   status       PaymentTransactionStatus @default(PENDING)
-  requested_at DateTime                 @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  requested_at DateTime                 @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   approved_at  DateTime?
   canceled_at  DateTime?
 
@@ -550,7 +550,7 @@ model BootpayTransaction {
   user_deleted_at       DateTime? // 사용자 삭제 시간
   should_delete_at      DateTime? // 5년 후 삭제 예정일
 
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at DateTime @updatedAt
 
   // Relations
@@ -558,10 +558,10 @@ model BootpayTransaction {
   cardData BootpayCardData?
   topups   CoinTopup[]
 
-  @@index([user_idx], name: "idx_bootpay_user")
-  @@index([order_id], name: "idx_bootpay_order")
-  @@index([status, created_at], name: "idx_bootpay_status_created")
-  @@index([purchased_at], name: "idx_bootpay_purchased")
+  @@index([user_idx], map: "idx_bootpay_user")
+  @@index([order_id], map: "idx_bootpay_order")
+  @@index([status, created_at], map: "idx_bootpay_status_created")
+  @@index([purchased_at], map: "idx_bootpay_purchased")
   @@map("bootpay_transactions")
 }
 
@@ -586,7 +586,7 @@ model BootpayCardData {
   // 영수증
   receipt_url String? // 카드사 영수증 URL
 
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   transaction_id String             @unique
@@ -616,7 +616,7 @@ model CoinTopup {
 
   // 상태 및 시간
   status       TopupStatus @default(PENDING)
-  topped_up_at DateTime    @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  topped_up_at DateTime    @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // 5년 보관 의무
   deleted_user_snapshot Json?
@@ -630,7 +630,7 @@ model CoinTopup {
   usages             CoinUsage[] // 이 충전분의 사용 내역
   payoutCoins        PayoutCoin[] // 이 충전분으로 생성된 PayoutCoin들
 
-  @@index([bootpay_transaction_id], name: "idx_topup_bootpay_transaction")
+  @@index([bootpay_transaction_id], map: "idx_topup_bootpay_transaction")
   @@map("coin_topups")
 }
 
@@ -649,7 +649,7 @@ model CoinBalance {
   total_charged  Int      @default(0) // 총 충전 금액
   total_used     Int      @default(0) // 총 사용 금액
   total_received Int      @default(0) // 총 받은 금액 (후원 받은 금액)
-  created_at     DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at     DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at     DateTime @updatedAt
 
   // Relations
@@ -672,7 +672,7 @@ model Donation {
   message String? // 후원 메시지
 
   // 시간
-  donated_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  donated_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // 5년 보관 의무
   deleted_donor_snapshot    Json? // 후원자 삭제 시
@@ -700,7 +700,7 @@ model CoinUsage {
   used_coins Int // 사용된 코인량
 
   // 시간
-  used_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  used_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
 
   // Relations
   topup      CoinTopup   @relation(fields: [topup_id], references: [id])
@@ -736,7 +736,7 @@ model PayoutCoin {
   settlement_id    String? // 연결된 정산 ID
   last_reviewed_at DateTime? // 마지막 검토 시각
 
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at DateTime @updatedAt
 
   // Relations
@@ -746,10 +746,10 @@ model PayoutCoin {
   topup      CoinTopup   @relation(fields: [topup_id], references: [id])
   settlement Settlement? @relation(fields: [settlement_id], references: [id])
 
-  @@index([streamer_idx, status, settlement_ready_at], name: "idx_payout_streamer_status_maturity")
-  @@index([topup_id], name: "idx_payout_topup")
-  @@index([donation_id], name: "idx_payout_donation")
-  @@index([settlement_id], name: "idx_payout_settlement")
+  @@index([streamer_idx, status, settlement_ready_at], map: "idx_payout_streamer_status_maturity")
+  @@index([topup_id], map: "idx_payout_topup")
+  @@index([donation_id], map: "idx_payout_donation")
+  @@index([settlement_id], map: "idx_payout_settlement")
   @@map("payout_coins")
 }
 
@@ -783,21 +783,21 @@ model Settlement {
   admin_memo     String? // 관리자 메모
 
   // 시간
-  requested_at  DateTime  @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  requested_at  DateTime  @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   approved_at   DateTime? // 승인 시각
   paid_at       DateTime? // 지급 완료 시각
   rejected_at   DateTime? // 거절 시각
   reject_reason String? // 거절 사유
 
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul', now())"))
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at DateTime @updatedAt
 
   // Relations
   streamer    User?        @relation("Settlements", fields: [streamer_idx], references: [idx], onDelete: SetNull)
   payoutCoins PayoutCoin[]
 
-  @@index([streamer_idx, status, period_start], name: "idx_settlement_streamer_status_period")
-  @@index([status, created_at], name: "idx_settlement_status_created")
+  @@index([streamer_idx, status, period_start], map: "idx_settlement_streamer_status_period")
+  @@index([status, created_at], map: "idx_settlement_status_created")
   @@map("settlements")
 }
 
