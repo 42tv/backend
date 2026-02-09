@@ -165,13 +165,17 @@ export class PaymentTransactionController {
     @Body() body: any,
     @Headers('x-signature') signature?: string,
     @Headers('authorization') authorization?: string,
-  ): Promise<{ success: boolean }> {
+  ): Promise<{ success: boolean; error?: string; error_code?: string }> {
     this.logger.log(`Webhook 수신 - PG: ${pg_provider}`);
 
     try {
       const pgProviderEnum = this.resolvePgProvider(pg_provider);
       if (!pgProviderEnum) {
-        return { success: false };
+        return {
+          success: false,
+          error_code: 'UNSUPPORTED_PG_PROVIDER',
+          error: `지원하지 않는 PG사입니다: ${pg_provider}`,
+        };
       }
 
       const webhookData = await this.verifyAndParseWebhook(
@@ -181,18 +185,25 @@ export class PaymentTransactionController {
         authorization,
       );
       if (!webhookData) {
-        return { success: false };
+        return {
+          success: false,
+          error_code: 'WEBHOOK_VERIFICATION_FAILED',
+          error: 'Webhook 서명 검증 또는 데이터 파싱에 실패했습니다',
+        };
       }
 
       this.logWebhookData(pg_provider, webhookData);
 
-      // TODO: 여기서부터 차근차근 DB 저장 로직 추가 예정
-
       return { success: true };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error('Webhook 처리 오류', error);
-      // 예외 발생 시에도 200 OK 반환 (webhook 재시도 방지)
-      return { success: false };
+      return {
+        success: false,
+        error_code: 'WEBHOOK_PROCESSING_ERROR',
+        error: `Webhook 처리 중 오류가 발생했습니다: ${errorMessage}`,
+      };
     }
   }
 
