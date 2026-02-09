@@ -446,8 +446,7 @@ model Product {
   updated_at DateTime @updatedAt
 
   // Relations
-  topups       CoinTopup[]
-  transactions PaymentTransaction[]
+  topups CoinTopup[]
 
   @@map("products")
 }
@@ -482,9 +481,8 @@ model PaymentTransaction {
   should_delete_at      DateTime? // 5년 후 삭제
 
   // Relations
-  user    User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
-  product Product?    @relation(fields: [product_id], references: [id])
-  topups  CoinTopup[]
+  user   User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  topups CoinTopup[]
 
   @@map("payment_transactions")
 }
