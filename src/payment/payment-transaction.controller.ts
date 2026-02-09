@@ -12,6 +12,7 @@ import {
   Logger,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { CreatePaymentTransactionDto } from './dto/create-payment-transaction.dto';
@@ -194,6 +195,9 @@ export class PaymentTransactionController {
 
       this.logWebhookData(pg_provider, webhookData);
 
+      // 웹훅 상태에 따른 비즈니스 로직 처리
+      await this.processWebhookByStatus(webhookData);
+
       return { success: true };
     } catch (error) {
       const errorMessage =
@@ -298,5 +302,95 @@ export class PaymentTransactionController {
     }
 
     return '알 수 없음';
+  }
+
+  /**
+   * Webhook 상태에 따른 비즈니스 로직 처리
+   */
+  private async processWebhookByStatus(
+    webhookData: WebhookData,
+  ): Promise<void> {
+    switch (webhookData.status) {
+      case 'success':
+        await this.handleSuccessWebhook(webhookData);
+        break;
+      case 'failed':
+        await this.handleFailedWebhook(webhookData);
+        break;
+      case 'canceled':
+        await this.handleCanceledWebhook(webhookData);
+        break;
+      default:
+        this.logger.warn(`알 수 없는 Webhook 상태: ${webhookData.status}`);
+    }
+  }
+
+  /**
+   * 결제 성공 Webhook 처리
+   * - PaymentTransaction에서 product_id 조회
+   * - 금액 검증
+   * - 결제 승인 + 코인 충전 처리
+   */
+  private async handleSuccessWebhook(webhookData: WebhookData): Promise<void> {
+    const transaction =
+      await this.paymentTransactionService.findByPgTransactionId(
+        webhookData.pg_transaction_id,
+      );
+
+    // 금액 검증
+    if (transaction.amount !== webhookData.amount) {
+      this.logger.error(
+        `Webhook 금액 불일치 - 예상: ${transaction.amount}, 수신: ${webhookData.amount}, TX: ${webhookData.pg_transaction_id}`,
+      );
+      throw new BadRequestException(
+        `결제 금액이 일치하지 않습니다. 예상: ${transaction.amount}, 수신: ${webhookData.amount}`,
+      );
+    }
+
+    // product_id 확인
+    if (!transaction.product_id) {
+      this.logger.error(
+        `product_id 누락 - TX: ${webhookData.pg_transaction_id}`,
+      );
+      throw new BadRequestException('결제 거래에 상품 정보가 없습니다.');
+    }
+
+    await this.paymentTransactionService.processSuccessfulPayment(
+      webhookData.pg_transaction_id,
+      transaction.product_id,
+      webhookData.pg_response,
+    );
+
+    this.logger.log(
+      `결제 성공 처리 완료 - TX: ${webhookData.pg_transaction_id}, Product: ${transaction.product_id}`,
+    );
+  }
+
+  /**
+   * 결제 실패 Webhook 처리
+   */
+  private async handleFailedWebhook(webhookData: WebhookData): Promise<void> {
+    await this.paymentTransactionService.failPayment(
+      webhookData.pg_transaction_id,
+      webhookData.pg_response,
+    );
+
+    this.logger.log(
+      `결제 실패 처리 완료 - TX: ${webhookData.pg_transaction_id}`,
+    );
+  }
+
+  /**
+   * 결제 취소 Webhook 처리
+   */
+  private async handleCanceledWebhook(webhookData: WebhookData): Promise<void> {
+    await this.paymentTransactionService.cancelPayment(
+      webhookData.pg_transaction_id,
+      webhookData.pg_response,
+    );
+
+    this.logger.log(
+      `결제 취소 처리 완료 - TX: ${webhookData.pg_transaction_id}`,
+    );
   }
 }
