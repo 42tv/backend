@@ -25,7 +25,7 @@ export interface PaymentResponse {
 
 export interface WebhookData {
   pg_transaction_id: string;
-  status: 'success' | 'failed' | 'canceled';
+  status: 'success' | 'failed' | 'canceled' | 'pending' | 'expired';
   amount: number;
   pg_response: any; // PG사 원본 응답
 }

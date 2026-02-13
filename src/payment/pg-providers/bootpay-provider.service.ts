@@ -97,7 +97,7 @@ export class BootpayProvider implements PgProviderInterface {
    * @param body Webhook 요청 body (receipt_id 포함)
    * @returns 검증 성공 여부
    */
-  async verifyWebhook(body: any): Promise<boolean> {
+  async verifyWebhook(body: any, _signature?: string): Promise<boolean> {
     try {
       this.initializeBootpay();
 
@@ -113,10 +113,13 @@ export class BootpayProvider implements PgProviderInterface {
 
       // 결제 상태 확인
       const status = (response as any).data?.status || (response as any).status;
-      const isValid = status === 1 || status === '1'; // 1 = 결제 완료
+      const normalizedStatus =
+        typeof status === 'number' ? status : Number(status);
+      const validStatuses = [0, 1, -1, -2, -10];
+      const isValid = validStatuses.includes(normalizedStatus);
 
       this.logger.log(
-        `Bootpay webhook verification: ${receiptId} - ${isValid ? 'VALID' : 'INVALID'}`,
+        `Bootpay webhook verification: ${receiptId} (${normalizedStatus}) - ${isValid ? 'VALID' : 'INVALID'}`,
       );
 
       return isValid;
@@ -148,12 +151,19 @@ export class BootpayProvider implements PgProviderInterface {
     const status = data.status;
 
     // Bootpay 상태 코드를 표준 상태로 변환
-    // 1: 결제 완료, 0: 대기, -1: 취소, -2: 실패
-    let standardStatus: 'success' | 'failed' | 'canceled';
-    if (status === 1 || status === '1') {
+    // 1: 결제 완료, 0: 대기, -1: 취소, -2: 실패, -10: 만료
+    const normalizedStatus =
+      typeof status === 'number' ? status : Number(status);
+
+    let standardStatus: WebhookData['status'];
+    if (normalizedStatus === 1) {
       standardStatus = 'success';
-    } else if (status === -1 || status === '-1') {
+    } else if (normalizedStatus === 0) {
+      standardStatus = 'pending';
+    } else if (normalizedStatus === -1) {
       standardStatus = 'canceled';
+    } else if (normalizedStatus === -10) {
+      standardStatus = 'expired';
     } else {
       standardStatus = 'failed';
     }

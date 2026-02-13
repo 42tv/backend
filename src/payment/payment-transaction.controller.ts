@@ -300,6 +300,8 @@ export class PaymentTransactionController {
       success: '결제 완료',
       failed: '결제 실패',
       canceled: '결제 취소',
+      pending: '결제 대기',
+      expired: '결제 만료',
     };
 
     if (statusMap[status]) {
@@ -311,6 +313,9 @@ export class PaymentTransactionController {
     }
     if (bootpayStatus === 2) {
       return '결제 승인 중';
+    }
+    if (bootpayStatus === -10) {
+      return '결제 만료';
     }
 
     return '알 수 없음';
@@ -342,6 +347,12 @@ export class PaymentTransactionController {
           break;
         case 'canceled':
           await this.handleCanceledWebhook(webhookData);
+          break;
+        case 'pending':
+          await this.handlePendingWebhook(webhookData);
+          break;
+        case 'expired':
+          await this.handleExpiredWebhook(webhookData);
           break;
         default:
           this.logger.warn(`알 수 없는 Webhook 상태: ${webhookData.status}`);
@@ -417,6 +428,36 @@ export class PaymentTransactionController {
 
     this.logger.log(
       `결제 취소 처리 완료 - TX: ${webhookData.pg_transaction_id}`,
+    );
+  }
+
+  /**
+   * 무통장입금 대기 Webhook 처리
+   * - 가상계좌 발급 완료, 입금 전 상태
+   */
+  private async handlePendingWebhook(webhookData: WebhookData): Promise<void> {
+    await this.paymentTransactionService.markWaitingDepositPayment(
+      webhookData.pg_transaction_id,
+      webhookData.pg_response,
+    );
+
+    this.logger.log(
+      `결제 대기 처리 완료 - TX: ${webhookData.pg_transaction_id}`,
+    );
+  }
+
+  /**
+   * 결제 만료 Webhook 처리
+   * - 가상계좌 입금 기한 초과
+   */
+  private async handleExpiredWebhook(webhookData: WebhookData): Promise<void> {
+    await this.paymentTransactionService.expirePayment(
+      webhookData.pg_transaction_id,
+      webhookData.pg_response,
+    );
+
+    this.logger.log(
+      `결제 만료 처리 완료 - TX: ${webhookData.pg_transaction_id}`,
     );
   }
 
