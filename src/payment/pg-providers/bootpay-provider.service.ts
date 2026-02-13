@@ -117,8 +117,8 @@ export class BootpayProvider implements PgProviderInterface {
         (response as any).data?.status ?? (response as any).status;
       const normalizedStatus =
         typeof status === 'number' ? status : Number(status);
-      // 최신 코드표 기준 상태 + 레거시 호환 상태
-      const validStatuses = [-10, -4, -2, -1, 0, 1, 2, 4, 5, 20];
+      // 최신 권장 상태코드
+      const validStatuses = [0, 1, 2, 4, 5, 20];
       const isValid = validStatuses.includes(normalizedStatus);
 
       this.logger.log(
@@ -157,8 +157,7 @@ export class BootpayProvider implements PgProviderInterface {
     const status = data.status;
 
     // Bootpay 상태 코드를 표준 상태로 변환
-    // 최신 코드: 1(완료), 20(취소), 5(가상계좌 발급/입금대기), 0/2/4(진행중)
-    // 레거시 호환: -1(취소), -2/-4(실패), -10(만료)
+    // 권장 코드: 1(완료), 20(취소), 5(가상계좌 발급/입금대기), 0/2/4(진행중)
     const normalizedStatus =
       typeof status === 'number' ? status : Number(status);
 
@@ -188,7 +187,7 @@ export class BootpayProvider implements PgProviderInterface {
     if (!standardStatus) {
       if (normalizedStatus === 1) {
         standardStatus = 'success';
-      } else if (normalizedStatus === 20 || normalizedStatus === -1) {
+      } else if (normalizedStatus === 20) {
         standardStatus = 'canceled';
       } else if (
         normalizedStatus === 5 ||
@@ -197,8 +196,6 @@ export class BootpayProvider implements PgProviderInterface {
         normalizedStatus === 0
       ) {
         standardStatus = 'pending';
-      } else if (normalizedStatus === -10) {
-        standardStatus = 'expired';
       } else {
         standardStatus = 'failed';
       }

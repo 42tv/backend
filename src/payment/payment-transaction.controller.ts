@@ -329,9 +329,6 @@ export class PaymentTransactionController {
     if (bootpayStatus === 20) {
       return '결제 취소';
     }
-    if (bootpayStatus === -10) {
-      return '결제 만료';
-    }
 
     if (webhookType) {
       return webhookType;

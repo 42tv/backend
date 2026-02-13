@@ -188,7 +188,7 @@ describe('PaymentTransactionController', () => {
           pg_transaction_id: 'ORDER_123',
           status: 'canceled',
           amount: 10000,
-          pg_response: { status: -1 },
+          pg_response: { status: 20 },
         });
         paymentTransactionService.cancelPayment.mockResolvedValue({} as any);
 
@@ -197,7 +197,7 @@ describe('PaymentTransactionController', () => {
         expect(result).toEqual({ success: true });
         expect(paymentTransactionService.cancelPayment).toHaveBeenCalledWith(
           'ORDER_123',
-          { status: -1 },
+          { status: 20 },
         );
       });
     });
