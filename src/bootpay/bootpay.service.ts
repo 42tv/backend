@@ -97,7 +97,7 @@ export class BootpayService implements OnModuleInit {
       const response = await Bootpay.receiptPayment(receiptId);
       return {
         success: true,
-        status: (response as any).data?.status || (response as any).status,
+        status: (response as any).data?.status ?? (response as any).status,
         data: response,
       };
     } catch (error) {

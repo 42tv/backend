@@ -112,7 +112,8 @@ export class BootpayProvider implements PgProviderInterface {
       const response = await Bootpay.receiptPayment(receiptId);
 
       // 결제 상태 확인
-      const status = (response as any).data?.status || (response as any).status;
+      const status =
+        (response as any).data?.status ?? (response as any).status;
       const normalizedStatus =
         typeof status === 'number' ? status : Number(status);
       // 최신 코드표 기준 상태 + 레거시 호환 상태
