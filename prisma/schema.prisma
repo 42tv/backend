@@ -510,7 +510,7 @@ model BootpayTransaction {
 
   // Bootpay 핵심 식별자
   receipt_id     String @unique // Bootpay 영수증 ID (가장 중요한 키)
-  order_id       String // 주문 ID (우리 시스템에서 생성)
+  order_id       String @unique // 주문 ID (우리 시스템에서 생성)
   application_id String // Bootpay 앱 ID
 
   // 금액 정보
@@ -564,9 +564,11 @@ model BootpayTransaction {
   updated_at DateTime @updatedAt
 
   // Relations
-  user     User?            @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
-  cardData BootpayCardData?
-  topups   CoinTopup[]
+  user      User?             @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
+  cardData  BootpayCardData?
+  vbankData BootpayVbankData?
+  easyData  BootpayEasyData?
+  topups    CoinTopup[]
 
   @@index([user_idx], map: "idx_bootpay_user")
   @@index([order_id], map: "idx_bootpay_order")
@@ -603,6 +605,64 @@ model BootpayCardData {
   transaction    BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
 
   @@map("bootpay_card_data")
+}
+
+// Bootpay 가상계좌 결제 상세 정보 테이블
+model BootpayVbankData {
+  id Int @id @default(autoincrement())
+
+  // PG 거래 정보
+  tid String // PG사 거래 ID
+
+  // 은행 정보
+  bank_code     String // 은행 코드
+  bank_name     String // 은행명
+  bank_username String // 예금주명
+  bank_account  String? // 가상계좌 번호
+
+  // 입금 정보
+  sender_name String? // 입금자명
+  expired_at  DateTime? // 입금 만료일시
+
+  // 현금영수증
+  cash_receipt_tid  String? // 현금영수증 거래 ID
+  cash_receipt_type String? // 현금영수증 타입 (소득공제/지출증빙)
+  cash_receipt_no   String? // 현금영수증 번호
+
+  // 영수증
+  receipt_url String? // 영수증 URL
+
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+
+  // Relations
+  transaction_id String             @unique
+  transaction    BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@map("bootpay_vbank_data")
+}
+
+// Bootpay 간편결제 상세 정보 테이블
+// 카카오페이, 네이버페이 등 간편결제 시 PG사별 포인트/머니 거래 ID 저장
+model BootpayEasyData {
+  id Int @id @default(autoincrement())
+
+  // 간편결제 거래 정보
+  tid String? // 간편결제 거래 ID
+
+  // 원래 결제수단 정보
+  method_origin        String? // 원래 결제수단명 (카카오페이, 네이버페이 등)
+  method_origin_symbol String? // 원래 결제수단 코드 (kakaopay, naverpay 등)
+
+  // 간편결제 원본 데이터 (PG사별로 필드가 다르므로 JSON 보존)
+  raw_data Json?
+
+  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+
+  // Relations
+  transaction_id String             @unique
+  transaction    BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@map("bootpay_easy_data")
 }
 
 // 코인 충전 내역 테이블 (2단계: 결제와 지갑 연결)

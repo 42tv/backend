@@ -304,20 +304,47 @@ export class PaymentTransactionService {
       `Bootpay transaction saved: ${bootpayTransaction.receipt_id}`,
     );
 
-    // 2. 카드 결제인 경우 BootpayCardData 저장
+    // 2. 결제수단별 상세 데이터 저장
     if (receiptData.card_data) {
       const cardDataDto = BootpayTransactionRepository.fromCardData(
         receiptData.card_data,
         bootpayTransaction.id,
       );
-
       await this.bootpayTransactionRepository.createOrUpdateCardData(
         cardDataDto,
         tx,
       );
-
       this.logger.log(
         `Bootpay card data saved for transaction: ${bootpayTransaction.id}`,
+      );
+    }
+
+    if (receiptData.vbank_data) {
+      const vbankDataDto = BootpayTransactionRepository.fromVbankData(
+        receiptData.vbank_data,
+        bootpayTransaction.id,
+      );
+      await this.bootpayTransactionRepository.createOrUpdateVbankData(
+        vbankDataDto,
+        tx,
+      );
+      this.logger.log(
+        `Bootpay vbank data saved for transaction: ${bootpayTransaction.id}`,
+      );
+    }
+
+    // 간편결제인 경우 (method_origin_symbol 존재 시)
+    if (receiptData.method_origin_symbol) {
+      const easyDataDto = BootpayTransactionRepository.fromEasyData(
+        receiptData,
+        bootpayTransaction.id,
+      );
+      await this.bootpayTransactionRepository.createOrUpdateEasyData(
+        easyDataDto,
+        tx,
+      );
+      this.logger.log(
+        `Bootpay easy data saved for transaction: ${bootpayTransaction.id}`,
       );
     }
 
