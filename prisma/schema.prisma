@@ -458,9 +458,14 @@ model PaymentTransaction {
   product_id Int? // 결제 상품 (웹훅 처리용)
 
   // PG사 결제 정보 (법적 증빙 필수)
-  pg_provider       String // "inicis", "toss", "kakaopay"
+  pg_provider       String // "inicis", "toss", "kakaopay", "bootpay"
   pg_transaction_id String @unique // PG사 거래 고유번호
   payment_method    String // "card", "bank_transfer", "mobile"
+
+  // Bootpay 연결 정보
+  bootpay_receipt_id    String?  @unique // Bootpay 영수증 ID (BootpayTransaction 직접 조인용)
+  bootpay_status        Int? // Bootpay 상태코드 (0: 대기, 1: 완료, -1: 취소, -2: 실패, -10: 만료)
+  bootpay_status_locale String? // Bootpay 상태 한글
 
   // 결제 금액
   amount   Int // 결제 금액 (원 단위)
@@ -471,6 +476,7 @@ model PaymentTransaction {
   requested_at DateTime                 @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   approved_at  DateTime?
   canceled_at  DateTime?
+  paid_at      DateTime? // 실 결제완료 시각 (Bootpay purchased_at 매핑)
 
   // PG사 응답 원본 (감사용)
   pg_response Json?
@@ -484,14 +490,17 @@ model PaymentTransaction {
   user   User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
   topups CoinTopup[]
 
+  @@index([pg_provider, bootpay_receipt_id], map: "idx_payment_pg_bootpay_receipt")
   @@map("payment_transactions")
 }
 
 enum PaymentTransactionStatus {
   PENDING // 결제 진행중
+  WAITING_DEPOSIT // 무통장입금 대기 (가상계좌 발급 완료, 입금 대기)
   SUCCESS // 결제 성공
   FAILED // 결제 실패
   CANCELED // 결제 취소
+  EXPIRED // 결제 만료 (가상계좌 입금 기한 초과)
 }
 
 // Bootpay 결제 거래 내역 테이블 (PG사 응답 전체 저장)

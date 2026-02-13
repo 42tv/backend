@@ -353,42 +353,58 @@ export class PaymentTransactionService {
         throw new BadRequestException('이미 처리된 결제 거래입니다.');
       }
 
-      // 2. Bootpay인 경우 상세 데이터 저장
+      // 2. Bootpay인 경우 상세 데이터 저장 (실패 시 결제 중단)
+      let bootpayTransactionId: string | undefined;
+      let bootpayFields:
+        | {
+            bootpay_receipt_id?: string;
+            bootpay_status?: number;
+            bootpay_status_locale?: string;
+            paid_at?: Date;
+          }
+        | undefined;
+
       if (
         transaction.pg_provider === PgProvider.BOOTPAY &&
         pg_response &&
         typeof pg_response === 'object'
       ) {
-        try {
-          await this.saveBootpayData(
-            pg_response as ReceiptResponseParameters,
-            transaction.user_idx!,
-            tx,
-          );
-        } catch (error) {
-          this.logger.error(
-            `Failed to save Bootpay data: ${error.message}`,
-            error.stack,
-          );
-          // Bootpay 데이터 저장 실패해도 결제 처리는 계속 진행
-        }
+        const receiptData = pg_response as ReceiptResponseParameters;
+        const bootpayTransaction = await this.saveBootpayData(
+          receiptData,
+          transaction.user_idx!,
+          tx,
+        );
+        bootpayTransactionId = bootpayTransaction.id;
+
+        // Bootpay 연결 필드 구성
+        bootpayFields = {
+          bootpay_receipt_id: receiptData.receipt_id,
+          bootpay_status: receiptData.status,
+          bootpay_status_locale: receiptData.status_locale || undefined,
+          paid_at: receiptData.purchased_at
+            ? new Date(receiptData.purchased_at)
+            : undefined,
+        };
       }
 
-      // 3. 결제 승인 처리
+      // 3. 결제 승인 처리 (Bootpay 필드 동기화 포함)
       const approvedTransaction =
         await this.paymentTransactionRepository.updateStatus(
           transaction.id,
           PaymentTransactionStatus.SUCCESS,
           pg_response,
           tx,
+          bootpayFields,
         );
 
-      // 4. 충전 처리 위임 (CoinTopupService) - 트랜잭션 전달
+      // 4. 충전 처리 위임 (CoinTopupService) - bootpay_transaction_id 연결 포함
       const topupResult = await this.coinTopupService.processTopup(
         approvedTransaction.user_idx!,
         {
           transaction_id: approvedTransaction.id,
           product_id,
+          bootpay_transaction_id: bootpayTransactionId,
         },
         tx,
       );

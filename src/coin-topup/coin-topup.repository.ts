@@ -15,6 +15,7 @@ export class CoinTopupRepository {
   async create(
     data: {
       transaction_id: string;
+      bootpay_transaction_id?: string;
       user_idx: number;
       product_id: number;
       product_name: string;
