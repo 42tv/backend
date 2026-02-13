@@ -760,4 +760,23 @@ export class RedisService {
     if (keys.length === 0) return 0;
     return await this.del(keys);
   }
+
+  /**
+   * Redis 분산 락 획득 (NX + EX)
+   * @param key 락 키
+   * @param ttl 만료 시간 (초, 기본 30초)
+   * @returns 락 획득 성공 여부
+   */
+  async acquireLock(key: string, ttl: number = 30): Promise<boolean> {
+    const result = await this.redis.set(`lock:${key}`, '1', 'EX', ttl, 'NX');
+    return result === 'OK';
+  }
+
+  /**
+   * Redis 분산 락 해제
+   * @param key 락 키
+   */
+  async releaseLock(key: string): Promise<void> {
+    await this.redis.del(`lock:${key}`);
+  }
 }

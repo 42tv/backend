@@ -133,7 +133,7 @@ export class BootpayProvider implements PgProviderInterface {
   /**
    * Bootpay Webhook 데이터 파싱
    * @param body Webhook 요청 body
-   * @returns 표준화된 Webhook 데이터
+   * @returns 표준화된 Webhook 데이터 (전체 receipt 정보 포함)
    */
   async parseWebhookData(body: any): Promise<WebhookData> {
     this.initializeBootpay();
@@ -162,8 +162,22 @@ export class BootpayProvider implements PgProviderInterface {
       pg_transaction_id: data.order_id || receiptId, // order_id 사용
       status: standardStatus,
       amount: data.price || 0,
-      pg_response: response,
+      pg_response: data, // 전체 receipt 데이터 전달
     };
+  }
+
+  /**
+   * Bootpay Receipt 전체 데이터 조회
+   * @param receipt_id Bootpay 영수증 ID
+   * @returns 전체 Receipt 데이터
+   */
+  async getReceiptData(receipt_id: string): Promise<any> {
+    this.initializeBootpay();
+
+    await Bootpay.getAccessToken();
+    const response = await Bootpay.receiptPayment(receipt_id);
+
+    return (response as any).data || response;
   }
 
   /**

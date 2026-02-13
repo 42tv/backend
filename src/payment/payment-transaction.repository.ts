@@ -24,6 +24,7 @@ export class PaymentTransactionRepository {
     return await prismaClient.paymentTransaction.create({
       data: {
         user_idx,
+        product_id: createDto.product_id,
         pg_provider: createDto.pg_provider,
         pg_transaction_id: createDto.pg_transaction_id,
         payment_method: createDto.payment_method,
