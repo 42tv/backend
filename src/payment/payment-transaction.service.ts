@@ -509,20 +509,19 @@ export class PaymentTransactionService {
     pg_response: any,
     tx: any,
   ): Promise<{ bootpayTransactionId?: string; bootpayFields?: BootpaySyncFields }> {
-    if (
-      transaction.pg_provider !== PgProvider.BOOTPAY ||
-      !pg_response ||
-      typeof pg_response !== 'object'
-    ) {
+    if (transaction.pg_provider !== PgProvider.BOOTPAY) {
       return {};
+    }
+
+    if (!pg_response || typeof pg_response !== 'object') {
+      throw new BadRequestException('Bootpay 결제 응답 데이터가 올바르지 않습니다.');
     }
 
     const receiptData = pg_response as ReceiptResponseParameters;
     if (!receiptData.receipt_id) {
-      this.logger.warn(
-        'Bootpay pg_response에 receipt_id가 없어 상세 동기화를 건너뜁니다.',
+      throw new BadRequestException(
+        'Bootpay 결제 응답에 receipt_id가 없어 처리할 수 없습니다.',
       );
-      return {};
     }
 
     if (transaction.user_idx === null || transaction.user_idx === undefined) {
