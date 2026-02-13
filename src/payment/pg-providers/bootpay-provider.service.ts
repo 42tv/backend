@@ -144,6 +144,9 @@ export class BootpayProvider implements PgProviderInterface {
     this.initializeBootpay();
 
     const receiptId = body.receipt_id || body.receiptId;
+    const webhookType = (body.webhook_type || body.webhookType) as
+      | string
+      | undefined;
 
     // Bootpay API로 상세 정보 조회
     await Bootpay.getAccessToken();
@@ -158,29 +161,56 @@ export class BootpayProvider implements PgProviderInterface {
     const normalizedStatus =
       typeof status === 'number' ? status : Number(status);
 
-    let standardStatus: WebhookData['status'];
-    if (normalizedStatus === 1) {
+    const normalizedWebhookType = webhookType?.toUpperCase();
+
+    // webhook_type이 있으면 이를 우선으로 분기하고, 없으면 status 코드로 후순위 분기
+    let standardStatus: WebhookData['status'] | null = null;
+    if (normalizedWebhookType === 'PAYMENT_COMPLETED') {
       standardStatus = 'success';
-    } else if (normalizedStatus === 20 || normalizedStatus === -1) {
+    } else if (normalizedWebhookType === 'PAYMENT_CANCELLED') {
       standardStatus = 'canceled';
-    } else if (
-      normalizedStatus === 5 ||
-      normalizedStatus === 4 ||
-      normalizedStatus === 2 ||
-      normalizedStatus === 0
-    ) {
+    } else if (normalizedWebhookType === 'PAYMENT_PARTIAL_CANCELLED') {
+      standardStatus = 'partial_canceled';
+    } else if (normalizedWebhookType === 'PAYMENT_VIRTUAL_ACCOUNT_ISSUED') {
       standardStatus = 'pending';
-    } else if (normalizedStatus === -10) {
+    } else if (normalizedWebhookType === 'PAYMENT_EXPIRED') {
       standardStatus = 'expired';
-    } else {
+    } else if (
+      normalizedWebhookType === 'PAYMENT_CONFIRM_FAILED' ||
+      normalizedWebhookType === 'PAYMENT_CANCEL_FAILED' ||
+      normalizedWebhookType === 'PAYMENT_REQUEST_FAILED' ||
+      normalizedWebhookType === 'ERROR'
+    ) {
       standardStatus = 'failed';
+    }
+
+    if (!standardStatus) {
+      if (normalizedStatus === 1) {
+        standardStatus = 'success';
+      } else if (normalizedStatus === 20 || normalizedStatus === -1) {
+        standardStatus = 'canceled';
+      } else if (
+        normalizedStatus === 5 ||
+        normalizedStatus === 4 ||
+        normalizedStatus === 2 ||
+        normalizedStatus === 0
+      ) {
+        standardStatus = 'pending';
+      } else if (normalizedStatus === -10) {
+        standardStatus = 'expired';
+      } else {
+        standardStatus = 'failed';
+      }
     }
 
     return {
       pg_transaction_id: data.order_id || receiptId, // order_id 사용
       status: standardStatus,
       amount: data.price || 0,
-      pg_response: data, // 전체 receipt 데이터 전달
+      pg_response: {
+        ...data,
+        webhook_type: normalizedWebhookType || data.webhook_type,
+      }, // 전체 receipt 데이터 전달 + webhook_type 보존
     };
   }
 

@@ -277,6 +277,7 @@ export class PaymentTransactionController {
     const webhookType = this.resolveWebhookType(
       webhookData.status,
       webhookData.pg_response?.status,
+      webhookData.pg_response?.webhook_type,
     );
 
     this.logger.log('========================================');
@@ -285,6 +286,9 @@ export class PaymentTransactionController {
     this.logger.log(`🔹 Transaction ID: ${webhookData.pg_transaction_id}`);
     this.logger.log(
       `🔹 Status: ${webhookData.status} (Bootpay: ${webhookData.pg_response?.status})`,
+    );
+    this.logger.log(
+      `🔹 Webhook Type: ${webhookData.pg_response?.webhook_type || 'N/A'}`,
     );
     this.logger.log(`🔹 Amount: ${webhookData.amount}원`);
     this.logger.log('========================================');
@@ -295,11 +299,16 @@ export class PaymentTransactionController {
   /**
    * Webhook 타입 결정
    */
-  private resolveWebhookType(status: string, bootpayStatus?: number): string {
+  private resolveWebhookType(
+    status: string,
+    bootpayStatus?: number,
+    webhookType?: string,
+  ): string {
     const statusMap: Record<string, string> = {
       success: '결제 완료',
       failed: '결제 실패',
       canceled: '결제 취소',
+      partial_canceled: '결제 부분 취소',
       pending: '결제 대기',
       expired: '결제 만료',
     };
@@ -314,8 +323,18 @@ export class PaymentTransactionController {
     if (bootpayStatus === 2) {
       return '결제 승인 중';
     }
+    if (bootpayStatus === 5) {
+      return '가상계좌 입금 대기';
+    }
+    if (bootpayStatus === 20) {
+      return '결제 취소';
+    }
     if (bootpayStatus === -10) {
       return '결제 만료';
+    }
+
+    if (webhookType) {
+      return webhookType;
     }
 
     return '알 수 없음';
@@ -347,6 +366,9 @@ export class PaymentTransactionController {
           break;
         case 'canceled':
           await this.handleCanceledWebhook(webhookData);
+          break;
+        case 'partial_canceled':
+          await this.handlePartialCanceledWebhook(webhookData);
           break;
         case 'pending':
           await this.handlePendingWebhook(webhookData);
@@ -428,6 +450,19 @@ export class PaymentTransactionController {
 
     this.logger.log(
       `결제 취소 처리 완료 - TX: ${webhookData.pg_transaction_id}`,
+    );
+  }
+
+  /**
+   * 결제 부분 취소 Webhook 처리
+   * - 전체 취소가 아니므로 결제 상태 전이는 수행하지 않음
+   * - 후속 정산/환불 정책은 별도 비즈니스 로직에서 처리
+   */
+  private async handlePartialCanceledWebhook(
+    webhookData: WebhookData,
+  ): Promise<void> {
+    this.logger.log(
+      `결제 부분 취소 수신 - TX: ${webhookData.pg_transaction_id}, 취소누적금액: ${webhookData.pg_response?.cancelled_price ?? 0}`,
     );
   }
 

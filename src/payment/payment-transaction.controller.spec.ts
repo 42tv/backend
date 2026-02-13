@@ -202,6 +202,30 @@ describe('PaymentTransactionController', () => {
       });
     });
 
+    describe('결제 부분 취소 Webhook', () => {
+      it('부분 취소 시 상태 전이 없이 정상 응답해야 한다', async () => {
+        mockProvider.verifyWebhook.mockResolvedValue(true);
+        mockProvider.parseWebhookData.mockResolvedValue({
+          pg_transaction_id: 'ORDER_123',
+          status: 'partial_canceled',
+          amount: 10000,
+          pg_response: {
+            status: 1,
+            webhook_type: 'PAYMENT_PARTIAL_CANCELLED',
+            cancelled_price: 1000,
+          },
+        });
+
+        const result = await controller.handleWebhook('bootpay', mockBody);
+
+        expect(result).toEqual({ success: true });
+        expect(
+          paymentTransactionService.processSuccessfulPayment,
+        ).not.toHaveBeenCalled();
+        expect(paymentTransactionService.cancelPayment).not.toHaveBeenCalled();
+      });
+    });
+
     describe('멱등성 (중복 처리 방지)', () => {
       it('락 획득 실패 시 중복 처리를 건너뛰어야 한다', async () => {
         mockProvider.verifyWebhook.mockResolvedValue(true);
