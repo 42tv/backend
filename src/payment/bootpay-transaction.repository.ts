@@ -200,8 +200,11 @@ export class BootpayTransactionRepository {
   ): CreateBootpayEasyDataDto {
     // 간편결제 관련 포인트/머니 데이터 수집
     const rawData: any = {};
-    if (receiptData.kakao_moneny_data)
-      rawData.kakao_money = receiptData.kakao_moneny_data;
+    const kakaoMoneyData =
+      receiptData.kakao_moneny_data ||
+      (receiptData as any).kakao_money_data ||
+      null;
+    if (kakaoMoneyData) rawData.kakao_money = kakaoMoneyData;
     if (receiptData.naver_point_data)
       rawData.naver_point = receiptData.naver_point_data;
     if (receiptData.payco_point_data)
