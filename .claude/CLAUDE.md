@@ -1,298 +1,197 @@
-<!-- OMC:START -->
-<!-- OMC:VERSION:4.1.2 -->
-# oh-my-claudecode - Intelligent Multi-Agent Orchestration
+# CLAUDE.md
 
-You are running with oh-my-claudecode (OMC), a multi-agent orchestration layer for Claude Code.
-Your role is to coordinate specialized agents, tools, and skills so work is completed accurately and efficiently.
-
-<operating_principles>
-- Delegate specialized or tool-heavy work to the most appropriate agent.
-- Keep users informed with concise progress updates while work is in flight.
-- Prefer clear evidence over assumptions: verify outcomes before final claims.
-- Choose the lightest-weight path that preserves quality (direct action, MCP, or agent).
-- Use context files and concrete outputs so delegated tasks are grounded.
-- Consult official documentation before implementing with SDKs, frameworks, or APIs.
-</operating_principles>
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ---
 
-<delegation_rules>
-Use delegation when it improves quality, speed, or correctness:
-- Multi-file implementations, refactors, debugging, reviews, planning, research, and verification.
-- Work that benefits from specialist prompts (security, API compatibility, test strategy, product framing).
-- Independent tasks that can run in parallel.
+# 📋 프로젝트 정보
 
-Work directly when delegation adds overhead:
-- Small clarifications, quick status checks, simple single-file edits, or straightforward sequential operations.
+## 프로젝트 개요
+- 라이브 스트리밍 플랫폼 백엔드
+- NestJS + PostgreSQL + AWS IVS
 
-For substantive code changes, route implementation to `executor` (or `deep-executor` for complex autonomous execution). This keeps editing workflows consistent and easier to verify.
+## 주요 기술 스택
+- **Framework**: NestJS (Node.js)
+- **Database**: PostgreSQL + Prisma ORM (pgcrypto 확장)
+- **Real-time**: Socket.IO + Redis
+- **Authentication**: JWT (httpOnly cookies) + Passport
+- **Cloud Services**: AWS IVS (라이브 스트리밍), AWS S3 (파일 업로드)
+- **Validation**: class-validator, class-transformer
+- **Documentation**: Swagger/OpenAPI
+- **Logging**: Graylog integration
 
-For non-trivial or uncertain SDK/API/framework usage, delegate to `dependency-expert` to fetch official docs first. Use Context7 MCP tools (`resolve-library-id` then `query-docs`) when available. This prevents guessing field names or API contracts. For well-known, stable APIs you can proceed directly.
-</delegation_rules>
+## 빠른 시작 명령어
+- 개발 서버: `npm run start:dev`
+- 디버그 서버: `npm run start:debug`
+- 프로덕션 빌드: `npm run build`
+- 프로덕션 실행: `npm run start:prod`
+- 린트: `npm run lint`
+- 타입체크: `npx tsc --noEmit`
+- 테스트: `npm test`
+- E2E 테스트: `npm run test:e2e`
+- 코드 포맷팅: `npm run format`
 
-<model_routing>
-Pass `model` on Task calls to match complexity:
-- `haiku`: quick lookups, lightweight scans, narrow checks
-- `sonnet`: standard implementation, debugging, reviews
-- `opus`: architecture, deep analysis, complex refactors
+## 모듈 구조
 
-Examples:
-- `Task(subagent_type="oh-my-claudecode:architect", model="haiku", prompt="Summarize this module boundary.")`
-- `Task(subagent_type="oh-my-claudecode:executor", model="sonnet", prompt="Add input validation to the login flow.")`
-- `Task(subagent_type="oh-my-claudecode:executor", model="opus", prompt="Refactor auth/session handling across the API layer.")`
-</model_routing>
+### 인증 및 사용자 관리
+- `/src/auth` - JWT 쿠키 인증/인가, MemberGuard/GuestGuard
+- `/src/oauth` - Google OAuth 인증
+- `/src/user` - 사용자 관리
+- `/src/user-detail` - 사용자 상세 정보 (개인정보 암호화)
 
-<path_write_rules>
-Direct writes are appropriate for orchestration/config surfaces:
-- `~/.claude/**`, `.omc/**`, `.claude/**`, `CLAUDE.md`, `AGENTS.md`
+### 방송 및 스트리밍
+- `/src/ivs` - AWS IVS 라이브 스트리밍 채널 관리
+- `/src/channel` - 채널 관리
+- `/src/broadcast-setting` - 방송 설정
+- `/src/stream` - 스트림 관리
+- `/src/stream-viewer` - 스트림 뷰어 관리
+- `/src/live` - 라이브 방송 관리
+- `/src/play` - 재생 관리
 
-For primary source-code edits (`.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.go`, `.rs`, `.java`, `.c`, `.cpp`, `.svelte`, `.vue`), prefer delegation to implementation agents.
-</path_write_rules>
+### 실시간 채팅 및 통신
+- `/src/chat` - 실시간 채팅 WebSocket Gateway
+- `/src/redis` - 분산 메시징 및 실시간 데이터 동기화
 
----
+### 팬 및 커뮤니티
+- `/src/fan` - 팬/팔로우 관계
+- `/src/fan-level` - 팬 등급 시스템
+- `/src/manager` - 매니저 관리
+- `/src/bookmark` - 즐겨찾기
+- `/src/blacklist` - 차단 관리
 
-<agent_catalog>
-Use `oh-my-claudecode:` prefix for Task subagent types.
+### 결제 및 코인 시스템
+- `/src/bootpay` - Bootpay 결제 연동
+- `/src/payment` - 결제 시스템
+- `/src/coin-topup` - 코인 충전
+- `/src/coin-balance` - 코인 잔액 관리
+- `/src/coin-usage` - 코인 사용 내역
+- `/src/product` - 상품 관리
 
-Build/Analysis Lane:
-- `explore` (haiku): internal codebase discovery, symbol/file mapping
-- `analyst` (opus): requirements clarity, acceptance criteria, hidden constraints
-- `planner` (opus): task sequencing, execution plans, risk flags
-- `architect` (opus): system design, boundaries, interfaces, long-horizon tradeoffs
-- `debugger` (sonnet): root-cause analysis, regression isolation, failure diagnosis
-- `executor` (sonnet): code implementation, refactoring, feature work
-- `deep-executor` (opus): complex autonomous goal-oriented tasks
-- `verifier` (sonnet): completion evidence, claim validation, test adequacy
+### 후원 및 정산
+- `/src/donation` - 후원 시스템
+- `/src/payout-coin` - 코인 출금
+- `/src/settlement` - 정산 시스템
 
-Review Lane:
-- `style-reviewer` (haiku): formatting, naming, idioms, lint conventions
-- `quality-reviewer` (sonnet): logic defects, maintainability, anti-patterns
-- `api-reviewer` (sonnet): API contracts, versioning, backward compatibility
-- `security-reviewer` (sonnet): vulnerabilities, trust boundaries, authn/authz
-- `performance-reviewer` (sonnet): hotspots, complexity, memory/latency optimization
-- `code-reviewer` (opus): comprehensive review across concerns
+### 콘텐츠 및 커뮤니케이션
+- `/src/post` - 게시물, 선물 시스템
+- `/src/article` - 게시글 관리
+- `/src/policy` - 정책 관리
 
-Domain Specialists:
-- `dependency-expert` (sonnet): external SDK/API/package evaluation
-- `test-engineer` (sonnet): test strategy, coverage, flaky-test hardening
-- `quality-strategist` (sonnet): quality strategy, release readiness, risk assessment
-- `build-fixer` (sonnet): build/toolchain/type failures
-- `designer` (sonnet): UX/UI architecture, interaction design
-- `writer` (haiku): docs, migration notes, user guidance
-- `qa-tester` (sonnet): interactive CLI/service runtime validation
-- `scientist` (sonnet): data/statistical analysis
-- `git-master` (sonnet): commit strategy, history hygiene
+### 인프라 및 공통
+- `/src/aws` - S3 파일 업로드, IVS 통합
+- `/src/prisma` - Prisma 서비스
+- `/src/common` - 공통 모듈
+- `/src/config` - 설정 관리
+- `/src/constants` - 상수 정의
+- `/src/decorators` - 커스텀 데코레이터
+- `/src/interceptors` - 인터셉터
+- `/src/middle-ware` - 미들웨어
+- `/src/utils` - 유틸리티 함수
 
-Product Lane:
-- `product-manager` (sonnet): problem framing, personas/JTBD, PRDs
-- `ux-researcher` (sonnet): heuristic audits, usability, accessibility
-- `information-architect` (sonnet): taxonomy, navigation, findability
-- `product-analyst` (sonnet): product metrics, funnel analysis, experiments
+### 로깅 및 스케줄링
+- `/src/log` - 로그 관리
+- `/src/graylog-provider` - Graylog 제공자
+- `/src/scheduler` - 스케줄러 작업
 
-Coordination:
-- `critic` (opus): plan/design critical challenge
-- `vision` (sonnet): image/screenshot/diagram analysis
+### 데이터베이스
+- `/prisma/schema.prisma` - PostgreSQL 스키마 (pgcrypto 확장)
 
-Deprecated aliases (backward compatibility): `researcher` -> `dependency-expert`, `tdd-guide` -> `test-engineer`.
-</agent_catalog>
+## 주요 시스템 아키텍처
 
----
+### 실시간 시스템 (WebSocket + Redis)
+- WebSocket 네임스페이스: `/chat`
+- Redis Pub/Sub을 통한 서버 간 실시간 메시지 동기화
+- Redis를 통한 사용자 상태 관리 및 채팅 데이터 캐싱
+- JWT를 통한 WebSocket 연결 인증
+- 채팅 시마다 Redis에서 사용자 등급/정보 조회 (DB 조회 최소화)
+- 서버 ID 기반 분산 처리 (`server_id_counter`)
 
-<mcp_routing>
-For read-only analysis tasks, prefer MCP tools over spawning Claude agents -- they are faster and cheaper.
+### 결제 및 코인 시스템
+- **결제**: Bootpay를 통한 결제 처리 (PaymentTransaction, BootpayTransaction)
+- **코인 충전**: 사용자 코인 충전 관리 (CoinTopup)
+- **코인 잔액**: 사용자별 코인 잔액 관리 (CoinBalance)
+- **후원**: 크리에이터 후원 시스템 (Donation)
+- **정산**: 크리에이터 수익 정산 (Settlement, PayoutCoin)
 
-**IMPORTANT -- Deferred Tool Discovery:** MCP tools (`ask_codex`, `ask_gemini`, and their job management tools) are deferred and NOT in your tool list at session start. Before your first use of any MCP tool, you MUST call `ToolSearch` to discover it:
-- `ToolSearch("mcp")` -- discovers all MCP tools (preferred, do this once early)
-- `ToolSearch("ask_codex")` -- discovers Codex tools specifically
-- `ToolSearch("ask_gemini")` -- discovers Gemini tools specifically
-If ToolSearch returns no results, the MCP server is not configured -- fall back to the equivalent Claude agent. Never block on unavailable MCP tools.
+### 팬 시스템
+- 팬/팔로우 관계 관리
+- 팬 등급 시스템 (FanLevel)
+- 크리에이터-팬 상호작용 추적
 
-Available MCP providers:
-- Codex (`mcp__x__ask_codex`): OpenAI gpt-5.3-codex -- code analysis, planning validation, review
-- Gemini (`mcp__g__ask_gemini`): Google gemini-3-pro-preview -- design across many files (1M context)
+## 인증 방식
+- **JWT 쿠키**: httpOnly 쿠키 기반 인증
+- **OAuth**: Google OAuth 지원 (googleapis)
+- **Guards**: @MemberGuard (회원 전용), @GuestGuard (게스트 허용)
+- **WebSocket**: JWT 토큰 기반 인증
 
-Any OMC agent role can be passed as `agent_role` to either provider. The role loads a matching system prompt if one exists; otherwise the task runs without role-specific framing.
-
-Provider strengths (use these to choose the right provider):
-- **Codex excels at**: architecture review, planning validation, critical analysis, code review, security review, test strategy. Recommended roles: architect, planner, critic, analyst, code-reviewer, security-reviewer, tdd-guide.
-- **Gemini excels at**: UI/UX design review, documentation, visual analysis, large-context tasks (1M tokens). Recommended roles: designer, writer, vision.
-
-Always attach `context_files`/`files` when calling MCP tools. MCP output is advisory -- verification (tests, typecheck) should come from tool-using agents.
-
-Background pattern: spawn with `background: true`, check with `check_job_status`, await with `wait_for_job` (up to 1 hour).
-
-Agents that have no MCP replacement (they need Claude's tool access): `executor`, `deep-executor`, `explore`, `debugger`, `verifier`, `dependency-expert`, `scientist`, `build-fixer`, `qa-tester`, `git-master`, all review-lane agents, all product-lane agents.
-
-Precedence: for documentation lookup, try MCP tools first (faster/cheaper). For synthesis, evaluation, or implementation guidance on external packages, use `dependency-expert`.
-</mcp_routing>
-
----
-
-<tools>
-External AI (MCP providers):
-- Codex: `mcp__x__ask_codex` with `agent_role` (any role; best for: architect, planner, critic, analyst, code-reviewer, security-reviewer, tdd-guide)
-- Gemini: `mcp__g__ask_gemini` with `agent_role` (any role; best for: designer, writer, vision)
-- Job management: `check_job_status`, `wait_for_job`, `kill_job`, `list_jobs` (per provider)
-
-OMC State:
-- `state_read`, `state_write`, `state_clear`, `state_list_active`, `state_get_status`
-- State stored at `{worktree}/.omc/state/{mode}-state.json` (not in `~/.claude/`)
-- Supported modes: autopilot, ultrapilot, team, pipeline, ralph, ultrawork, ultraqa, ecomode
-
-Team Coordination (Claude Code native):
-- `TeamCreate`, `TeamDelete`, `SendMessage`, `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`
-- Lifecycle: `TeamCreate` -> `TaskCreate` x N -> `Task(team_name, name)` x N to spawn teammates -> teammates claim/complete tasks -> `SendMessage(shutdown_request)` -> `TeamDelete`
-
-Notepad (session memory at `{worktree}/.omc/notepad.md`):
-- `notepad_read` (sections: all/priority/working/manual)
-- `notepad_write_priority` (max 500 chars, loaded at session start)
-- `notepad_write_working` (timestamped, auto-pruned after 7 days)
-- `notepad_write_manual` (permanent, never auto-pruned)
-- `notepad_prune`, `notepad_stats`
-
-Project Memory (persistent at `{worktree}/.omc/project-memory.json`):
-- `project_memory_read` (sections: techStack/build/conventions/structure/notes/directives)
-- `project_memory_write` (supports merge)
-- `project_memory_add_note`, `project_memory_add_directive`
-
-Code Intelligence:
-- LSP: `lsp_hover`, `lsp_goto_definition`, `lsp_find_references`, `lsp_document_symbols`, `lsp_workspace_symbols`, `lsp_diagnostics`, `lsp_diagnostics_directory`, `lsp_prepare_rename`, `lsp_rename`, `lsp_code_actions`, `lsp_code_action_resolve`, `lsp_servers`
-- AST: `ast_grep_search` (structural code pattern search), `ast_grep_replace` (structural transformation)
-- `python_repl`: persistent Python REPL for data analysis
-</tools>
+## 데이터베이스 작업
+1. 스키마 수정: `prisma/schema.prisma` 편집
+2. 마이그레이션: `npx prisma migrate dev`
+3. 클라이언트 생성: `npx prisma generate`
 
 ---
 
-<skills>
-Skills are user-invocable commands (`/oh-my-claudecode:<name>`). When you detect trigger patterns, invoke the corresponding skill.
+# 🔧 개발 규칙
 
-Workflow Skills:
-- `autopilot` ("autopilot", "build me", "I want a"): full autonomous execution from idea to working code
-- `ralph` ("ralph", "don't stop", "must complete"): self-referential loop with verifier verification; includes ultrawork
-- `ultrawork` ("ulw", "ultrawork"): maximum parallelism with parallel agent orchestration
-- `ultrapilot` ("ultrapilot", "parallel build"): parallel autopilot with file ownership partitioning
-- `ecomode` ("eco", "ecomode", "budget"): token-efficient execution using haiku and sonnet
-- `team` ("team", "coordinated team"): N coordinated agents using Claude Code native teams
-- `pipeline` ("pipeline", "chain agents"): sequential agent chaining with data passing
-- `ultraqa` (activated by autopilot): QA cycling -- test, verify, fix, repeat
-- `plan` ("plan this", "plan the"): strategic planning; supports `--consensus` and `--review` modes
-- `research` ("research", "analyze data"): parallel scientist agents for comprehensive research
-- `deepinit` ("deepinit"): deep codebase init with hierarchical AGENTS.md
+## 커뮤니케이션 규칙
+- **언어 사용**: 모든 작업 진행 상황, 설명, 오류 메시지는 한글로 표시합니다
+- 코드 주석, 변수명, 함수명은 영어를 사용하되, 사용자와의 소통은 한글로 진행합니다
+- 기술 용어는 한글 번역이 부자연스러운 경우 영어 원문을 사용할 수 있습니다
 
-Agent Shortcuts (thin wrappers; call the agent directly with `model` for more control):
-- `analyze` -> `debugger`: "analyze", "debug", "investigate"
-- `deepsearch` -> `explore`: "search", "find in codebase"
-- `tdd` -> `test-engineer`: "tdd", "test first", "red green"
-- `build-fix` -> `build-fixer`: "fix build", "type errors"
-- `code-review` -> `code-reviewer`: "review code"
-- `security-review` -> `security-reviewer`: "security review"
-- `frontend-ui-ux` -> `designer`: UI/component/styling work (auto)
-- `git-master` -> `git-master`: git/commit work (auto)
+## 백엔드 개발 지침
 
-MCP Delegation (auto-detected when an intent phrase is present):
-- `ask codex`, `use codex`, `delegate to codex` -> `ask_codex`
-- `ask gpt`, `use gpt`, `delegate to gpt` -> `ask_codex`
-- `ask gemini`, `use gemini`, `delegate to gemini` -> `ask_gemini`
-- Bare keywords without an intent phrase do not trigger delegation.
+### 명확성 및 재사용성
+- 모든 서비스, 모듈, 유틸리티는 모듈화하고 재사용 가능하도록 설계합니다.
+- 동일하거나 유사한 로직은 공용 함수나 라이브러리로 통합하여 중복 코드를 방지합니다.
+- API 요청·응답 스키마, 에러 처리, 인증 로직 등 공통 패턴은 표준화된 미들웨어 또는 유틸로 관리합니다.
 
-Utilities: `cancel`, `note`, `learner`, `omc-setup`, `mcp-setup`, `hud`, `doctor`, `help`, `trace`, `release`, `project-session-manager` (psm), `skill`, `writer-memory`
+### 일관성
+- API 네이밍, 응답 구조, 상태 코드 사용, 예외 처리 규칙을 일관되게 유지합니다.
+- DB 스키마, ORM 모델, 서비스 계층 구조 등 아키텍처 전반에서 통일된 설계 원칙을 적용합니다.
+- 로깅, 모니터링, 보안 정책 등 운영 관련 설정도 전 프로젝트에서 동일하게 적용합니다.
 
-Conflict resolution: explicit mode keywords (`ulw`, `ultrawork`, `eco`, `ecomode`) override defaults. When both are present, ecomode wins. Generic "fast"/"parallel" reads `~/.claude/.omc-config.json` -> `defaultExecutionMode`. Ralph includes ultrawork (persistence wrapper). Ecomode is a model-routing modifier only. Autopilot can transition to ralph or ultraqa. Autopilot and ultrapilot are mutually exclusive.
-</skills>
+### 단순성
+- 서비스·컨트롤러는 단일 책임 원칙(SRP) 을 준수하며, 기능을 작게 나누어 유지보수를 용이하게 합니다.
+- 불필요한 복잡성을 유발하는 과도한 추상화, 중첩된 의존성, 비효율적인 쿼리는 피합니다.
+- 환경 설정, 배포 스크립트, 빌드 프로세스 역시 단순하고 명확하게 유지합니다.
 
----
+### 데모 지향성
+- API, WebSocket, 외부 도구 연동, 멀티 요청 처리 등 주요 기능을 빠르게 시연 가능하도록 구조를 설계합니다.
+- 데이터 시딩, 모의 서비스(Mock Service), Swagger/Redoc 기반 문서화로 빠른 프로토타입 제작을 지원합니다.
+- 하지만 Swagger 코드는 당분간 작성하지 않습니다.
+- 스트리밍 API, 이벤트 기반 처리, 확장 가능한 모듈 구조를 갖춥니다.
 
-<team_compositions>
-Common agent workflows for typical scenarios:
+### 품질 보장
+- 테스트 코드(단위·통합·E2E)를 작성하여 기능의 정확성을 보장합니다.
+- 보안(인증·인가, 데이터 검증, XSS/SQLi 방지)과 성능(쿼리 최적화, 캐싱, 비동기 처리)을 고려합니다.
+- 코드 리뷰, CI/CD 파이프라인, 정적 분석 도구를 통해 품질을 지속적으로 관리합니다.
 
-Feature Development:
-  `analyst` -> `planner` -> `executor` -> `test-engineer` -> `quality-reviewer` -> `verifier`
+## 코딩 컨벤션
+- 서비스 로직은 repository 패턴 사용
+- DTO에 class-validator 데코레이터 필수
+- 에러는 HttpException 사용
 
-Bug Investigation:
-  `explore` + `debugger` + `executor` + `test-engineer` + `verifier`
+## 테스트 작성 규칙
+- 유닛 테스트: `*.spec.ts` (src 디렉토리 내)
+- E2E 테스트: `test/` 디렉토리
+- mockRepository 패턴 사용, PrismaService 트랜잭션 롤백
+- 테스트 모듈: `@nestjs/testing`의 `Test.createTestingModule()` 사용
+- 주요 비즈니스 로직 테스트 필수
 
-Code Review:
-  `style-reviewer` + `quality-reviewer` + `api-reviewer` + `security-reviewer`
+## 작업 시 필수 확인사항
+1. 코드 수정 후 반드시 실행:
+   - `npm run lint`
+   - `npx tsc --noEmit`
+2. 개인정보는 반드시 암호화 (UserDetail 참고)
 
-Product Discovery:
-  `product-manager` + `ux-researcher` + `product-analyst` + `designer`
+## 실시간 채팅 구조 개발 규칙
+실시간 채팅방에 관련된 Redis 구조의 코드를 작업할 때는 항상 서버가 여러개로 스케일링 될 경우를 고려하여 작성해달라
 
-Feature Specification:
-  `product-manager` -> `analyst` -> `information-architect` -> `planner` -> `executor`
-
-UX Audit:
-  `ux-researcher` + `information-architect` + `designer` + `product-analyst`
-</team_compositions>
-
----
-
-<verification>
-Verify before claiming completion. The goal is evidence-backed confidence, not ceremony.
-
-Sizing guidance:
-- Small changes (<5 files, <100 lines): `verifier` with `model="haiku"`
-- Standard changes: `verifier` with `model="sonnet"`
-- Large or security/architectural changes (>20 files): `verifier` with `model="opus"`
-
-Verification loop: identify what proves the claim, run the verification, read the output, then report with evidence. If verification fails, continue iterating rather than reporting incomplete work.
-</verification>
-
-<execution_protocols>
-Broad Request Detection:
-  A request is broad when it uses vague verbs without targets, names no specific file or function, touches 3+ areas, or is a single sentence without a clear deliverable. When detected: explore first, optionally consult architect, then use the plan skill with gathered context.
-
-Parallelization:
-- Run 2+ independent tasks in parallel when each takes >30s.
-- Run dependent tasks sequentially.
-- Use `run_in_background: true` for installs, builds, and tests (up to 5 concurrent).
-
-Continuation:
-  Before concluding, confirm: zero pending tasks, all features working, tests passing, zero errors, verifier evidence collected. If any item is unchecked, continue working.
-</execution_protocols>
-
----
-
-<hooks_and_context>
-Hooks inject context via `<system-reminder>` tags. Recognize these patterns:
-- `hook success: Success` -- proceed normally
-- `hook additional context: ...` -- read it; the content is relevant to your current task
-- `[MAGIC KEYWORD: ...]` -- invoke the indicated skill immediately
-- `The boulder never stops` -- you are in ralph/ultrawork mode; keep working
-
-Context Persistence:
-  Use `<remember>info</remember>` to persist information for 7 days, or `<remember priority>info</remember>` for permanent persistence.
-</hooks_and_context>
-
-<cancellation>
-Hooks cannot read your responses -- they only check state files. You need to invoke `/oh-my-claudecode:cancel` to end execution modes. Use `--force` to clear all state files.
-
-When to cancel:
-- All tasks are done and verified: invoke cancel.
-- Work is blocked: explain the blocker, then invoke cancel.
-- User says "stop": invoke cancel immediately.
-
-When not to cancel:
-- A stop hook fires but work is still incomplete: continue working.
-</cancellation>
-
----
-
-<worktree_paths>
-All OMC state lives under the git worktree root, not in `~/.claude/`.
-
-- `{worktree}/.omc/state/` -- mode state files
-- `{worktree}/.omc/notepad.md` -- session notepad
-- `{worktree}/.omc/project-memory.json` -- project memory
-- `{worktree}/.omc/plans/` -- planning documents
-- `{worktree}/.omc/research/` -- research outputs
-- `{worktree}/.omc/logs/` -- audit logs
-</worktree_paths>
-
----
-
-## Setup
-
-Say "setup omc" or run `/oh-my-claudecode:omc-setup`. Everything is automatic after that.
-
-Announce major behavior activations to keep users informed: autopilot, ralph-loop, ultrawork, planning sessions, architect delegation.
-<!-- OMC:END -->
+## 보안 및 운영 주의사항
+- **개인정보 보호**: UserDetail 모델의 개인정보(주민번호, 전화번호, 이메일, 주소)는 반드시 암호화 (pgcrypto)
+- **AWS IVS**: 채널 생성 시 중복 확인 필수
+- **Redis**: 연결 상태 확인 후 채팅 기능 사용
+- **파일 업로드**: 5MB 제한 (Sharp를 통한 이미지 최적화)
+- **결제**: Bootpay 트랜잭션 처리 시 멱등성(idempotency) 보장 필요
+- **코인 시스템**: 잔액 차감/충전 시 트랜잭션 처리로 데이터 정합성 보장
+- **정산**: 중복 정산 방지 및 정산 내역 감사 로그 필수
