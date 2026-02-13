@@ -215,7 +215,7 @@ export class PaymentTransactionService {
 
   /**
    * 무통장입금 대기 상태 처리
-   * - Bootpay status=0 웹훅 처리
+   * - Bootpay status=5(권장), 0/2/4(호환) 웹훅 처리
    */
   async markWaitingDepositPayment(pg_transaction_id: string, pg_response?: any) {
     return await this.prismaService.$transaction(async (tx) => {
@@ -255,7 +255,7 @@ export class PaymentTransactionService {
 
   /**
    * 결제 만료 처리
-   * - Bootpay status=-10 웹훅 처리
+   * - Bootpay status=-10(레거시 호환) 또는 만료 이벤트 웹훅 처리
    */
   async expirePayment(pg_transaction_id: string, pg_response?: any) {
     return await this.prismaService.$transaction(async (tx) => {

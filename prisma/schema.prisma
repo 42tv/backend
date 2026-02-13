@@ -464,7 +464,7 @@ model PaymentTransaction {
 
   // Bootpay 연결 정보
   bootpay_receipt_id    String?  @unique // Bootpay 영수증 ID (BootpayTransaction 직접 조인용)
-  bootpay_status        Int? // Bootpay 상태코드 (0: 대기, 1: 완료, -1: 취소, -2: 실패, -10: 만료)
+  bootpay_status        Int? // Bootpay 상태코드 (권장: 0/1/2/4/5/20, 레거시 호환: -1/-2/-4/-10)
   bootpay_status_locale String? // Bootpay 상태 한글
 
   // 결제 금액
@@ -532,7 +532,7 @@ model BootpayTransaction {
   method_origin_symbol String? // 원래 결제수단 코드 (naverpay, kakaopay 등)
 
   // 상태
-  status        Int // Bootpay 상태코드 (0: 대기, 1: 완료, 2: 승인중, 3: 실패, 20: 취소)
+  status        Int // Bootpay 상태코드 (권장: 0/1/2/4/5/20, 레거시 호환: -1/-2/-4/-10)
   status_locale String? // 상태 한글 (결제완료, 결제취소 등)
 
   // 에스크로 (선택)
