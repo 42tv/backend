@@ -73,5 +73,6 @@ export interface PgProviderInterface {
     pg_transaction_id: string,
     reason: string,
     amount?: number,
+    cancel_id?: string,
   ): Promise<any>;
 }

@@ -81,6 +81,7 @@ export class MockPgProvider implements PgProviderInterface {
     pg_transaction_id: string,
     reason: string,
     amount?: number,
+    _cancel_id?: string,
   ): Promise<any> {
     return {
       success: true,

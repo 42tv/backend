@@ -33,4 +33,12 @@ export class CancelPaymentDto {
   @IsString()
   @IsOptional()
   cancelMessage?: string;
+
+  @ApiPropertyOptional({
+    description: 'Merchant cancellation id for idempotency',
+    example: 'cancel_order_123_partial_1',
+  })
+  @IsString()
+  @IsOptional()
+  cancelId?: string;
 }

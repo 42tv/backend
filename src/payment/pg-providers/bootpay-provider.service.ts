@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Bootpay } from '@bootpay/backend-js';
+import { createHash } from 'crypto';
 import {
   PgProviderInterface,
   PaymentRequest,
@@ -239,6 +240,7 @@ export class BootpayProvider implements PgProviderInterface {
     pg_transaction_id: string,
     reason: string,
     amount?: number,
+    cancel_id?: string,
   ): Promise<any> {
     try {
       this.initializeBootpay();
@@ -249,6 +251,9 @@ export class BootpayProvider implements PgProviderInterface {
         receipt_id: pg_transaction_id,
         cancel_username: 'Admin',
         cancel_message: reason,
+        cancel_id:
+          cancel_id ||
+          this.generateCancelId(pg_transaction_id, reason, amount),
       };
 
       if (amount) {
@@ -273,5 +278,15 @@ export class BootpayProvider implements PgProviderInterface {
         error: err.message,
       };
     }
+  }
+
+  private generateCancelId(
+    pg_transaction_id: string,
+    reason: string,
+    amount?: number,
+  ): string {
+    const source = `${pg_transaction_id}|${reason}|${amount ?? 'full'}`;
+    const digest = createHash('sha256').update(source).digest('hex');
+    return `cancel_${digest.slice(0, 24)}`;
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Bootpay } from '@bootpay/backend-js';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class BootpayService implements OnModuleInit {
@@ -59,6 +60,7 @@ export class BootpayService implements OnModuleInit {
     cancelPrice?: number,
     cancelUsername?: string,
     cancelMessage?: string,
+    cancelId?: string,
   ) {
     try {
       await Bootpay.getAccessToken();
@@ -67,6 +69,14 @@ export class BootpayService implements OnModuleInit {
         receipt_id: receiptId,
         cancel_username: cancelUsername || 'Admin',
         cancel_message: cancelMessage || 'User requested cancellation',
+        cancel_id:
+          cancelId ||
+          this.generateCancelId(
+            receiptId,
+            cancelPrice,
+            cancelUsername,
+            cancelMessage,
+          ),
       };
 
       if (cancelPrice) {
@@ -89,6 +99,17 @@ export class BootpayService implements OnModuleInit {
         error: error.message,
       };
     }
+  }
+
+  private generateCancelId(
+    receiptId: string,
+    cancelPrice?: number,
+    cancelUsername?: string,
+    cancelMessage?: string,
+  ): string {
+    const source = `${receiptId}|${cancelPrice ?? 'full'}|${cancelUsername ?? 'admin'}|${cancelMessage ?? ''}`;
+    const digest = createHash('sha256').update(source).digest('hex');
+    return `cancel_${digest.slice(0, 24)}`;
   }
 
   async getPaymentStatus(receiptId: string) {

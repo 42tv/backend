@@ -27,6 +27,7 @@ export class BootpayController {
       dto.cancelPrice,
       dto.cancelUsername,
       dto.cancelMessage,
+      dto.cancelId,
     );
   }
 
