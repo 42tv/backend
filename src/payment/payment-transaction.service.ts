@@ -217,7 +217,10 @@ export class PaymentTransactionService {
    * 무통장입금 대기 상태 처리
    * - Bootpay status=5, 0/2/4 웹훅 처리
    */
-  async markWaitingDepositPayment(pg_transaction_id: string, pg_response?: any) {
+  async markWaitingDepositPayment(
+    pg_transaction_id: string,
+    pg_response?: any,
+  ) {
     return await this.prismaService.$transaction(async (tx) => {
       const transaction =
         await this.paymentTransactionRepository.findByPgTransactionId(
@@ -234,7 +237,9 @@ export class PaymentTransactionService {
       }
 
       if (transaction.status !== PaymentTransactionStatus.PENDING) {
-        throw new BadRequestException('대기 상태로 전환할 수 없는 결제 거래입니다.');
+        throw new BadRequestException(
+          '대기 상태로 전환할 수 없는 결제 거래입니다.',
+        );
       }
 
       const { bootpayFields } = await this.syncBootpayDataForTransaction(
@@ -277,7 +282,9 @@ export class PaymentTransactionService {
         transaction.status !== PaymentTransactionStatus.PENDING &&
         transaction.status !== PaymentTransactionStatus.WAITING_DEPOSIT
       ) {
-        throw new BadRequestException('만료 상태로 전환할 수 없는 결제 거래입니다.');
+        throw new BadRequestException(
+          '만료 상태로 전환할 수 없는 결제 거래입니다.',
+        );
       }
 
       const { bootpayFields } = await this.syncBootpayDataForTransaction(
@@ -494,8 +501,7 @@ export class PaymentTransactionService {
       bootpay_receipt_id: receiptData.receipt_id,
       bootpay_status: receiptData.status,
       bootpay_status_locale: receiptData.status_locale || undefined,
-      paid_at:
-        paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt : undefined,
+      paid_at: paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt : undefined,
     };
   }
 
@@ -508,13 +514,18 @@ export class PaymentTransactionService {
     transaction: { pg_provider: string; user_idx: number | null },
     pg_response: any,
     tx: any,
-  ): Promise<{ bootpayTransactionId?: string; bootpayFields?: BootpaySyncFields }> {
+  ): Promise<{
+    bootpayTransactionId?: string;
+    bootpayFields?: BootpaySyncFields;
+  }> {
     if (transaction.pg_provider !== PgProvider.BOOTPAY) {
       return {};
     }
 
     if (!pg_response || typeof pg_response !== 'object') {
-      throw new BadRequestException('Bootpay 결제 응답 데이터가 올바르지 않습니다.');
+      throw new BadRequestException(
+        'Bootpay 결제 응답 데이터가 올바르지 않습니다.',
+      );
     }
 
     const receiptData = pg_response as ReceiptResponseParameters;

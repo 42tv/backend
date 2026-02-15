@@ -98,7 +98,7 @@ export class BootpayProvider implements PgProviderInterface {
    * @param body Webhook 요청 body (receipt_id 포함)
    * @returns 검증 성공 여부
    */
-  async verifyWebhook(body: any, _signature?: string): Promise<boolean> {
+  async verifyWebhook(body: any): Promise<boolean> {
     try {
       this.initializeBootpay();
 
@@ -113,8 +113,7 @@ export class BootpayProvider implements PgProviderInterface {
       const response = await Bootpay.receiptPayment(receiptId);
 
       // 결제 상태 확인
-      const status =
-        (response as any).data?.status ?? (response as any).status;
+      const status = (response as any).data?.status ?? (response as any).status;
       const normalizedStatus =
         typeof status === 'number' ? status : Number(status);
       // 최신 권장 상태코드
@@ -249,8 +248,7 @@ export class BootpayProvider implements PgProviderInterface {
         cancel_username: 'Admin',
         cancel_message: reason,
         cancel_id:
-          cancel_id ||
-          this.generateCancelId(pg_transaction_id, reason, amount),
+          cancel_id || this.generateCancelId(pg_transaction_id, reason, amount),
       };
 
       if (amount) {
