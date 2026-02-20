@@ -615,9 +615,8 @@ model BootpayVbankData {
   tid String // PG사 거래 ID
 
   // 은행 정보
-  bank_code     String // 은행 코드
   bank_name     String // 은행명
-  bank_username String // 예금주명
+  bank_username String? // 예금주명 (가상계좌 발급 시점에는 없을 수 있음)
   bank_account  String? // 가상계좌 번호
 
   // 입금 정보

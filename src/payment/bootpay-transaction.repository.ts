@@ -63,9 +63,8 @@ export interface CreateBootpayCardDataDto {
 export interface CreateBootpayVbankDataDto {
   transaction_id: string;
   tid: string;
-  bank_code: string;
   bank_name: string;
-  bank_username: string;
+  bank_username?: string;
   bank_account?: string;
   sender_name?: string;
   expired_at?: Date;
@@ -177,9 +176,8 @@ export class BootpayTransactionRepository {
     return {
       transaction_id,
       tid: vbankData.tid,
-      bank_code: vbankData.bank_code,
       bank_name: vbankData.bank_name,
-      bank_username: vbankData.bank_username,
+      bank_username: vbankData.bank_username || null,
       bank_account: vbankData.bank_account || null,
       sender_name: vbankData.sender_name || null,
       expired_at: vbankData.expired_at ? new Date(vbankData.expired_at) : null,
@@ -366,7 +364,6 @@ export class BootpayTransactionRepository {
         where: { transaction_id: dto.transaction_id },
         data: {
           tid: dto.tid,
-          bank_code: dto.bank_code,
           bank_name: dto.bank_name,
           bank_username: dto.bank_username,
           bank_account: dto.bank_account,
