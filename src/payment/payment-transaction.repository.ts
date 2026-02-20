@@ -27,7 +27,7 @@ export class PaymentTransactionRepository {
         product_id: createDto.product_id,
         pg_provider: createDto.pg_provider,
         pg_transaction_id: createDto.pg_transaction_id,
-        payment_method: createDto.payment_method,
+        payment_method: createDto.payment_method || null,
         amount: createDto.amount,
         currency: createDto.currency || 'KRW',
         status: PaymentTransactionStatus.PENDING,
@@ -108,6 +108,7 @@ export class PaymentTransactionRepository {
       bootpay_status?: number;
       bootpay_status_locale?: string;
       paid_at?: Date;
+      payment_method?: string;
     },
   ) {
     const prismaClient = tx ?? this.prisma;
@@ -139,6 +140,9 @@ export class PaymentTransactionRepository {
       }
       if (bootpayFields.paid_at) {
         updateData.paid_at = bootpayFields.paid_at;
+      }
+      if (bootpayFields.payment_method) {
+        updateData.payment_method = bootpayFields.payment_method;
       }
     }
 

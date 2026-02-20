@@ -26,6 +26,7 @@ type BootpaySyncFields = {
   bootpay_status?: number;
   bootpay_status_locale?: string;
   paid_at?: Date;
+  payment_method?: string;
 };
 
 @Injectable()
@@ -340,10 +341,10 @@ export class PaymentTransactionService {
     });
 
     // 5. DB에 거래 생성 (PENDING)
+    // payment_method는 결제 완료 후 웹훅에서 설정됨
     await this.paymentTransactionRepository.create(user_idx, {
       pg_provider,
       pg_transaction_id: paymentResponse.pg_transaction_id,
-      payment_method: 'card' as any, // 기본값
       amount: product.price,
       product_id: product_id,
     });
@@ -502,6 +503,7 @@ export class PaymentTransactionService {
       bootpay_status: receiptData.status,
       bootpay_status_locale: receiptData.status_locale || undefined,
       paid_at: paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt : undefined,
+      payment_method: receiptData.method_symbol || undefined,
     };
   }
 

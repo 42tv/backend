@@ -22,8 +22,9 @@ export class CreatePaymentTransactionDto {
   @IsString()
   pg_transaction_id: string;
 
+  @IsOptional()
   @IsEnum(PaymentMethod)
-  payment_method: PaymentMethod;
+  payment_method?: PaymentMethod;
 
   @IsNumber()
   @Min(1)

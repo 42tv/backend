@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { PaymentTransactionController } from './payment-transaction.controller';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { PgProviderFactory } from './pg-providers/pg-provider.factory';
@@ -8,7 +8,6 @@ import { RedisService } from '../redis/redis.service';
 describe('PaymentTransactionController', () => {
   let controller: PaymentTransactionController;
   let paymentTransactionService: jest.Mocked<PaymentTransactionService>;
-  let pgProviderFactory: jest.Mocked<PgProviderFactory>;
   let redisService: jest.Mocked<RedisService>;
 
   const mockProvider = {
@@ -56,7 +55,6 @@ describe('PaymentTransactionController', () => {
       PaymentTransactionController,
     );
     paymentTransactionService = module.get(PaymentTransactionService);
-    pgProviderFactory = module.get(PgProviderFactory);
     redisService = module.get(RedisService);
   });
 

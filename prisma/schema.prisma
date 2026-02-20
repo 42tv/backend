@@ -460,7 +460,7 @@ model PaymentTransaction {
   // PG사 결제 정보 (법적 증빙 필수)
   pg_provider       String // "inicis", "toss", "kakaopay", "bootpay"
   pg_transaction_id String @unique // PG사 거래 고유번호
-  payment_method    String // "card", "bank_transfer", "mobile"
+  payment_method    String? // "card", "bank", "vbank", "phone" 등 (결제 완료 후 웹훅에서 설정)
 
   // Bootpay 연결 정보
   bootpay_receipt_id    String?  @unique // Bootpay 영수증 ID (BootpayTransaction 직접 조인용)
