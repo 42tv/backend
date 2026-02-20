@@ -140,6 +140,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 백엔드 개발 지침
 
+### 결제연동 PG사 참조 문서
+- 아래 주소는 결제연동에 사용되는 PG사의 개발 참조 문서입니다.
+- https://developers.bootpay.co.kr/
+- https://docs.bootpay.co.kr/
+
 ### 명확성 및 재사용성
 - 모든 서비스, 모듈, 유틸리티는 모듈화하고 재사용 가능하도록 설계합니다.
 - 동일하거나 유사한 로직은 공용 함수나 라이브러리로 통합하여 중복 코드를 방지합니다.
