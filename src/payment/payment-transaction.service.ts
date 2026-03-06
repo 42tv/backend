@@ -20,6 +20,7 @@ import { PgProviderFactory } from './pg-providers/pg-provider.factory';
 import { UserService } from '../user/user.service';
 import { ConfigService } from '@nestjs/config';
 import { ReceiptResponseParameters } from '@bootpay/backend-js';
+import { IdentityVerificationService } from 'src/identity-verification/identity-verification.service';
 
 type BootpaySyncFields = {
   bootpay_receipt_id?: string;
@@ -43,6 +44,7 @@ export class PaymentTransactionService {
     private readonly pgProviderFactory: PgProviderFactory,
     private readonly userService: UserService,
     private readonly configService: ConfigService,
+    private readonly identityVerificationService: IdentityVerificationService,
   ) {}
 
   /**
@@ -319,6 +321,9 @@ export class PaymentTransactionService {
     product_id: number,
     pg_provider: PgProvider = PgProvider.MOCK,
   ) {
+    // 결제 차단 기준은 항상 사용자의 본인인증 완료 여부만 확인
+    await this.identityVerificationService.assertPaymentEligible(user_idx);
+
     // 1. PG Provider 선택
     const provider = this.pgProviderFactory.getProvider(pg_provider);
 

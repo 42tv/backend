@@ -12,11 +12,14 @@ import { ChattingRedisModule } from '../redis/redis.module';
 import { PgProviderFactory } from './pg-providers/pg-provider.factory';
 import { MockPgProvider } from './pg-providers/mock-provider.service';
 import { BootpayProvider } from './pg-providers/bootpay-provider.service';
+import { IdentityVerificationModule } from 'src/identity-verification/identity-verification.module';
+import { IdentityVerifiedMemberGuard } from './guards/identity-verified-member.guard';
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
+    IdentityVerificationModule,
     forwardRef(() => CoinTopupModule),
     ProductModule,
     UserModule,
@@ -30,6 +33,7 @@ import { BootpayProvider } from './pg-providers/bootpay-provider.service';
     PgProviderFactory,
     MockPgProvider,
     BootpayProvider,
+    IdentityVerifiedMemberGuard,
     // TODO: 실제 PG Provider 추가 시 여기에 등록
     // TossPgProvider,
     // InicisPgProvider,

@@ -26,6 +26,7 @@ import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { WebhookData } from './pg-providers/pg-provider.interface';
 import { RedisService } from '../redis/redis.service';
+import { IdentityVerifiedMemberGuard } from './guards/identity-verified-member.guard';
 
 @Controller('payments')
 export class PaymentTransactionController {
@@ -38,7 +39,7 @@ export class PaymentTransactionController {
   ) {}
 
   @Post('prepare')
-  @UseGuards(MemberGuard)
+  @UseGuards(MemberGuard, IdentityVerifiedMemberGuard)
   async preparePayment(
     @GetUser() user,
     @Body() prepareDto: PreparePaymentDto,

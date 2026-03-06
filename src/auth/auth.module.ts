@@ -9,10 +9,12 @@ import { jwtConstants } from './constants';
 import { MemberStrategy } from './guard/jwt.member.strategy';
 import { RefreshStrategy } from './guard/refresh.strategy';
 import { GuestGuardStrategy } from './guard/jwt.guest.strategy';
+import { IdentityVerificationModule } from 'src/identity-verification/identity-verification.module';
 
 @Module({
   imports: [
     forwardRef(() => UserModule),
+    IdentityVerificationModule,
     PassportModule,
     JwtModule.register({
       secret: jwtConstants.access_secret,

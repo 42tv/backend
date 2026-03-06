@@ -30,6 +30,7 @@ export interface PlayToken {
 }
 
 export interface PhoneVerificationPayload {
-  phone: string;
-  code: string;
+  idx: number;
+  phone?: string;
+  code?: string;
 }

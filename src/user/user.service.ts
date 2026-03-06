@@ -121,6 +121,31 @@ export class UserService {
   }
 
   /**
+   * 본인인증 완료 여부 조회
+   * @param user_idx
+   * @param tx
+   * @returns
+   */
+  async isIdentityVerified(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    return await this.userRepository.isIdentityVerified(user_idx, tx);
+  }
+
+  /**
+   * 본인인증 완료 상태 반영
+   * @param user_idx
+   * @param tx
+   */
+  async markIdentityVerified(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await this.userRepository.markIdentityVerified(user_idx, tx);
+  }
+
+  /**
    * User의 id로 찾기
    * @param user_id
    * @param tx
