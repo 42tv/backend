@@ -14,10 +14,8 @@ import {
   JwtPayload,
   TokenPair,
   PlayToken,
-  PhoneVerificationPayload,
 } from './interfaces/auth.interface';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
-import { IdentityVerificationService } from 'src/identity-verification/identity-verification.service';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +23,6 @@ export class AuthService {
     @Inject(forwardRef(() => UserService))
     private userService: UserService,
     private jwtService: JwtService,
-    private identityVerificationService: IdentityVerificationService,
   ) {}
 
   async validateUser(
@@ -84,11 +81,6 @@ export class AuthService {
 
   decode(token: string) {
     return this.jwtService.decode(token);
-  }
-
-  async verifyPhone(payload: PhoneVerificationPayload) {
-    await this.identityVerificationService.verifyPhone(payload);
-    return null;
   }
 
   /**

@@ -4,9 +4,9 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ErrorMessages } from 'src/common/error-messages';
-import { PhoneVerificationPayload } from 'src/auth/interfaces/auth.interface';
 import { IdentityProviderFactory } from './identity-provider.factory';
 import { UserService } from 'src/user/user.service';
+import { PhoneVerificationPayload } from './interfaces/phone-verification-payload.interface';
 
 @Injectable()
 export class IdentityVerificationService {

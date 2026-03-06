@@ -28,9 +28,3 @@ export interface TokenPair {
 export interface PlayToken {
   token: string;
 }
-
-export interface PhoneVerificationPayload {
-  idx: number;
-  phone?: string;
-  code?: string;
-}

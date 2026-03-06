@@ -38,6 +38,7 @@ import { PayoutCoinModule } from './payout-coin/payout-coin.module';
 import { SettlementModule } from './settlement/settlement.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { BootpayModule } from './bootpay/bootpay.module';
+import { IdentityVerificationModule } from './identity-verification/identity-verification.module';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { BootpayModule } from './bootpay/bootpay.module';
     SettlementModule,
     SchedulerModule,
     BootpayModule,
+    IdentityVerificationModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],
