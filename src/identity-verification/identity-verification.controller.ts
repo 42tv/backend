@@ -1,39 +1,36 @@
-import { Controller, Post, Request, UseGuards } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
-import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
-import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
+import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { IdentityVerificationService } from './identity-verification.service';
+import { StartPhoneVerificationDto } from './dto/start-phone-verification.dto';
+import { ConfirmPhoneVerificationDto } from './dto/confirm-phone-verification.dto';
 
-@ApiTags('Identity Verification - 본인인증 API')
 @Controller('identity-verification')
 export class IdentityVerificationController {
   constructor(
     private readonly identityVerificationService: IdentityVerificationService,
   ) {}
 
-  @Post('phone')
-  @ApiOperation({
-    summary: '휴대폰 본인인증 완료 처리',
-    description: '인증된 회원의 휴대폰 본인인증 완료 상태를 반영합니다.',
-  })
-  @ApiBearerAuth()
-  @ApiResponse({
-    status: 201,
-    description: '본인인증 성공',
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증되지 않은 사용자',
-  })
+  @Post('phone/start')
   @UseGuards(MemberGuard)
-  async verifyPhone(@Request() req): Promise<SuccessResponseDto<null>> {
-    await this.identityVerificationService.verifyPhone(req.user);
-    return ResponseWrapper.success(null, '휴대폰 본인 인증이 완료되었습니다.');
+  async startPhoneVerification(
+    @Request() req,
+    @Body() dto: StartPhoneVerificationDto,
+  ) {
+    return this.identityVerificationService.startPhoneVerification(
+      req.user.idx,
+      dto,
+    );
+  }
+
+  @Post('phone/confirm')
+  @UseGuards(MemberGuard)
+  async confirmPhoneVerification(
+    @Request() req,
+    @Body() dto: ConfirmPhoneVerificationDto,
+  ) {
+    return this.identityVerificationService.confirmPhoneVerification(
+      req.user.idx,
+      dto,
+    );
   }
 }

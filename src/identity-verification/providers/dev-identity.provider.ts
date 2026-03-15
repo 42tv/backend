@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
+  ConfirmIdentityCommand,
+  ConfirmIdentityResult,
   IdentityProviderInterface,
   VerifyIdentityCommand,
   VerifyIdentityResult,
@@ -8,6 +10,10 @@ import {
 @Injectable()
 export class DevIdentityProvider implements IdentityProviderInterface {
   async verify(_: VerifyIdentityCommand): Promise<VerifyIdentityResult> {
+    return { verified: true };
+  }
+
+  async confirm(_: ConfirmIdentityCommand): Promise<ConfirmIdentityResult> {
     return { verified: true };
   }
 }
