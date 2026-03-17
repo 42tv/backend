@@ -11,7 +11,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { ErrorMessages } from 'src/common/error-messages';
 import { IdentityProviderFactory } from './identity-provider.factory';
 import { UserService } from 'src/user/user.service';
-import { StartPhoneVerificationDto } from './dto/start-phone-verification.dto';
 import { ConfirmPhoneVerificationDto } from './dto/confirm-phone-verification.dto';
 
 const REQUEST_TOKEN_TYPE = 'identity_verification_request';
@@ -21,7 +20,6 @@ interface RequestTokenPayload {
   typ: string;
   request_id: string;
   user_idx: number;
-  purpose?: string;
   provider: string;
 }
 
@@ -33,10 +31,7 @@ export class IdentityVerificationService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async startPhoneVerification(
-    user_idx: number,
-    dto: StartPhoneVerificationDto,
-  ) {
+  async startPhoneVerification(user_idx: number) {
     const requestId = `ivreq_${uuidv4()}`;
     const provider = this.identityProviderFactory.getMode();
 
@@ -44,7 +39,6 @@ export class IdentityVerificationService {
       typ: REQUEST_TOKEN_TYPE,
       request_id: requestId,
       user_idx,
-      purpose: dto.purpose,
       provider,
     };
 
