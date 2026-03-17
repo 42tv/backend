@@ -200,6 +200,7 @@ export class UserService {
       user_id: user.user_id,
       profile_img: user.profile_img,
       nickname: user.nickname,
+      identity_verified: user.is_identity_verified,
       coin: {
         balance: coinBalance.coin_balance,
         charged: coinBalance.total_charged,

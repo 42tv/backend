@@ -213,6 +213,7 @@ export class UserController {
         user_id: string;
         profile_img: string;
         nickname: string;
+        identity_verified: boolean;
       };
     }>
   > {
@@ -224,6 +225,7 @@ export class UserController {
           user_id: newUser.user_id,
           profile_img: newUser.profile_img,
           nickname: newUser.nickname,
+          identity_verified: newUser.is_identity_verified,
         },
       },
       '사용자가 성공적으로 생성되었습니다.',
