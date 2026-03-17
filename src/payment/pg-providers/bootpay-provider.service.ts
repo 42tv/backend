@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Bootpay } from '@bootpay/backend-js';
+import { createHash } from 'crypto';
 import {
   PgProviderInterface,
   PaymentRequest,
@@ -112,11 +113,15 @@ export class BootpayProvider implements PgProviderInterface {
       const response = await Bootpay.receiptPayment(receiptId);
 
       // 결제 상태 확인
-      const status = (response as any).data?.status || (response as any).status;
-      const isValid = status === 1 || status === '1'; // 1 = 결제 완료
+      const status = (response as any).data?.status ?? (response as any).status;
+      const normalizedStatus =
+        typeof status === 'number' ? status : Number(status);
+      // 최신 권장 상태코드
+      const validStatuses = [0, 1, 2, 4, 5, 20];
+      const isValid = validStatuses.includes(normalizedStatus);
 
       this.logger.log(
-        `Bootpay webhook verification: ${receiptId} - ${isValid ? 'VALID' : 'INVALID'}`,
+        `Bootpay webhook verification: ${receiptId} (${normalizedStatus}) - ${isValid ? 'VALID' : 'INVALID'}`,
       );
 
       return isValid;
@@ -139,6 +144,9 @@ export class BootpayProvider implements PgProviderInterface {
     this.initializeBootpay();
 
     const receiptId = body.receipt_id || body.receiptId;
+    const webhookType = (body.webhook_type || body.webhookType) as
+      | string
+      | undefined;
 
     // Bootpay API로 상세 정보 조회
     await Bootpay.getAccessToken();
@@ -148,21 +156,58 @@ export class BootpayProvider implements PgProviderInterface {
     const status = data.status;
 
     // Bootpay 상태 코드를 표준 상태로 변환
-    // 1: 결제 완료, 0: 대기, -1: 취소, -2: 실패
-    let standardStatus: 'success' | 'failed' | 'canceled';
-    if (status === 1 || status === '1') {
+    // 권장 코드: 1(완료), 20(취소), 5(가상계좌 발급/입금대기), 0/2/4(진행중)
+    const normalizedStatus =
+      typeof status === 'number' ? status : Number(status);
+
+    const normalizedWebhookType = webhookType?.toUpperCase();
+
+    // webhook_type이 있으면 이를 우선으로 분기하고, 없으면 status 코드로 후순위 분기
+    let standardStatus: WebhookData['status'] | null = null;
+    if (normalizedWebhookType === 'PAYMENT_COMPLETED') {
       standardStatus = 'success';
-    } else if (status === -1 || status === '-1') {
+    } else if (normalizedWebhookType === 'PAYMENT_CANCELLED') {
       standardStatus = 'canceled';
-    } else {
+    } else if (normalizedWebhookType === 'PAYMENT_PARTIAL_CANCELLED') {
+      standardStatus = 'partial_canceled';
+    } else if (normalizedWebhookType === 'PAYMENT_VIRTUAL_ACCOUNT_ISSUED') {
+      standardStatus = 'pending';
+    } else if (normalizedWebhookType === 'PAYMENT_EXPIRED') {
+      standardStatus = 'expired';
+    } else if (
+      normalizedWebhookType === 'PAYMENT_CONFIRM_FAILED' ||
+      normalizedWebhookType === 'PAYMENT_CANCEL_FAILED' ||
+      normalizedWebhookType === 'PAYMENT_REQUEST_FAILED' ||
+      normalizedWebhookType === 'ERROR'
+    ) {
       standardStatus = 'failed';
+    }
+
+    if (!standardStatus) {
+      if (normalizedStatus === 1) {
+        standardStatus = 'success';
+      } else if (normalizedStatus === 20) {
+        standardStatus = 'canceled';
+      } else if (
+        normalizedStatus === 5 ||
+        normalizedStatus === 4 ||
+        normalizedStatus === 2 ||
+        normalizedStatus === 0
+      ) {
+        standardStatus = 'pending';
+      } else {
+        standardStatus = 'failed';
+      }
     }
 
     return {
       pg_transaction_id: data.order_id || receiptId, // order_id 사용
       status: standardStatus,
       amount: data.price || 0,
-      pg_response: data, // 전체 receipt 데이터 전달
+      pg_response: {
+        ...data,
+        webhook_type: normalizedWebhookType || data.webhook_type,
+      }, // 전체 receipt 데이터 전달 + webhook_type 보존
     };
   }
 
@@ -191,6 +236,7 @@ export class BootpayProvider implements PgProviderInterface {
     pg_transaction_id: string,
     reason: string,
     amount?: number,
+    cancel_id?: string,
   ): Promise<any> {
     try {
       this.initializeBootpay();
@@ -201,6 +247,8 @@ export class BootpayProvider implements PgProviderInterface {
         receipt_id: pg_transaction_id,
         cancel_username: 'Admin',
         cancel_message: reason,
+        cancel_id:
+          cancel_id || this.generateCancelId(pg_transaction_id, reason, amount),
       };
 
       if (amount) {
@@ -225,5 +273,15 @@ export class BootpayProvider implements PgProviderInterface {
         error: err.message,
       };
     }
+  }
+
+  private generateCancelId(
+    pg_transaction_id: string,
+    reason: string,
+    amount?: number,
+  ): string {
+    const source = `${pg_transaction_id}|${reason}|${amount ?? 'full'}`;
+    const digest = createHash('sha256').update(source).digest('hex');
+    return `cancel_${digest.slice(0, 24)}`;
   }
 }

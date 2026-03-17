@@ -121,6 +121,78 @@ export class UserRepository {
   }
 
   /**
+   * 본인인증 완료 여부 조회
+   * @param user_idx
+   * @param tx
+   * @returns
+   */
+  async isIdentityVerified(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const prismaClient = tx ?? this.prisma;
+    const user = await prismaClient.user.findUnique({
+      where: { idx: user_idx },
+      select: { is_identity_verified: true },
+    });
+    return !!user?.is_identity_verified;
+  }
+
+  /**
+   * 본인인증 완료 상태 반영
+   * @param user_idx
+   * @param tx
+   */
+  async markIdentityVerified(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const prismaClient = tx ?? this.prisma;
+    await prismaClient.user.update({
+      where: { idx: user_idx },
+      data: {
+        is_identity_verified: true,
+        identity_verified_at: new Date(),
+      },
+    });
+  }
+
+  /**
+   * CI hash로 사용자 조회 (중복가입 판별용)
+   * @param ci_hash
+   * @param tx
+   */
+  async findByIdentityCiHash(ci_hash: string, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.findUnique({
+      where: { identity_ci_hash: ci_hash },
+      select: { idx: true },
+    });
+  }
+
+  /**
+   * 본인인증 완료 상태 및 CI hash 반영
+   * @param user_idx
+   * @param ci_hash
+   * @param tx
+   */
+  async markIdentityVerifiedWithCiHash(
+    user_idx: number,
+    ci_hash: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const prismaClient = tx ?? this.prisma;
+    await prismaClient.user.update({
+      where: { idx: user_idx },
+      data: {
+        is_identity_verified: true,
+        identity_verified_at: new Date(),
+        identity_ci_hash: ci_hash,
+      },
+    });
+  }
+
+  /**
    * 선택적 relation을 포함한 User 가져오기
    * @param user_idx
    * @param includeOptions

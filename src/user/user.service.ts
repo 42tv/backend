@@ -121,6 +121,57 @@ export class UserService {
   }
 
   /**
+   * 본인인증 완료 여부 조회
+   * @param user_idx
+   * @param tx
+   * @returns
+   */
+  async isIdentityVerified(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    return await this.userRepository.isIdentityVerified(user_idx, tx);
+  }
+
+  /**
+   * 본인인증 완료 상태 반영
+   * @param user_idx
+   * @param tx
+   */
+  async markIdentityVerified(
+    user_idx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await this.userRepository.markIdentityVerified(user_idx, tx);
+  }
+
+  /**
+   * CI hash로 사용자 조회 (중복가입 판별용)
+   * @param ci_hash
+   */
+  async findByIdentityCiHash(ci_hash: string) {
+    return await this.userRepository.findByIdentityCiHash(ci_hash);
+  }
+
+  /**
+   * 본인인증 완료 상태 및 CI hash 반영
+   * @param user_idx
+   * @param ci_hash
+   * @param tx
+   */
+  async markIdentityVerifiedWithCiHash(
+    user_idx: number,
+    ci_hash: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await this.userRepository.markIdentityVerifiedWithCiHash(
+      user_idx,
+      ci_hash,
+      tx,
+    );
+  }
+
+  /**
    * User의 id로 찾기
    * @param user_id
    * @param tx

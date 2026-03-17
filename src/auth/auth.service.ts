@@ -14,7 +14,6 @@ import {
   JwtPayload,
   TokenPair,
   PlayToken,
-  PhoneVerificationPayload,
 } from './interfaces/auth.interface';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 
@@ -82,13 +81,6 @@ export class AuthService {
 
   decode(token: string) {
     return this.jwtService.decode(token);
-  }
-
-  async verifyPhone(payload: PhoneVerificationPayload) {
-    console.log(payload);
-    // const user = await this.userService.findByUserIdx(payload.idx);
-    // return await this.channelService.verifyPhone(user.idx);
-    return null;
   }
 
   /**

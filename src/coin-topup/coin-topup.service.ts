@@ -101,6 +101,7 @@ export class CoinTopupService {
     const coinTopup = await this.coinTopupRepository.create(
       {
         transaction_id: processDto.transaction_id,
+        bootpay_transaction_id: processDto.bootpay_transaction_id,
         user_idx,
         product_id: processDto.product_id,
         product_name: product.name,

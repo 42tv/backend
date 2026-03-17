@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { ReceiptResponseParameters, CardData } from '@bootpay/backend-js';
+import {
+  ReceiptResponseParameters,
+  CardData,
+  BankData,
+} from '@bootpay/backend-js';
 
 /**
  * Bootpay 트랜잭션 저장을 위한 DTO
@@ -51,6 +55,34 @@ export interface CreateBootpayCardDataDto {
   card_quota: string;
   card_interest: string;
   receipt_url?: string;
+}
+
+/**
+ * Bootpay 가상계좌 데이터 저장을 위한 DTO
+ */
+export interface CreateBootpayVbankDataDto {
+  transaction_id: string;
+  tid: string;
+  bank_name: string;
+  bank_username?: string;
+  bank_account?: string;
+  sender_name?: string;
+  expired_at?: Date;
+  cash_receipt_tid?: string;
+  cash_receipt_type?: string;
+  cash_receipt_no?: string;
+  receipt_url?: string;
+}
+
+/**
+ * Bootpay 간편결제 데이터 저장을 위한 DTO
+ */
+export interface CreateBootpayEasyDataDto {
+  transaction_id: string;
+  tid?: string;
+  method_origin?: string;
+  method_origin_symbol?: string;
+  raw_data?: any;
 }
 
 @Injectable()
@@ -131,6 +163,64 @@ export class BootpayTransactionRepository {
       card_quota: cardData.card_quota,
       card_interest: cardData.card_interest,
       receipt_url: cardData.receipt_url || null,
+    };
+  }
+
+  /**
+   * Bootpay BankData(vbank_data)를 DTO로 변환
+   */
+  static fromVbankData(
+    vbankData: BankData,
+    transaction_id: string,
+  ): CreateBootpayVbankDataDto {
+    return {
+      transaction_id,
+      tid: vbankData.tid,
+      bank_name: vbankData.bank_name,
+      bank_username: vbankData.bank_username || null,
+      bank_account: vbankData.bank_account || null,
+      sender_name: vbankData.sender_name || null,
+      expired_at: vbankData.expired_at ? new Date(vbankData.expired_at) : null,
+      cash_receipt_tid: vbankData.cash_receipt_tid || null,
+      cash_receipt_type: vbankData.cash_receipt_type || null,
+      cash_receipt_no: vbankData.cash_receipt_no || null,
+      receipt_url: vbankData.receipt_url || null,
+    };
+  }
+
+  /**
+   * 간편결제 데이터를 DTO로 변환
+   * SDK에 별도 easy_data 타입이 없으므로 Receipt에서 추출
+   */
+  static fromEasyData(
+    receiptData: ReceiptResponseParameters,
+    transaction_id: string,
+  ): CreateBootpayEasyDataDto {
+    // 간편결제 관련 포인트/머니 데이터 수집
+    const rawData: any = {};
+    const kakaoMoneyData =
+      receiptData.kakao_moneny_data ||
+      (receiptData as any).kakao_money_data ||
+      null;
+    if (kakaoMoneyData) rawData.kakao_money = kakaoMoneyData;
+    if (receiptData.naver_point_data)
+      rawData.naver_point = receiptData.naver_point_data;
+    if (receiptData.payco_point_data)
+      rawData.payco_point = receiptData.payco_point_data;
+    if (receiptData.toss_point_data)
+      rawData.toss_point = receiptData.toss_point_data;
+
+    return {
+      transaction_id,
+      tid:
+        rawData.kakao_money?.tid ||
+        rawData.naver_point?.tid ||
+        rawData.payco_point?.tid ||
+        rawData.toss_point?.tid ||
+        null,
+      method_origin: receiptData.method_origin || null,
+      method_origin_symbol: receiptData.method_origin_symbol || null,
+      raw_data: Object.keys(rawData).length > 0 ? rawData : null,
     };
   }
 
@@ -254,6 +344,84 @@ export class BootpayTransactionRepository {
   }
 
   /**
+   * BootpayVbankData 생성 (이미 존재하면 업데이트)
+   */
+  async createOrUpdateVbankData(
+    dto: CreateBootpayVbankDataDto,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+
+    const existing = await prismaClient.bootpayVbankData.findUnique({
+      where: { transaction_id: dto.transaction_id },
+    });
+
+    if (existing) {
+      this.logger.log(
+        `Updating existing BootpayVbankData for transaction: ${dto.transaction_id}`,
+      );
+      return await prismaClient.bootpayVbankData.update({
+        where: { transaction_id: dto.transaction_id },
+        data: {
+          tid: dto.tid,
+          bank_name: dto.bank_name,
+          bank_username: dto.bank_username,
+          bank_account: dto.bank_account,
+          sender_name: dto.sender_name,
+          expired_at: dto.expired_at,
+          cash_receipt_tid: dto.cash_receipt_tid,
+          cash_receipt_type: dto.cash_receipt_type,
+          cash_receipt_no: dto.cash_receipt_no,
+          receipt_url: dto.receipt_url,
+        },
+      });
+    }
+
+    this.logger.log(
+      `Creating new BootpayVbankData for transaction: ${dto.transaction_id}`,
+    );
+    return await prismaClient.bootpayVbankData.create({
+      data: dto,
+    });
+  }
+
+  /**
+   * BootpayEasyData 생성 (이미 존재하면 업데이트)
+   */
+  async createOrUpdateEasyData(
+    dto: CreateBootpayEasyDataDto,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+
+    const existing = await prismaClient.bootpayEasyData.findUnique({
+      where: { transaction_id: dto.transaction_id },
+    });
+
+    if (existing) {
+      this.logger.log(
+        `Updating existing BootpayEasyData for transaction: ${dto.transaction_id}`,
+      );
+      return await prismaClient.bootpayEasyData.update({
+        where: { transaction_id: dto.transaction_id },
+        data: {
+          tid: dto.tid,
+          method_origin: dto.method_origin,
+          method_origin_symbol: dto.method_origin_symbol,
+          raw_data: dto.raw_data,
+        },
+      });
+    }
+
+    this.logger.log(
+      `Creating new BootpayEasyData for transaction: ${dto.transaction_id}`,
+    );
+    return await prismaClient.bootpayEasyData.create({
+      data: dto,
+    });
+  }
+
+  /**
    * receipt_id로 BootpayTransaction 조회
    * @param receipt_id Bootpay 영수증 ID
    * @param tx 트랜잭션 클라이언트 (선택사항)
@@ -265,6 +433,8 @@ export class BootpayTransactionRepository {
       where: { receipt_id },
       include: {
         cardData: true,
+        vbankData: true,
+        easyData: true,
         topups: true,
       },
     });
@@ -282,6 +452,8 @@ export class BootpayTransactionRepository {
       where: { order_id },
       include: {
         cardData: true,
+        vbankData: true,
+        easyData: true,
         topups: true,
       },
       orderBy: { created_at: 'desc' },
@@ -299,6 +471,8 @@ export class BootpayTransactionRepository {
       where: { user_idx },
       include: {
         cardData: true,
+        vbankData: true,
+        easyData: true,
         topups: true,
       },
       orderBy: { created_at: 'desc' },

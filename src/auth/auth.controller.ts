@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { LocalAuthGuard } from './guard/local-auth.guard';
 import { AuthService } from './auth.service';
-import { MemberGuard } from './guard/jwt.member.guard';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -96,26 +95,6 @@ export class AuthController {
     res.cookie('jwt', tokens.access_token, { httpOnly: true });
     res.cookie('refresh', tokens.refresh_token, { httpOnly: true });
     return ResponseWrapper.success({ tokens }, '토큰을 갱신했습니다.');
-  }
-
-  /**
-   * 휴대폰 본인 인증 경로(가칭)
-   */
-  @Post('phone-verification')
-  @ApiOperation({ summary: '가칭. 본인인증 성공했을시 stream, ivs 만드는용도' })
-  @ApiBearerAuth()
-  @ApiResponse({
-    status: 201,
-    description: '본인인증 성공',
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증되지 않은 사용자',
-  })
-  @UseGuards(MemberGuard)
-  async phoneVerification(@Request() req): Promise<SuccessResponseDto<null>> {
-    await this.authService.verifyPhone(req.user);
-    return ResponseWrapper.success(null, '휴대폰 본인 인증이 완료되었습니다.');
   }
 
   /**

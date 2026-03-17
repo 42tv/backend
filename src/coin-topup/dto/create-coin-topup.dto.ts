@@ -1,12 +1,4 @@
-import { IsNumber, IsString } from 'class-validator';
-
-export class CreateCoinTopupDto {
-  @IsNumber()
-  product_id: number;
-
-  @IsString()
-  pg_transaction_id: string;
-}
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class ProcessTopupDto {
   @IsString()
@@ -14,4 +6,8 @@ export class ProcessTopupDto {
 
   @IsNumber()
   product_id: number;
+
+  @IsOptional()
+  @IsString()
+  bootpay_transaction_id?: string;
 }

@@ -50,9 +50,20 @@ export class MockPgProvider implements PgProviderInterface {
    * Mock Webhook 데이터 파싱
    */
   async parseWebhookData(body: any): Promise<WebhookData> {
+    const validStatuses: WebhookData['status'][] = [
+      'success',
+      'failed',
+      'canceled',
+      'pending',
+      'expired',
+    ];
+    const status: WebhookData['status'] = validStatuses.includes(body.status)
+      ? body.status
+      : 'success';
+
     return {
       pg_transaction_id: body.pg_transaction_id,
-      status: body.status || 'success',
+      status,
       amount: body.amount,
       pg_response: {
         mock: true,

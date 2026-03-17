@@ -20,6 +20,15 @@ import { PgProviderFactory } from './pg-providers/pg-provider.factory';
 import { UserService } from '../user/user.service';
 import { ConfigService } from '@nestjs/config';
 import { ReceiptResponseParameters } from '@bootpay/backend-js';
+import { IdentityVerificationService } from 'src/identity-verification/identity-verification.service';
+
+type BootpaySyncFields = {
+  bootpay_receipt_id?: string;
+  bootpay_status?: number;
+  bootpay_status_locale?: string;
+  paid_at?: Date;
+  payment_method?: string;
+};
 
 @Injectable()
 export class PaymentTransactionService {
@@ -35,6 +44,7 @@ export class PaymentTransactionService {
     private readonly pgProviderFactory: PgProviderFactory,
     private readonly userService: UserService,
     private readonly configService: ConfigService,
+    private readonly identityVerificationService: IdentityVerificationService,
   ) {}
 
   /**
@@ -134,17 +144,38 @@ export class PaymentTransactionService {
    * @returns 실패 처리된 결제 거래
    */
   async failPayment(pg_transaction_id: string, pg_response?: any) {
-    const transaction = await this.findByPgTransactionId(pg_transaction_id);
+    return await this.prismaService.$transaction(async (tx) => {
+      const transaction =
+        await this.paymentTransactionRepository.findByPgTransactionId(
+          pg_transaction_id,
+          tx,
+        );
 
-    if (transaction.status !== PaymentTransactionStatus.PENDING) {
-      throw new BadRequestException('이미 처리된 결제 거래입니다.');
-    }
+      if (!transaction) {
+        throw new NotFoundException('존재하지 않는 결제 거래입니다.');
+      }
 
-    return await this.paymentTransactionRepository.updateStatus(
-      transaction.id,
-      PaymentTransactionStatus.FAILED,
-      pg_response,
-    );
+      if (
+        transaction.status !== PaymentTransactionStatus.PENDING &&
+        transaction.status !== PaymentTransactionStatus.WAITING_DEPOSIT
+      ) {
+        throw new BadRequestException('이미 처리된 결제 거래입니다.');
+      }
+
+      const { bootpayFields } = await this.syncBootpayDataForTransaction(
+        transaction,
+        pg_response,
+        tx,
+      );
+
+      return await this.paymentTransactionRepository.updateStatus(
+        transaction.id,
+        PaymentTransactionStatus.FAILED,
+        pg_response,
+        tx,
+        bootpayFields,
+      );
+    });
   }
 
   /**
@@ -154,17 +185,125 @@ export class PaymentTransactionService {
    * @returns 취소 처리된 결제 거래
    */
   async cancelPayment(pg_transaction_id: string, pg_response?: any) {
-    const transaction = await this.findByPgTransactionId(pg_transaction_id);
+    return await this.prismaService.$transaction(async (tx) => {
+      const transaction =
+        await this.paymentTransactionRepository.findByPgTransactionId(
+          pg_transaction_id,
+          tx,
+        );
 
-    if (transaction.status === PaymentTransactionStatus.CANCELED) {
-      throw new BadRequestException('이미 취소된 결제 거래입니다.');
-    }
+      if (!transaction) {
+        throw new NotFoundException('존재하지 않는 결제 거래입니다.');
+      }
 
-    return await this.paymentTransactionRepository.updateStatus(
-      transaction.id,
-      PaymentTransactionStatus.CANCELED,
-      pg_response,
-    );
+      if (transaction.status === PaymentTransactionStatus.CANCELED) {
+        throw new BadRequestException('이미 취소된 결제 거래입니다.');
+      }
+
+      const { bootpayFields } = await this.syncBootpayDataForTransaction(
+        transaction,
+        pg_response,
+        tx,
+      );
+
+      return await this.paymentTransactionRepository.updateStatus(
+        transaction.id,
+        PaymentTransactionStatus.CANCELED,
+        pg_response,
+        tx,
+        bootpayFields,
+      );
+    });
+  }
+
+  /**
+   * 무통장입금 대기 상태 처리
+   * - Bootpay status=5, 0/2/4 웹훅 처리
+   */
+  async markWaitingDepositPayment(
+    pg_transaction_id: string,
+    pg_response?: any,
+  ) {
+    return await this.prismaService.$transaction(async (tx) => {
+      const transaction =
+        await this.paymentTransactionRepository.findByPgTransactionId(
+          pg_transaction_id,
+          tx,
+        );
+
+      if (!transaction) {
+        throw new NotFoundException('존재하지 않는 결제 거래입니다.');
+      }
+
+      if (transaction.status === PaymentTransactionStatus.WAITING_DEPOSIT) {
+        return transaction;
+      }
+
+      if (transaction.status !== PaymentTransactionStatus.PENDING) {
+        throw new BadRequestException(
+          '대기 상태로 전환할 수 없는 결제 거래입니다.',
+        );
+      }
+
+      const { bootpayFields } = await this.syncBootpayDataForTransaction(
+        transaction,
+        pg_response,
+        tx,
+      );
+
+      return await this.paymentTransactionRepository.updateStatus(
+        transaction.id,
+        PaymentTransactionStatus.WAITING_DEPOSIT,
+        pg_response,
+        tx,
+        bootpayFields,
+      );
+    });
+  }
+
+  /**
+   * 결제 만료 처리
+   * - 결제 만료 이벤트 웹훅 처리
+   */
+  async expirePayment(pg_transaction_id: string, pg_response?: any) {
+    return await this.prismaService.$transaction(async (tx) => {
+      const transaction =
+        await this.paymentTransactionRepository.findByPgTransactionId(
+          pg_transaction_id,
+          tx,
+        );
+
+      if (!transaction) {
+        throw new NotFoundException('존재하지 않는 결제 거래입니다.');
+      }
+
+      if (transaction.status === PaymentTransactionStatus.EXPIRED) {
+        return transaction;
+      }
+
+      if (
+        transaction.status !== PaymentTransactionStatus.PENDING &&
+        transaction.status !== PaymentTransactionStatus.WAITING_DEPOSIT
+      ) {
+        throw new BadRequestException(
+          '만료 상태로 전환할 수 없는 결제 거래입니다.',
+        );
+      }
+
+      const { bootpayFields } = await this.syncBootpayDataForTransaction(
+        transaction,
+        pg_response,
+        tx,
+      );
+
+      return await this.paymentTransactionRepository.updateStatus(
+        transaction.id,
+        PaymentTransactionStatus.EXPIRED,
+        pg_response,
+        tx,
+        bootpayFields,
+      );
+    });
   }
 
   /**
@@ -182,6 +321,9 @@ export class PaymentTransactionService {
     product_id: number,
     pg_provider: PgProvider = PgProvider.MOCK,
   ) {
+    // 결제 차단 기준은 항상 사용자의 본인인증 완료 여부만 확인
+    await this.identityVerificationService.assertPaymentEligible(user_idx);
+
     // 1. PG Provider 선택
     const provider = this.pgProviderFactory.getProvider(pg_provider);
 
@@ -204,10 +346,10 @@ export class PaymentTransactionService {
     });
 
     // 5. DB에 거래 생성 (PENDING)
+    // payment_method는 결제 완료 후 웹훅에서 설정됨
     await this.paymentTransactionRepository.create(user_idx, {
       pg_provider,
       pg_transaction_id: paymentResponse.pg_transaction_id,
-      payment_method: 'card' as any, // 기본값
       amount: product.price,
       product_id: product_id,
     });
@@ -304,24 +446,116 @@ export class PaymentTransactionService {
       `Bootpay transaction saved: ${bootpayTransaction.receipt_id}`,
     );
 
-    // 2. 카드 결제인 경우 BootpayCardData 저장
+    // 2. 결제수단별 상세 데이터 저장
     if (receiptData.card_data) {
       const cardDataDto = BootpayTransactionRepository.fromCardData(
         receiptData.card_data,
         bootpayTransaction.id,
       );
-
       await this.bootpayTransactionRepository.createOrUpdateCardData(
         cardDataDto,
         tx,
       );
-
       this.logger.log(
         `Bootpay card data saved for transaction: ${bootpayTransaction.id}`,
       );
     }
 
+    if (receiptData.vbank_data) {
+      const vbankDataDto = BootpayTransactionRepository.fromVbankData(
+        receiptData.vbank_data,
+        bootpayTransaction.id,
+      );
+      await this.bootpayTransactionRepository.createOrUpdateVbankData(
+        vbankDataDto,
+        tx,
+      );
+      this.logger.log(
+        `Bootpay vbank data saved for transaction: ${bootpayTransaction.id}`,
+      );
+    }
+
+    // 간편결제인 경우 (method_origin_symbol 존재 시)
+    if (receiptData.method_origin_symbol) {
+      const easyDataDto = BootpayTransactionRepository.fromEasyData(
+        receiptData,
+        bootpayTransaction.id,
+      );
+      await this.bootpayTransactionRepository.createOrUpdateEasyData(
+        easyDataDto,
+        tx,
+      );
+      this.logger.log(
+        `Bootpay easy data saved for transaction: ${bootpayTransaction.id}`,
+      );
+    }
+
     return bootpayTransaction;
+  }
+
+  /**
+   * Receipt 데이터에서 PaymentTransaction 동기화 필드 추출
+   */
+  private extractBootpayFields(
+    receiptData: ReceiptResponseParameters,
+  ): BootpaySyncFields {
+    const paidAt = receiptData.purchased_at
+      ? new Date(receiptData.purchased_at)
+      : undefined;
+
+    return {
+      bootpay_receipt_id: receiptData.receipt_id,
+      bootpay_status: receiptData.status,
+      bootpay_status_locale: receiptData.status_locale || undefined,
+      paid_at: paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt : undefined,
+      payment_method: receiptData.method_symbol || undefined,
+    };
+  }
+
+  /**
+   * Bootpay 웹훅 데이터 동기화
+   * - BootpayTransaction/세부 데이터 저장
+   * - PaymentTransaction 동기화 필드 구성
+   */
+  private async syncBootpayDataForTransaction(
+    transaction: { pg_provider: string; user_idx: number | null },
+    pg_response: any,
+    tx: any,
+  ): Promise<{
+    bootpayTransactionId?: string;
+    bootpayFields?: BootpaySyncFields;
+  }> {
+    if (transaction.pg_provider !== PgProvider.BOOTPAY) {
+      return {};
+    }
+
+    if (!pg_response || typeof pg_response !== 'object') {
+      throw new BadRequestException(
+        'Bootpay 결제 응답 데이터가 올바르지 않습니다.',
+      );
+    }
+
+    const receiptData = pg_response as ReceiptResponseParameters;
+    if (!receiptData.receipt_id) {
+      throw new BadRequestException(
+        'Bootpay 결제 응답에 receipt_id가 없어 처리할 수 없습니다.',
+      );
+    }
+
+    if (transaction.user_idx === null || transaction.user_idx === undefined) {
+      throw new BadRequestException('결제 사용자 정보가 없습니다.');
+    }
+
+    const bootpayTransaction = await this.saveBootpayData(
+      receiptData,
+      transaction.user_idx,
+      tx,
+    );
+
+    return {
+      bootpayTransactionId: bootpayTransaction.id,
+      bootpayFields: this.extractBootpayFields(receiptData),
+    };
   }
 
   /**
@@ -349,46 +583,34 @@ export class PaymentTransactionService {
         throw new NotFoundException('존재하지 않는 결제 거래입니다.');
       }
 
-      if (transaction.status !== PaymentTransactionStatus.PENDING) {
+      if (
+        transaction.status !== PaymentTransactionStatus.PENDING &&
+        transaction.status !== PaymentTransactionStatus.WAITING_DEPOSIT
+      ) {
         throw new BadRequestException('이미 처리된 결제 거래입니다.');
       }
 
-      // 2. Bootpay인 경우 상세 데이터 저장
-      if (
-        transaction.pg_provider === PgProvider.BOOTPAY &&
-        pg_response &&
-        typeof pg_response === 'object'
-      ) {
-        try {
-          await this.saveBootpayData(
-            pg_response as ReceiptResponseParameters,
-            transaction.user_idx!,
-            tx,
-          );
-        } catch (error) {
-          this.logger.error(
-            `Failed to save Bootpay data: ${error.message}`,
-            error.stack,
-          );
-          // Bootpay 데이터 저장 실패해도 결제 처리는 계속 진행
-        }
-      }
+      // 2. Bootpay 상세 데이터 동기화 (실패 시 결제 중단)
+      const { bootpayTransactionId, bootpayFields } =
+        await this.syncBootpayDataForTransaction(transaction, pg_response, tx);
 
-      // 3. 결제 승인 처리
+      // 3. 결제 승인 처리 (Bootpay 필드 동기화 포함)
       const approvedTransaction =
         await this.paymentTransactionRepository.updateStatus(
           transaction.id,
           PaymentTransactionStatus.SUCCESS,
           pg_response,
           tx,
+          bootpayFields,
         );
 
-      // 4. 충전 처리 위임 (CoinTopupService) - 트랜잭션 전달
+      // 4. 충전 처리 위임 (CoinTopupService) - bootpay_transaction_id 연결 포함
       const topupResult = await this.coinTopupService.processTopup(
         approvedTransaction.user_idx!,
         {
           transaction_id: approvedTransaction.id,
           product_id,
+          bootpay_transaction_id: bootpayTransactionId,
         },
         tx,
       );

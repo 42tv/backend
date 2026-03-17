@@ -78,6 +78,9 @@ export const ErrorMessages = {
     STREAM_KEY_DELETE_FAILED: 'AWS의 스트림키 삭제 실패',
     S3_UPLOAD_FAILED: 'AWS S3 파일 업로드 실패',
   },
+  PAYMENT: {
+    REQUIRES_IDENTITY_VERIFICATION: '결제 전 본인인증이 필요합니다.',
+  },
   GENERIC: {
     INVALID_REQUEST: '유효하지 않은 요청입니다',
     UPDATE_FAILED: '업데이트에 실패했습니다',

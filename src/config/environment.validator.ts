@@ -50,9 +50,31 @@ export class EnvironmentValidator {
       throw new Error(errorMessage);
     }
 
+    this.validateIdentityVerificationMode();
+
     this.logger.log(
       `모든 필수 환경변수가 설정되었습니다. (총 ${requiredEnvVars.length}개)`,
     );
+  }
+
+  /**
+   * 본인인증 모드 환경변수가 유효한지 검증합니다.
+   */
+  static validateIdentityVerificationMode(): void {
+    const mode = (
+      process.env.IDENTITY_VERIFICATION_MODE || 'dev'
+    ).toLowerCase();
+    const availableModes = ['dev', 'live'];
+
+    if (!availableModes.includes(mode)) {
+      const errorMessage =
+        'IDENTITY_VERIFICATION_MODE는 dev 또는 live 여야 합니다.';
+      this.logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    this.logger.log(`IDENTITY_VERIFICATION_MODE=${mode}`);
+
   }
 
   /**

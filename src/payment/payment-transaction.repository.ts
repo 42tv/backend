@@ -27,7 +27,7 @@ export class PaymentTransactionRepository {
         product_id: createDto.product_id,
         pg_provider: createDto.pg_provider,
         pg_transaction_id: createDto.pg_transaction_id,
-        payment_method: createDto.payment_method,
+        payment_method: createDto.payment_method || null,
         amount: createDto.amount,
         currency: createDto.currency || 'KRW',
         status: PaymentTransactionStatus.PENDING,
@@ -103,6 +103,13 @@ export class PaymentTransactionRepository {
     status: PaymentTransactionStatus,
     pg_response?: any,
     tx?: Prisma.TransactionClient,
+    bootpayFields?: {
+      bootpay_receipt_id?: string;
+      bootpay_status?: number;
+      bootpay_status_locale?: string;
+      paid_at?: Date;
+      payment_method?: string;
+    },
   ) {
     const prismaClient = tx ?? this.prisma;
 
@@ -118,6 +125,25 @@ export class PaymentTransactionRepository {
 
     if (pg_response) {
       updateData.pg_response = pg_response;
+    }
+
+    // Bootpay 연결 필드 동기화
+    if (bootpayFields) {
+      if (bootpayFields.bootpay_receipt_id) {
+        updateData.bootpay_receipt_id = bootpayFields.bootpay_receipt_id;
+      }
+      if (bootpayFields.bootpay_status !== undefined) {
+        updateData.bootpay_status = bootpayFields.bootpay_status;
+      }
+      if (bootpayFields.bootpay_status_locale) {
+        updateData.bootpay_status_locale = bootpayFields.bootpay_status_locale;
+      }
+      if (bootpayFields.paid_at) {
+        updateData.paid_at = bootpayFields.paid_at;
+      }
+      if (bootpayFields.payment_method) {
+        updateData.payment_method = bootpayFields.payment_method;
+      }
     }
 
     return await prismaClient.paymentTransaction.update({

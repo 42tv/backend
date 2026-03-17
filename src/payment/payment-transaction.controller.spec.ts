@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { PaymentTransactionController } from './payment-transaction.controller';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { PgProviderFactory } from './pg-providers/pg-provider.factory';
@@ -8,7 +8,6 @@ import { RedisService } from '../redis/redis.service';
 describe('PaymentTransactionController', () => {
   let controller: PaymentTransactionController;
   let paymentTransactionService: jest.Mocked<PaymentTransactionService>;
-  let pgProviderFactory: jest.Mocked<PgProviderFactory>;
   let redisService: jest.Mocked<RedisService>;
 
   const mockProvider = {
@@ -56,7 +55,6 @@ describe('PaymentTransactionController', () => {
       PaymentTransactionController,
     );
     paymentTransactionService = module.get(PaymentTransactionService);
-    pgProviderFactory = module.get(PgProviderFactory);
     redisService = module.get(RedisService);
   });
 
@@ -188,7 +186,7 @@ describe('PaymentTransactionController', () => {
           pg_transaction_id: 'ORDER_123',
           status: 'canceled',
           amount: 10000,
-          pg_response: { status: -1 },
+          pg_response: { status: 20 },
         });
         paymentTransactionService.cancelPayment.mockResolvedValue({} as any);
 
@@ -197,8 +195,32 @@ describe('PaymentTransactionController', () => {
         expect(result).toEqual({ success: true });
         expect(paymentTransactionService.cancelPayment).toHaveBeenCalledWith(
           'ORDER_123',
-          { status: -1 },
+          { status: 20 },
         );
+      });
+    });
+
+    describe('결제 부분 취소 Webhook', () => {
+      it('부분 취소 시 상태 전이 없이 정상 응답해야 한다', async () => {
+        mockProvider.verifyWebhook.mockResolvedValue(true);
+        mockProvider.parseWebhookData.mockResolvedValue({
+          pg_transaction_id: 'ORDER_123',
+          status: 'partial_canceled',
+          amount: 10000,
+          pg_response: {
+            status: 1,
+            webhook_type: 'PAYMENT_PARTIAL_CANCELLED',
+            cancelled_price: 1000,
+          },
+        });
+
+        const result = await controller.handleWebhook('bootpay', mockBody);
+
+        expect(result).toEqual({ success: true });
+        expect(
+          paymentTransactionService.processSuccessfulPayment,
+        ).not.toHaveBeenCalled();
+        expect(paymentTransactionService.cancelPayment).not.toHaveBeenCalled();
       });
     });
 
