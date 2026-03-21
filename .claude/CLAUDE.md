@@ -189,6 +189,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - `npx tsc --noEmit`
 2. 개인정보는 반드시 암호화 (UserDetail 참고)
 
+## lint 변경사항 처리 규칙
+코드 작업 전 lint 실행 시 lint 자동 수정 대상(포맷팅, 세미콜론, 줄바꿈 등)이 있는 경우:
+1. **코드 작업 전에 먼저** lint로 인해 변경될 파일 목록과 내용을 사용자에게 알린다
+2. 사용자가 인지한 후 lint 관련 처리를 한 후 실제 기능 변경 작업을 진행한다
+
 ## 실시간 채팅 구조 개발 규칙
 실시간 채팅방에 관련된 Redis 구조의 코드를 작업할 때는 항상 서버가 여러개로 스케일링 될 경우를 고려하여 작성해달라
 
