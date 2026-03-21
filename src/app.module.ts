@@ -39,6 +39,7 @@ import { SettlementModule } from './settlement/settlement.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { BootpayModule } from './bootpay/bootpay.module';
 import { IdentityVerificationModule } from './identity-verification/identity-verification.module';
+import { OverlayModule } from './overlay/overlay.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { IdentityVerificationModule } from './identity-verification/identity-ver
     SchedulerModule,
     BootpayModule,
     IdentityVerificationModule,
+    OverlayModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],

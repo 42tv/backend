@@ -339,15 +339,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     userId: string,
     client: AuthenticatedSocket,
   ) {
-    // 자기가 관리하는 채팅방에 broadcasterId가 없다면 새로 생성 및 이벤트 구독 추가
     if (!this.chatRooms.has(broadcasterId)) {
       console.log(`[Create] - chatRoom[${broadcasterId}]: ${broadcasterId}`);
       this.chatRooms.set(broadcasterId, new Map<string, AuthenticatedSocket>());
-      await this.redisService.subscribe(`room:${broadcasterId}`);
     }
-    // chatRoom Map에 추가
     this.chatRooms.get(broadcasterId).set(userId, client);
-    // Redis에 con, viewer 추가
+    await this.redisService.acquireRoomSubscription(broadcasterId, 'chat');
     await this.redisService.registConnection(broadcasterId, userId);
     await this.redisService.registViewer(broadcasterId, userId, client.jwt);
     client.join(broadcasterId);
@@ -382,11 +379,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Redis에서 연결 정보 삭제
         await this.redisService.removeConnection(broadcasterId, userId);
         await this.redisService.removeViewer(broadcasterId, userId);
-        // 만약 자기 서버의 broadcaster 채팅방에 아무도 없다면 채팅방을 제거하고 Redis 구독 해제
+        await this.redisService.releaseRoomSubscription(broadcasterId, 'chat');
         if (roomMap.size === 0) {
           console.log(`[Delete] - chatRoom[${broadcasterId}]:${userId}`);
           this.chatRooms.delete(broadcasterId);
-          await this.redisService.unsubscribe(`room:${broadcasterId}`);
         }
       }
     }

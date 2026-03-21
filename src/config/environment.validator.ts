@@ -74,7 +74,6 @@ export class EnvironmentValidator {
     }
 
     this.logger.log(`IDENTITY_VERIFICATION_MODE=${mode}`);
-
   }
 
   /**

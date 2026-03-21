@@ -12,7 +12,9 @@ export class IdentityVerificationController {
   @Post('phone/start')
   @UseGuards(MemberGuard)
   async startPhoneVerification(@Request() req) {
-    return this.identityVerificationService.startPhoneVerification(req.user.idx);
+    return this.identityVerificationService.startPhoneVerification(
+      req.user.idx,
+    );
   }
 
   @Post('phone/confirm')

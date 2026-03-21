@@ -1,6 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { EventsGateway } from 'src/chat/chat.gateway';
+import { OverlayGateway } from 'src/overlay/overlay.gateway';
 import { Redis } from 'ioredis';
 import { RedisMessages } from './interfaces/message-namespace';
 import {
@@ -20,15 +21,20 @@ import {
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { getUserRoleColor } from 'src/constants/chat-colors';
 
+type ConsumerKind = 'chat' | 'overlay';
+
 @Injectable()
 export class RedisService {
   private serverId: number;
   private subscriber: Redis;
+  private roomConsumers = new Map<string, { chat: number; overlay: number }>();
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
     @Inject(forwardRef(() => EventsGateway))
     private readonly eventsGateway: EventsGateway, // Circular dependency 해결을 위해 forwardRef 사용
+    @Inject(forwardRef(() => OverlayGateway))
+    private readonly overlayGateway: OverlayGateway,
   ) {
     this.subscriber = new Redis({
       host: process.env.REDIS_IP,
@@ -157,7 +163,7 @@ export class RedisService {
    */
   private async handleChatMessage(message: ChatRoomMessage) {
     const chatPayload = message.payload as ChatPayload;
-    await this.eventsGateway.sendToRoom(message.broadcaster_id, message.op, {
+    const chatData = {
       type: OpCode.CHAT,
       user_idx: chatPayload.user_idx,
       user_id: chatPayload.user_id,
@@ -167,6 +173,23 @@ export class RedisService {
       role: chatPayload.role,
       grade: chatPayload.grade,
       color: chatPayload.color,
+    };
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.op,
+      chatData,
+    );
+
+    // overlay fan-out
+    this.overlayGateway.sendToOverlay(message.broadcaster_id, {
+      op: OpCode.CHAT,
+      broadcaster_id: message.broadcaster_id,
+      payload: {
+        user_id: chatPayload.user_id,
+        nickname: chatPayload.nickname,
+        message: chatPayload.message,
+      },
+      sent_at: new Date().toISOString(),
     });
   }
 
@@ -312,6 +335,47 @@ export class RedisService {
       message.op,
       message.payload,
     );
+  }
+
+  /**
+   * 방 구독 참조 카운트를 증가시키고, 최초 소비자일 경우 Redis 채널을 구독합니다.
+   * @param broadcasterId 방송자 ID
+   * @param kind 소비자 종류 ('chat' | 'overlay')
+   */
+  async acquireRoomSubscription(
+    broadcasterId: string,
+    kind: ConsumerKind,
+  ): Promise<void> {
+    const state = this.roomConsumers.get(broadcasterId) ?? {
+      chat: 0,
+      overlay: 0,
+    };
+    const wasEmpty = state.chat + state.overlay === 0;
+    state[kind] += 1;
+    this.roomConsumers.set(broadcasterId, state);
+    if (wasEmpty) {
+      await this.subscribe(`room:${broadcasterId}`);
+    }
+  }
+
+  /**
+   * 방 구독 참조 카운트를 감소시키고, 소비자가 없을 경우 Redis 채널 구독을 해제합니다.
+   * @param broadcasterId 방송자 ID
+   * @param kind 소비자 종류 ('chat' | 'overlay')
+   */
+  async releaseRoomSubscription(
+    broadcasterId: string,
+    kind: ConsumerKind,
+  ): Promise<void> {
+    const state = this.roomConsumers.get(broadcasterId);
+    if (!state) return;
+    state[kind] = Math.max(0, state[kind] - 1);
+    if (state.chat + state.overlay === 0) {
+      this.roomConsumers.delete(broadcasterId);
+      await this.unsubscribe(`room:${broadcasterId}`);
+      return;
+    }
+    this.roomConsumers.set(broadcasterId, state);
   }
 
   /**
