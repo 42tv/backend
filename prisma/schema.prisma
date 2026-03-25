@@ -85,6 +85,9 @@ model User {
   payoutCoins PayoutCoin[] @relation("PayoutCoins")
   settlements Settlement[] @relation("Settlements")
 
+  // Widget relations
+  widgetTokens WidgetToken[]
+
   @@map("users")
 }
 
@@ -878,4 +881,85 @@ enum SettlementStatus {
   APPROVED // 승인됨
   PAID // 지급 완료
   REJECTED // 거절됨
+}
+
+// ─── Widget Token System ───────────────────────────────────────────
+
+model WidgetToken {
+  id                 String @id @default(cuid())
+  token              String @unique // ULID 26자
+  broadcaster_id     Int
+  widget_type        WidgetType
+  chat_config_id     String @unique
+  donation_config_id String @unique
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  broadcaster     User                @relation(fields: [broadcaster_id], references: [idx])
+  chat_config     WidgetChatConfig    @relation(fields: [chat_config_id], references: [id])
+  donation_config WidgetDonationConfig @relation(fields: [donation_config_id], references: [id])
+
+  @@index([broadcaster_id])
+  @@map("widget_tokens")
+}
+
+model WidgetChatConfig {
+  id                 String          @id @default(cuid())
+  style              ChatWidgetStyle @default(COMPACT)
+  max_messages       Int             @default(5)
+  show_profile_image Boolean         @default(true)
+  font_size          WidgetFontSize  @default(SM)
+  bg_opacity         Int             @default(55)
+  bg_color           String          @default("#000000")
+  font_color         String          @default("#ffffff")
+  message_duration   Int             @default(5000)
+  show_badges        Boolean         @default(true)
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
+
+  widget_token WidgetToken?
+
+  @@map("widget_chat_configs")
+}
+
+model WidgetDonationConfig {
+  id                 String              @id @default(cuid())
+  style              DonationWidgetStyle @default(BANNER)
+  min_display_amount Int                 @default(0)
+  display_duration   Int                 @default(5000)
+  goal_amount        Int?
+  goal_label         String?
+  bg_opacity         Int                 @default(55)
+  font_size          WidgetFontSize      @default(SM)
+  animation_type     String              @default("slide")
+  sound_enabled      Boolean             @default(false)
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @updatedAt
+
+  widget_token WidgetToken?
+
+  @@map("widget_donation_configs")
+}
+
+enum WidgetType {
+  CHAT
+  DONATION
+}
+
+enum ChatWidgetStyle {
+  COMPACT
+  BUBBLE
+  NOTICE
+}
+
+enum DonationWidgetStyle {
+  BANNER
+  CARD
+  GOAL
+}
+
+enum WidgetFontSize {
+  SM
+  MD
+  LG
 }

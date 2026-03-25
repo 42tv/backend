@@ -1,10 +1,13 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
 import { OverlayGateway } from './overlay.gateway';
-import { ChattingRedisModule } from 'src/redis/redis.module';
+import { RealtimeRedisModule } from 'src/redis/redis.module';
+import { WidgetModule } from 'src/widget/widget.module';
 
 @Module({
-  imports: [JwtModule.register({}), forwardRef(() => ChattingRedisModule)],
+  imports: [
+    forwardRef(() => RealtimeRedisModule),
+    forwardRef(() => WidgetModule),
+  ],
   providers: [OverlayGateway],
   exports: [OverlayGateway],
 })

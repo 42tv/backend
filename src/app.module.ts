@@ -12,7 +12,7 @@ import { LogModule } from './log/log.module';
 import { AuthModule } from './auth/auth.module';
 import { OauthModule } from './oauth/oauth.module';
 import { StreamModule } from './stream/stream.module';
-import { ChattingRedisModule } from './redis/redis.module';
+import { RealtimeRedisModule } from './redis/redis.module';
 import { ChatModule } from './chat/chat.module';
 import { JwtCookieMiddleware } from './middle-ware/jwt-cookie.middleware';
 import { PostModule } from './post/post.module';
@@ -40,6 +40,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { BootpayModule } from './bootpay/bootpay.module';
 import { IdentityVerificationModule } from './identity-verification/identity-verification.module';
 import { OverlayModule } from './overlay/overlay.module';
+import { WidgetModule } from './widget/widget.module';
 
 @Module({
   imports: [
@@ -54,7 +55,7 @@ import { OverlayModule } from './overlay/overlay.module';
     AuthModule,
     OauthModule,
     StreamModule,
-    ChattingRedisModule,
+    RealtimeRedisModule,
     ChatModule,
     PostModule,
     FanLevelModule,
@@ -80,6 +81,7 @@ import { OverlayModule } from './overlay/overlay.module';
     BootpayModule,
     IdentityVerificationModule,
     OverlayModule,
+    WidgetModule,
   ],
   controllers: [AppController, LiveController],
   providers: [AppService],
