@@ -8,7 +8,7 @@ import { CoinBalanceModule } from '../coin-balance/coin-balance.module';
 import { PayoutCoinModule } from '../payout-coin/payout-coin.module';
 import { UserModule } from '../user/user.module';
 import { FanModule } from '../fan/fan.module';
-import { ChattingRedisModule } from '../redis/redis.module';
+import { RealtimeRedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
@@ -18,7 +18,7 @@ import { ChattingRedisModule } from '../redis/redis.module';
     forwardRef(() => PayoutCoinModule),
     forwardRef(() => UserModule),
     FanModule,
-    forwardRef(() => ChattingRedisModule),
+    forwardRef(() => RealtimeRedisModule),
   ],
   controllers: [DonationController],
   providers: [DonationService, DonationRepository],

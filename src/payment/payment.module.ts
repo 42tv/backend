@@ -8,7 +8,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { CoinTopupModule } from '../coin-topup/coin-topup.module';
 import { ProductModule } from '../product/product.module';
 import { UserModule } from '../user/user.module';
-import { ChattingRedisModule } from '../redis/redis.module';
+import { RealtimeRedisModule } from '../redis/redis.module';
 import { PgProviderFactory } from './pg-providers/pg-provider.factory';
 import { MockPgProvider } from './pg-providers/mock-provider.service';
 import { BootpayProvider } from './pg-providers/bootpay-provider.service';
@@ -23,7 +23,7 @@ import { IdentityVerifiedMemberGuard } from './guards/identity-verified-member.g
     forwardRef(() => CoinTopupModule),
     ProductModule,
     UserModule,
-    ChattingRedisModule,
+    RealtimeRedisModule,
   ],
   controllers: [PaymentTransactionController],
   providers: [

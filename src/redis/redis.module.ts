@@ -20,4 +20,4 @@ const password = process.env.REDIS_PASSWORD;
   controllers: [],
   exports: [RedisService],
 })
-export class ChattingRedisModule {}
+export class RealtimeRedisModule {}

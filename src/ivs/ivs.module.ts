@@ -7,7 +7,7 @@ import { StreamModule } from 'src/stream/stream.module';
 import { UserModule } from 'src/user/user.module';
 import { IvsRepository } from './ivs.repository';
 import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.module';
-import { ChattingRedisModule } from 'src/redis/redis.module';
+import { RealtimeRedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports: [
@@ -15,7 +15,7 @@ import { ChattingRedisModule } from 'src/redis/redis.module';
     PrismaModule,
     StreamModule,
     BroadcastSettingModule,
-    ChattingRedisModule,
+    RealtimeRedisModule,
     forwardRef(() => UserModule),
   ],
   providers: [IvsService, IvsRepository],

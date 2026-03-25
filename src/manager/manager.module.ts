@@ -4,7 +4,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { ManagerController } from './manager.controller';
 import { AuthModule } from 'src/auth/auth.module';
 import { ManagerRepository } from './manager.repository';
-import { ChattingRedisModule } from 'src/redis/redis.module';
+import { RealtimeRedisModule } from 'src/redis/redis.module';
 import { FanModule } from 'src/fan/fan.module';
 import { UserModule } from 'src/user/user.module';
 
@@ -12,7 +12,7 @@ import { UserModule } from 'src/user/user.module';
   imports: [
     PrismaModule,
     AuthModule,
-    forwardRef(() => ChattingRedisModule),
+    forwardRef(() => RealtimeRedisModule),
     forwardRef(() => FanModule),
     forwardRef(() => UserModule),
   ],
