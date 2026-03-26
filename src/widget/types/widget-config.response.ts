@@ -25,8 +25,7 @@ export interface DonationConfigResponse {
 export interface WidgetConfigResponse {
   widgetType: string;
   broadcasterId: string;
-  chatConfig: ChatConfigResponse;
-  donationConfig: DonationConfigResponse;
+  config: ChatConfigResponse | DonationConfigResponse;
 }
 
 export interface WidgetTokenResponse {
@@ -34,6 +33,5 @@ export interface WidgetTokenResponse {
   widgetType: string;
   widgetUrl: string;
   previewUrl: string;
-  chatConfig: ChatConfigResponse;
-  donationConfig: DonationConfigResponse;
+  config: ChatConfigResponse | DonationConfigResponse;
 }

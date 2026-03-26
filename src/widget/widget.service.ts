@@ -79,15 +79,34 @@ export class WidgetService {
 
     return {
       widgetType: widgetToken.widget_type,
-      broadcasterId: String(widgetToken.broadcaster_id),
-      chatConfig: this.formatChatConfig(widgetToken.chat_config),
-      donationConfig: this.formatDonationConfig(widgetToken.donation_config),
+      broadcasterId: widgetToken.broadcaster.user_id,
+      config: this.formatConfig(
+        widgetToken.widget_type,
+        widgetToken.chat_config,
+        widgetToken.donation_config,
+      ),
     };
   }
 
   async getMyTokens(broadcasterId: number): Promise<WidgetTokenResponse[]> {
-    const tokens =
+    const existing =
       await this.widgetRepository.findAllByBroadcaster(broadcasterId);
+
+    const requiredTypes = [WidgetType.CHAT, WidgetType.DONATION];
+    const existingTypes = new Set(existing.map((wt) => wt.widget_type));
+
+    const missing = requiredTypes.filter((type) => !existingTypes.has(type));
+    const created = await Promise.all(
+      missing.map((type) =>
+        this.widgetRepository.createToken(
+          broadcasterId,
+          this.generateToken(),
+          type,
+        ),
+      ),
+    );
+
+    const tokens = [...existing, ...created];
     return tokens.map((wt) => {
       const { widgetUrl, previewUrl } = this.buildWidgetUrls(
         wt.token,
@@ -98,10 +117,23 @@ export class WidgetService {
         widgetType: wt.widget_type,
         widgetUrl,
         previewUrl,
-        chatConfig: this.formatChatConfig(wt.chat_config),
-        donationConfig: this.formatDonationConfig(wt.donation_config),
+        config: this.formatConfig(
+          wt.widget_type,
+          wt.chat_config,
+          wt.donation_config,
+        ),
       };
     });
+  }
+
+  private formatConfig(
+    widgetType: WidgetType,
+    chatConfig: WidgetChatConfig,
+    donationConfig: WidgetDonationConfig,
+  ): ChatConfigResponse | DonationConfigResponse {
+    return widgetType === WidgetType.CHAT
+      ? this.formatChatConfig(chatConfig)
+      : this.formatDonationConfig(donationConfig);
   }
 
   async createToken(
@@ -123,8 +155,11 @@ export class WidgetService {
       widgetType: wt.widget_type,
       widgetUrl,
       previewUrl,
-      chatConfig: this.formatChatConfig(wt.chat_config),
-      donationConfig: this.formatDonationConfig(wt.donation_config),
+      config: this.formatConfig(
+        wt.widget_type,
+        wt.chat_config,
+        wt.donation_config,
+      ),
     };
   }
 

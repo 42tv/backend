@@ -6,6 +6,7 @@ import {
   WidgetToken,
   WidgetChatConfig,
   WidgetDonationConfig,
+  User,
 } from '@prisma/client';
 
 type WidgetTokenWithConfigs = WidgetToken & {
@@ -13,14 +14,24 @@ type WidgetTokenWithConfigs = WidgetToken & {
   donation_config: WidgetDonationConfig;
 };
 
+type WidgetTokenWithConfigsAndBroadcaster = WidgetTokenWithConfigs & {
+  broadcaster: Pick<User, 'user_id'>;
+};
+
 @Injectable()
 export class WidgetRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByToken(token: string): Promise<WidgetTokenWithConfigs | null> {
+  async findByToken(
+    token: string,
+  ): Promise<WidgetTokenWithConfigsAndBroadcaster | null> {
     return this.prisma.widgetToken.findUnique({
       where: { token },
-      include: { chat_config: true, donation_config: true },
+      include: {
+        chat_config: true,
+        donation_config: true,
+        broadcaster: { select: { user_id: true } },
+      },
     });
   }
 

@@ -181,16 +181,11 @@ export class RedisService {
     );
 
     // overlay fan-out
-    this.overlayGateway.sendToOverlay(message.broadcaster_id, {
-      op: OpCode.CHAT,
-      broadcaster_id: message.broadcaster_id,
-      payload: {
-        user_id: chatPayload.user_id,
-        nickname: chatPayload.nickname,
-        message: chatPayload.message,
-      },
-      sent_at: new Date().toISOString(),
-    });
+    this.overlayGateway.sendToOverlay(
+      message.broadcaster_id,
+      message.op,
+      chatData,
+    );
   }
 
   /**
