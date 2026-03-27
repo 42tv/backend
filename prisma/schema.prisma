@@ -908,7 +908,7 @@ model WidgetChatConfig {
   style              ChatWidgetStyle @default(COMPACT)
   max_messages       Int             @default(5)
   show_profile_image Boolean         @default(true)
-  font_size          WidgetFontSize  @default(SM)
+  font_size          Int             @default(14)
   bg_opacity         Int             @default(55)
   bg_color           String          @default("#000000")
   font_color         String          @default("#ffffff")
@@ -930,7 +930,7 @@ model WidgetDonationConfig {
   goal_amount        Int?
   goal_label         String?
   bg_opacity         Int                 @default(55)
-  font_size          WidgetFontSize      @default(SM)
+  font_size          Int                 @default(14)
   animation_type     String              @default("slide")
   sound_enabled      Boolean             @default(false)
   created_at         DateTime            @default(now())
@@ -958,8 +958,3 @@ enum DonationWidgetStyle {
   GOAL
 }
 
-enum WidgetFontSize {
-  SM
-  MD
-  LG
-}

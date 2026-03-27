@@ -7,7 +7,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { DonationWidgetStyle, WidgetFontSize } from '@prisma/client';
+import { DonationWidgetStyle } from '@prisma/client';
 
 export class UpdateDonationConfigDto {
   @IsOptional()
@@ -40,8 +40,10 @@ export class UpdateDonationConfigDto {
   bg_opacity?: number;
 
   @IsOptional()
-  @IsEnum(WidgetFontSize)
-  font_size?: WidgetFontSize;
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  font_size?: number;
 
   @IsOptional()
   @IsString()

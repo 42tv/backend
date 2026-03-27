@@ -2,7 +2,7 @@ export interface ChatConfigResponse {
   style: string;
   maxMessages: number;
   showProfileImage: boolean;
-  fontSize: string;
+  fontSize: number;
   bgOpacity: number;
   bgColor: string;
   fontColor: string;
@@ -17,7 +17,7 @@ export interface DonationConfigResponse {
   goalAmount: number | null;
   goalLabel: string | null;
   bgOpacity: number;
-  fontSize: string;
+  fontSize: number;
   animationType: string;
   soundEnabled: boolean;
 }

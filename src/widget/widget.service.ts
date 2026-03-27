@@ -35,7 +35,7 @@ export class WidgetService {
       style: config.style.toLowerCase(),
       maxMessages: config.max_messages,
       showProfileImage: config.show_profile_image,
-      fontSize: config.font_size.toLowerCase(),
+      fontSize: config.font_size,
       bgOpacity: config.bg_opacity,
       bgColor: config.bg_color,
       fontColor: config.font_color,
@@ -54,7 +54,7 @@ export class WidgetService {
       goalAmount: config.goal_amount,
       goalLabel: config.goal_label,
       bgOpacity: config.bg_opacity,
-      fontSize: config.font_size.toLowerCase(),
+      fontSize: config.font_size,
       animationType: config.animation_type,
       soundEnabled: config.sound_enabled,
     };

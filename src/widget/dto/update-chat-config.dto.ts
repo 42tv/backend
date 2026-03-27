@@ -7,7 +7,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { ChatWidgetStyle, WidgetFontSize } from '@prisma/client';
+import { ChatWidgetStyle } from '@prisma/client';
 
 export class UpdateChatConfigDto {
   @IsOptional()
@@ -25,8 +25,10 @@ export class UpdateChatConfigDto {
   show_profile_image?: boolean;
 
   @IsOptional()
-  @IsEnum(WidgetFontSize)
-  font_size?: WidgetFontSize;
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  font_size?: number;
 
   @IsOptional()
   @IsInt()
