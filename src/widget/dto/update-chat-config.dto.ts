@@ -26,7 +26,7 @@ export class UpdateChatConfigDto {
 
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(10)
   @Max(100)
   font_size?: number;
 
