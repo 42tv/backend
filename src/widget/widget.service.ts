@@ -41,6 +41,7 @@ export class WidgetService {
       fontColor: config.font_color,
       messageDuration: config.message_duration,
       showBadges: config.show_badges,
+      showUserId: config.show_user_id,
     };
   }
 
@@ -191,6 +192,7 @@ export class WidgetService {
           message_duration: dto.message_duration,
         }),
         ...(dto.show_badges !== undefined && { show_badges: dto.show_badges }),
+        ...(dto.show_user_id !== undefined && { show_user_id: dto.show_user_id }),
       },
     );
     return this.formatChatConfig(updated);

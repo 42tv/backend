@@ -52,4 +52,8 @@ export class UpdateChatConfigDto {
   @IsOptional()
   @IsBoolean()
   show_badges?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  show_user_id?: boolean;
 }

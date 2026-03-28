@@ -914,6 +914,7 @@ model WidgetChatConfig {
   font_color         String          @default("#ffffff")
   message_duration   Int             @default(5000)
   show_badges        Boolean         @default(true)
+  show_user_id       Boolean         @default(true)
   created_at         DateTime        @default(now())
   updated_at         DateTime        @updatedAt
 

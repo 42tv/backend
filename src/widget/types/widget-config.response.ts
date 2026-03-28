@@ -8,6 +8,7 @@ export interface ChatConfigResponse {
   fontColor: string;
   messageDuration: number;
   showBadges: boolean;
+  showUserId: boolean;
 }
 
 export interface DonationConfigResponse {
