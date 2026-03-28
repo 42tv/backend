@@ -905,7 +905,7 @@ model WidgetToken {
 
 model WidgetChatConfig {
   id                 String          @id @default(cuid())
-  style              ChatWidgetStyle @default(COMPACT)
+  style              ChatWidgetStyle @default(DEFAULT)
   max_messages       Int             @default(5)
   show_profile_image Boolean         @default(true)
   font_size          Int             @default(14)
@@ -948,9 +948,8 @@ enum WidgetType {
 }
 
 enum ChatWidgetStyle {
-  COMPACT
-  BUBBLE
-  NOTICE
+  DEFAULT
+  GRADIENT
 }
 
 enum DonationWidgetStyle {
