@@ -3,11 +3,6 @@ export interface ChatConfigResponse {
   maxMessages: number;
   showProfileImage: boolean;
   fontSize: number;
-  bgOpacity: number;
-  bgColor: string;
-  fontColor: string;
-  messageDuration: number;
-  showBadges: boolean;
   showUserId: boolean;
 }
 

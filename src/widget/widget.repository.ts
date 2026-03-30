@@ -35,6 +35,16 @@ export class WidgetRepository {
     });
   }
 
+  async findByBroadcasterAndType(
+    broadcasterId: number,
+    widgetType: WidgetType,
+  ): Promise<WidgetTokenWithConfigs | null> {
+    return this.prisma.widgetToken.findFirst({
+      where: { broadcaster_id: broadcasterId, widget_type: widgetType },
+      include: { chat_config: true, donation_config: true },
+    });
+  }
+
   async findAllByBroadcaster(
     broadcasterId: number,
   ): Promise<WidgetTokenWithConfigs[]> {

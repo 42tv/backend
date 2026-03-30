@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ulid } from 'ulid';
 import {
   WidgetType,
@@ -36,11 +32,6 @@ export class WidgetService {
       maxMessages: config.max_messages,
       showProfileImage: config.show_profile_image,
       fontSize: config.font_size,
-      bgOpacity: config.bg_opacity,
-      bgColor: config.bg_color,
-      fontColor: config.font_color,
-      messageDuration: config.message_duration,
-      showBadges: config.show_badges,
       showUserId: config.show_user_id,
     };
   }
@@ -166,13 +157,13 @@ export class WidgetService {
 
   async updateChatConfig(
     broadcasterId: number,
-    token: string,
     dto: UpdateChatConfigDto,
   ): Promise<ChatConfigResponse> {
-    const widgetToken = await this.widgetRepository.findByToken(token);
+    const widgetToken = await this.widgetRepository.findByBroadcasterAndType(
+      broadcasterId,
+      WidgetType.CHAT,
+    );
     if (!widgetToken) throw new NotFoundException('위젯을 찾을 수 없습니다.');
-    if (widgetToken.broadcaster_id !== broadcasterId)
-      throw new ForbiddenException('권한이 없습니다.');
 
     const updated = await this.widgetRepository.updateChatConfig(
       widgetToken.chat_config_id,
@@ -185,14 +176,9 @@ export class WidgetService {
           show_profile_image: dto.show_profile_image,
         }),
         ...(dto.font_size !== undefined && { font_size: dto.font_size }),
-        ...(dto.bg_opacity !== undefined && { bg_opacity: dto.bg_opacity }),
-        ...(dto.bg_color !== undefined && { bg_color: dto.bg_color }),
-        ...(dto.font_color !== undefined && { font_color: dto.font_color }),
-        ...(dto.message_duration !== undefined && {
-          message_duration: dto.message_duration,
+        ...(dto.show_user_id !== undefined && {
+          show_user_id: dto.show_user_id,
         }),
-        ...(dto.show_badges !== undefined && { show_badges: dto.show_badges }),
-        ...(dto.show_user_id !== undefined && { show_user_id: dto.show_user_id }),
       },
     );
     return this.formatChatConfig(updated);
@@ -200,13 +186,13 @@ export class WidgetService {
 
   async updateDonationConfig(
     broadcasterId: number,
-    token: string,
     dto: UpdateDonationConfigDto,
   ): Promise<DonationConfigResponse> {
-    const widgetToken = await this.widgetRepository.findByToken(token);
+    const widgetToken = await this.widgetRepository.findByBroadcasterAndType(
+      broadcasterId,
+      WidgetType.DONATION,
+    );
     if (!widgetToken) throw new NotFoundException('위젯을 찾을 수 없습니다.');
-    if (widgetToken.broadcaster_id !== broadcasterId)
-      throw new ForbiddenException('권한이 없습니다.');
 
     const updated = await this.widgetRepository.updateDonationConfig(
       widgetToken.donation_config_id,

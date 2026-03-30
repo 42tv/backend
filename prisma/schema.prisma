@@ -909,11 +909,6 @@ model WidgetChatConfig {
   max_messages       Int             @default(5)
   show_profile_image Boolean         @default(true)
   font_size          Int             @default(14)
-  bg_opacity         Int             @default(55)
-  bg_color           String          @default("#000000")
-  font_color         String          @default("#ffffff")
-  message_duration   Int             @default(5000)
-  show_badges        Boolean         @default(true)
   show_user_id       Boolean         @default(true)
   created_at         DateTime        @default(now())
   updated_at         DateTime        @updatedAt

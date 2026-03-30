@@ -3,7 +3,6 @@ import {
   IsEnum,
   IsInt,
   IsOptional,
-  IsString,
   Max,
   Min,
 } from 'class-validator';
@@ -29,29 +28,6 @@ export class UpdateChatConfigDto {
   @Min(10)
   @Max(100)
   font_size?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(100)
-  bg_opacity?: number;
-
-  @IsOptional()
-  @IsString()
-  bg_color?: string;
-
-  @IsOptional()
-  @IsString()
-  font_color?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1000)
-  message_duration?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  show_badges?: boolean;
 
   @IsOptional()
   @IsBoolean()

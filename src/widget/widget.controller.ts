@@ -40,22 +40,20 @@ export class WidgetController {
   }
 
   @UseGuards(MemberGuard)
-  @Put(':token/chat-config')
+  @Put('chat-config')
   updateChatConfig(
     @GetUser() user: AuthenticatedUser,
-    @Param('token') token: string,
     @Body() dto: UpdateChatConfigDto,
   ) {
-    return this.widgetService.updateChatConfig(user.idx, token, dto);
+    return this.widgetService.updateChatConfig(user.idx, dto);
   }
 
   @UseGuards(MemberGuard)
-  @Put(':token/donation-config')
+  @Put('donation-config')
   updateDonationConfig(
     @GetUser() user: AuthenticatedUser,
-    @Param('token') token: string,
     @Body() dto: UpdateDonationConfigDto,
   ) {
-    return this.widgetService.updateDonationConfig(user.idx, token, dto);
+    return this.widgetService.updateDonationConfig(user.idx, dto);
   }
 }
