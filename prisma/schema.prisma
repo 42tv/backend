@@ -891,13 +891,13 @@ model WidgetToken {
   broadcaster_id     Int
   widget_type        WidgetType
   chat_config_id     String @unique
-  donation_config_id String @unique
+  goal_config_id String @unique
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
   broadcaster     User                @relation(fields: [broadcaster_id], references: [idx])
   chat_config     WidgetChatConfig    @relation(fields: [chat_config_id], references: [id])
-  donation_config WidgetDonationConfig @relation(fields: [donation_config_id], references: [id])
+  goal_config WidgetGoalConfig @relation(fields: [goal_config_id], references: [id])
 
   @@index([broadcaster_id])
   @@map("widget_tokens")
@@ -918,28 +918,25 @@ model WidgetChatConfig {
   @@map("widget_chat_configs")
 }
 
-model WidgetDonationConfig {
-  id                 String              @id @default(cuid())
-  style              DonationWidgetStyle @default(BANNER)
-  min_display_amount Int                 @default(0)
-  display_duration   Int                 @default(5000)
-  goal_amount        Int?
-  goal_label         String?
-  bg_opacity         Int                 @default(55)
-  font_size          Int                 @default(14)
-  animation_type     String              @default("slide")
-  sound_enabled      Boolean             @default(false)
-  created_at         DateTime            @default(now())
-  updated_at         DateTime            @updatedAt
+model WidgetGoalConfig {
+  id             String          @id @default(cuid())
+  style          GoalWidgetStyle @default(GOAL_BAR)
+  goal_amount    Int             @default(500)
+  goal_label     String          @default("리액션 미션 달성까지")
+  bg_opacity     Int             @default(55)
+  font_size      Int             @default(14)
+  animation_type String          @default("slide")
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
 
   widget_token WidgetToken?
 
-  @@map("widget_donation_configs")
+  @@map("widget_goal_configs")
 }
 
 enum WidgetType {
   CHAT
-  DONATION
+  GOAL
 }
 
 enum ChatWidgetStyle {
@@ -947,9 +944,9 @@ enum ChatWidgetStyle {
   GRADIENT
 }
 
-enum DonationWidgetStyle {
-  BANNER
-  CARD
-  GOAL
+enum GoalWidgetStyle {
+  GOAL_BAR
+  GOAL_RING
+  GOAL_STEP
 }
 

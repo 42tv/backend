@@ -5,13 +5,13 @@ import {
   WidgetType,
   WidgetToken,
   WidgetChatConfig,
-  WidgetDonationConfig,
+  WidgetGoalConfig,
   User,
 } from '@prisma/client';
 
 type WidgetTokenWithConfigs = WidgetToken & {
   chat_config: WidgetChatConfig;
-  donation_config: WidgetDonationConfig;
+  goal_config: WidgetGoalConfig;
 };
 
 type WidgetTokenWithConfigsAndBroadcaster = WidgetTokenWithConfigs & {
@@ -29,7 +29,7 @@ export class WidgetRepository {
       where: { token },
       include: {
         chat_config: true,
-        donation_config: true,
+        goal_config: true,
         broadcaster: { select: { user_id: true } },
       },
     });
@@ -41,7 +41,7 @@ export class WidgetRepository {
   ): Promise<WidgetTokenWithConfigs | null> {
     return this.prisma.widgetToken.findFirst({
       where: { broadcaster_id: broadcasterId, widget_type: widgetType },
-      include: { chat_config: true, donation_config: true },
+      include: { chat_config: true, goal_config: true },
     });
   }
 
@@ -50,7 +50,7 @@ export class WidgetRepository {
   ): Promise<WidgetTokenWithConfigs[]> {
     return this.prisma.widgetToken.findMany({
       where: { broadcaster_id: broadcasterId },
-      include: { chat_config: true, donation_config: true },
+      include: { chat_config: true, goal_config: true },
       orderBy: { created_at: 'asc' },
     });
   }
@@ -62,7 +62,7 @@ export class WidgetRepository {
   ): Promise<WidgetTokenWithConfigs> {
     return this.prisma.$transaction(async (tx) => {
       const chatConfig = await tx.widgetChatConfig.create({ data: {} });
-      const donationConfig = await tx.widgetDonationConfig.create({ data: {} });
+      const goalConfig = await tx.widgetGoalConfig.create({ data: {} });
 
       return tx.widgetToken.create({
         data: {
@@ -70,9 +70,9 @@ export class WidgetRepository {
           broadcaster_id: broadcasterId,
           widget_type: widgetType,
           chat_config_id: chatConfig.id,
-          donation_config_id: donationConfig.id,
+          goal_config_id: goalConfig.id,
         },
-        include: { chat_config: true, donation_config: true },
+        include: { chat_config: true, goal_config: true },
       });
     });
   }
@@ -87,11 +87,11 @@ export class WidgetRepository {
     });
   }
 
-  async updateDonationConfig(
+  async updateGoalConfig(
     configId: string,
-    data: Prisma.WidgetDonationConfigUpdateInput,
-  ): Promise<WidgetDonationConfig> {
-    return this.prisma.widgetDonationConfig.update({
+    data: Prisma.WidgetGoalConfigUpdateInput,
+  ): Promise<WidgetGoalConfig> {
+    return this.prisma.widgetGoalConfig.update({
       where: { id: configId },
       data,
     });

@@ -6,22 +6,19 @@ export interface ChatConfigResponse {
   showUserId: boolean;
 }
 
-export interface DonationConfigResponse {
+export interface GoalConfigResponse {
   style: string;
-  minDisplayAmount: number;
-  displayDuration: number;
-  goalAmount: number | null;
-  goalLabel: string | null;
+  goalAmount: number;
+  goalLabel: string;
   bgOpacity: number;
   fontSize: number;
   animationType: string;
-  soundEnabled: boolean;
 }
 
 export interface WidgetConfigResponse {
   widgetType: string;
   broadcasterId: string;
-  config: ChatConfigResponse | DonationConfigResponse;
+  config: ChatConfigResponse | GoalConfigResponse;
 }
 
 export interface WidgetTokenResponse {
@@ -29,5 +26,5 @@ export interface WidgetTokenResponse {
   widgetType: string;
   widgetUrl: string;
   previewUrl: string;
-  config: ChatConfigResponse | DonationConfigResponse;
+  config: ChatConfigResponse | GoalConfigResponse;
 }

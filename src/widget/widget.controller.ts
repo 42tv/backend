@@ -13,7 +13,7 @@ import { AuthenticatedUser } from 'src/auth/interfaces/auth.interface';
 import { WidgetService } from './widget.service';
 import { CreateWidgetTokenDto } from './dto/create-widget-token.dto';
 import { UpdateChatConfigDto } from './dto/update-chat-config.dto';
-import { UpdateDonationConfigDto } from './dto/update-donation-config.dto';
+import { UpdateGoalConfigDto } from './dto/update-goal-config.dto';
 
 @Controller('widget')
 export class WidgetController {
@@ -49,11 +49,11 @@ export class WidgetController {
   }
 
   @UseGuards(MemberGuard)
-  @Put('donation-config')
-  updateDonationConfig(
+  @Put('goal-config')
+  updateGoalConfig(
     @GetUser() user: AuthenticatedUser,
-    @Body() dto: UpdateDonationConfigDto,
+    @Body() dto: UpdateGoalConfigDto,
   ) {
-    return this.widgetService.updateDonationConfig(user.idx, dto);
+    return this.widgetService.updateGoalConfig(user.idx, dto);
   }
 }

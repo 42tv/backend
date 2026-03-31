@@ -11,7 +11,9 @@ import { ChatWidgetStyle } from '@prisma/client';
 
 export class UpdateChatConfigDto {
   @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toUpperCase() : value,
+  )
   @IsEnum(ChatWidgetStyle)
   style?: ChatWidgetStyle;
 

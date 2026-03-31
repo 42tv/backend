@@ -1,19 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ulid } from 'ulid';
-import {
-  WidgetType,
-  WidgetChatConfig,
-  WidgetDonationConfig,
-} from '@prisma/client';
+import { WidgetType, WidgetChatConfig, WidgetGoalConfig } from '@prisma/client';
 import { WidgetRepository } from './widget.repository';
 import { CreateWidgetTokenDto } from './dto/create-widget-token.dto';
 import { UpdateChatConfigDto } from './dto/update-chat-config.dto';
-import { UpdateDonationConfigDto } from './dto/update-donation-config.dto';
+import { UpdateGoalConfigDto } from './dto/update-goal-config.dto';
 import {
   WidgetConfigResponse,
   WidgetTokenResponse,
   ChatConfigResponse,
-  DonationConfigResponse,
+  GoalConfigResponse,
 } from './types/widget-config.response';
 
 const WIDGET_BASE_URL = process.env.WIDGET_BASE_URL ?? 'https://42tv.kr';
@@ -36,19 +32,14 @@ export class WidgetService {
     };
   }
 
-  private formatDonationConfig(
-    config: WidgetDonationConfig,
-  ): DonationConfigResponse {
+  private formatGoalConfig(config: WidgetGoalConfig): GoalConfigResponse {
     return {
       style: config.style.toLowerCase(),
-      minDisplayAmount: config.min_display_amount,
-      displayDuration: config.display_duration,
       goalAmount: config.goal_amount,
       goalLabel: config.goal_label,
       bgOpacity: config.bg_opacity,
       fontSize: config.font_size,
       animationType: config.animation_type,
-      soundEnabled: config.sound_enabled,
     };
   }
 
@@ -57,7 +48,7 @@ export class WidgetService {
     widgetType: WidgetType,
   ): { widgetUrl: string; previewUrl: string } {
     const path =
-      widgetType === WidgetType.CHAT ? '/widget/chat' : '/widget/donation';
+      widgetType === WidgetType.CHAT ? '/widget/chat' : '/widget/goal';
     const widgetUrl = `${WIDGET_BASE_URL}${path}?token=${token}`;
     const previewUrl = `${WIDGET_BASE_URL}${path}?token=${token}&dev=true`;
     return { widgetUrl, previewUrl };
@@ -75,7 +66,7 @@ export class WidgetService {
       config: this.formatConfig(
         widgetToken.widget_type,
         widgetToken.chat_config,
-        widgetToken.donation_config,
+        widgetToken.goal_config,
       ),
     };
   }
@@ -84,7 +75,7 @@ export class WidgetService {
     const existing =
       await this.widgetRepository.findAllByBroadcaster(broadcasterId);
 
-    const requiredTypes = [WidgetType.CHAT, WidgetType.DONATION];
+    const requiredTypes = [WidgetType.CHAT, WidgetType.GOAL];
     const existingTypes = new Set(existing.map((wt) => wt.widget_type));
 
     const missing = requiredTypes.filter((type) => !existingTypes.has(type));
@@ -112,7 +103,7 @@ export class WidgetService {
         config: this.formatConfig(
           wt.widget_type,
           wt.chat_config,
-          wt.donation_config,
+          wt.goal_config,
         ),
       };
     });
@@ -121,11 +112,11 @@ export class WidgetService {
   private formatConfig(
     widgetType: WidgetType,
     chatConfig: WidgetChatConfig,
-    donationConfig: WidgetDonationConfig,
-  ): ChatConfigResponse | DonationConfigResponse {
+    goalConfig: WidgetGoalConfig,
+  ): ChatConfigResponse | GoalConfigResponse {
     return widgetType === WidgetType.CHAT
       ? this.formatChatConfig(chatConfig)
-      : this.formatDonationConfig(donationConfig);
+      : this.formatGoalConfig(goalConfig);
   }
 
   async createToken(
@@ -147,11 +138,7 @@ export class WidgetService {
       widgetType: wt.widget_type,
       widgetUrl,
       previewUrl,
-      config: this.formatConfig(
-        wt.widget_type,
-        wt.chat_config,
-        wt.donation_config,
-      ),
+      config: this.formatConfig(wt.widget_type, wt.chat_config, wt.goal_config),
     };
   }
 
@@ -184,26 +171,20 @@ export class WidgetService {
     return this.formatChatConfig(updated);
   }
 
-  async updateDonationConfig(
+  async updateGoalConfig(
     broadcasterId: number,
-    dto: UpdateDonationConfigDto,
-  ): Promise<DonationConfigResponse> {
+    dto: UpdateGoalConfigDto,
+  ): Promise<GoalConfigResponse> {
     const widgetToken = await this.widgetRepository.findByBroadcasterAndType(
       broadcasterId,
-      WidgetType.DONATION,
+      WidgetType.GOAL,
     );
     if (!widgetToken) throw new NotFoundException('위젯을 찾을 수 없습니다.');
 
-    const updated = await this.widgetRepository.updateDonationConfig(
-      widgetToken.donation_config_id,
+    const updated = await this.widgetRepository.updateGoalConfig(
+      widgetToken.goal_config_id,
       {
         ...(dto.style !== undefined && { style: dto.style }),
-        ...(dto.min_display_amount !== undefined && {
-          min_display_amount: dto.min_display_amount,
-        }),
-        ...(dto.display_duration !== undefined && {
-          display_duration: dto.display_duration,
-        }),
         ...(dto.goal_amount !== undefined && { goal_amount: dto.goal_amount }),
         ...(dto.goal_label !== undefined && { goal_label: dto.goal_label }),
         ...(dto.bg_opacity !== undefined && { bg_opacity: dto.bg_opacity }),
@@ -211,11 +192,8 @@ export class WidgetService {
         ...(dto.animation_type !== undefined && {
           animation_type: dto.animation_type,
         }),
-        ...(dto.sound_enabled !== undefined && {
-          sound_enabled: dto.sound_enabled,
-        }),
       },
     );
-    return this.formatDonationConfig(updated);
+    return this.formatGoalConfig(updated);
   }
 }
