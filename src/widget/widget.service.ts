@@ -12,8 +12,6 @@ import {
   GoalConfigResponse,
 } from './types/widget-config.response';
 
-const WIDGET_BASE_URL = process.env.WIDGET_BASE_URL ?? 'https://42tv.kr';
-
 @Injectable()
 export class WidgetService {
   constructor(private readonly widgetRepository: WidgetRepository) {}
@@ -41,17 +39,6 @@ export class WidgetService {
       fontSize: config.font_size,
       animationType: config.animation_type,
     };
-  }
-
-  private buildWidgetUrls(
-    token: string,
-    widgetType: WidgetType,
-  ): { widgetUrl: string; previewUrl: string } {
-    const path =
-      widgetType === WidgetType.CHAT ? '/widget/chat' : '/widget/goal';
-    const widgetUrl = `${WIDGET_BASE_URL}${path}?token=${token}`;
-    const previewUrl = `${WIDGET_BASE_URL}${path}?token=${token}&dev=true`;
-    return { widgetUrl, previewUrl };
   }
 
   async getConfig(token: string): Promise<WidgetConfigResponse> {
@@ -90,23 +77,11 @@ export class WidgetService {
     );
 
     const tokens = [...existing, ...created];
-    return tokens.map((wt) => {
-      const { widgetUrl, previewUrl } = this.buildWidgetUrls(
-        wt.token,
-        wt.widget_type,
-      );
-      return {
-        token: wt.token,
-        widgetType: wt.widget_type,
-        widgetUrl,
-        previewUrl,
-        config: this.formatConfig(
-          wt.widget_type,
-          wt.chat_config,
-          wt.goal_config,
-        ),
-      };
-    });
+    return tokens.map((wt) => ({
+      token: wt.token,
+      widgetType: wt.widget_type,
+      config: this.formatConfig(wt.widget_type, wt.chat_config, wt.goal_config),
+    }));
   }
 
   private formatConfig(
@@ -129,15 +104,9 @@ export class WidgetService {
       token,
       dto.widget_type,
     );
-    const { widgetUrl, previewUrl } = this.buildWidgetUrls(
-      wt.token,
-      wt.widget_type,
-    );
     return {
       token: wt.token,
       widgetType: wt.widget_type,
-      widgetUrl,
-      previewUrl,
       config: this.formatConfig(wt.widget_type, wt.chat_config, wt.goal_config),
     };
   }

@@ -24,7 +24,5 @@ export interface WidgetConfigResponse {
 export interface WidgetTokenResponse {
   token: string;
   widgetType: string;
-  widgetUrl: string;
-  previewUrl: string;
   config: ChatConfigResponse | GoalConfigResponse;
 }
