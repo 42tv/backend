@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 /**
  * IVS 이벤트 콜백 요청 DTO
@@ -57,6 +57,7 @@ export class IvsEventDto {
     description: '이벤트 코드',
     example: '200',
   })
+  @IsOptional()
   @IsString()
-  code: string;
+  code?: string | null;
 }

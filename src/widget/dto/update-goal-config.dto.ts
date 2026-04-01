@@ -4,7 +4,9 @@ import { GoalWidgetStyle } from '@prisma/client';
 
 export class UpdateGoalConfigDto {
   @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toUpperCase() : value,
+  )
   @IsEnum(GoalWidgetStyle)
   style?: GoalWidgetStyle;
 

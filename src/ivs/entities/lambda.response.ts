@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class IvsEvent {
   @IsString()
@@ -25,6 +25,7 @@ export class IvsEvent {
   @IsNotEmpty()
   streamId: string;
 
+  @IsOptional()
   @IsString()
-  code: string;
+  code?: string | null;
 }
