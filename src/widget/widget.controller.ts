@@ -1,17 +1,8 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { AuthenticatedUser } from 'src/auth/interfaces/auth.interface';
 import { WidgetService } from './widget.service';
-import { CreateWidgetTokenDto } from './dto/create-widget-token.dto';
 import { UpdateChatConfigDto } from './dto/update-chat-config.dto';
 import { UpdateGoalConfigDto } from './dto/update-goal-config.dto';
 
@@ -28,15 +19,6 @@ export class WidgetController {
   @Get('my')
   getMyTokens(@GetUser() user: AuthenticatedUser) {
     return this.widgetService.getMyTokens(user.idx);
-  }
-
-  @UseGuards(MemberGuard)
-  @Post()
-  createToken(
-    @GetUser() user: AuthenticatedUser,
-    @Body() dto: CreateWidgetTokenDto,
-  ) {
-    return this.widgetService.createToken(user.idx, dto);
   }
 
   @UseGuards(MemberGuard)

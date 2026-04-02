@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ulid } from 'ulid';
 import { WidgetType, WidgetChatConfig, WidgetGoalConfig } from '@prisma/client';
 import { WidgetRepository } from './widget.repository';
-import { CreateWidgetTokenDto } from './dto/create-widget-token.dto';
 import { UpdateChatConfigDto } from './dto/update-chat-config.dto';
 import { UpdateGoalConfigDto } from './dto/update-goal-config.dto';
 import {
@@ -92,23 +91,6 @@ export class WidgetService {
     return widgetType === WidgetType.CHAT
       ? this.formatChatConfig(chatConfig)
       : this.formatGoalConfig(goalConfig);
-  }
-
-  async createToken(
-    broadcasterId: number,
-    dto: CreateWidgetTokenDto,
-  ): Promise<WidgetTokenResponse> {
-    const token = this.generateToken();
-    const wt = await this.widgetRepository.createToken(
-      broadcasterId,
-      token,
-      dto.widget_type,
-    );
-    return {
-      token: wt.token,
-      widgetType: wt.widget_type,
-      config: this.formatConfig(wt.widget_type, wt.chat_config, wt.goal_config),
-    };
   }
 
   async updateChatConfig(
