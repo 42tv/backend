@@ -330,6 +330,12 @@ export class RedisService {
       message.op,
       message.payload,
     );
+    // overlay fan-out (donation widget)
+    this.overlayGateway.sendToOverlay(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
+    );
   }
 
   /**
