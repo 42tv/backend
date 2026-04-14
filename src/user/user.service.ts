@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChannelService } from 'src/channel/channel.service';
@@ -479,8 +480,8 @@ export class UserService {
         .toFormat('jpeg')
         .toBuffer();
 
-      // 새로운 네이밍 규칙: profile/{user_id}.jpg
-      const mainProfileKey = `profile/${user.user_id}.jpg`;
+      // 랜덤 UUID 기반 S3 키 생성 (예측 불가, CloudFront 캐시 자동 무효화)
+      const versionedKey = `profile/${randomUUID()}.jpg`;
 
       // timestamp 생성 (YYYYMMDD-HHMMSS 형식)
       const timestamp = new Date()
@@ -488,24 +489,22 @@ export class UserService {
         .replace(/[-:]/g, '')
         .replace('T', '-')
         .substring(0, 15);
-
       const backupKey = `data/profile/${user.user_id}/${timestamp}.jpg`;
 
-      // 메인 프로필 이미지 업로드 (기존 이미지를 덮어씀)
-      await this.awsService.uploadToS3(mainProfileKey, buffer, 'image/jpeg');
-
-      // 백업용 이미지 업로드 (새 이미지를 백업 위치에 저장)
+      await this.awsService.uploadToS3(versionedKey, buffer, 'image/jpeg');
       await this.awsService.uploadToS3(backupKey, buffer, 'image/jpeg');
 
-      console.log(`프로필 이미지 업로드 완료: ${mainProfileKey}, ${backupKey}`);
-
-      // S3 버킷 베이스 URL 생성
-      const profileImageUrl = `${process.env.CDN_URL}/${mainProfileKey}`;
-
-      // DB의 사용자 프로필 이미지 URL 업데이트
+      const profileImageUrl = `${process.env.CDN_URL}/${versionedKey}`;
       await this.userRepository.updateProfileImage(user_idx, profileImageUrl);
 
-      console.log('프로필 이미지 업로드 및 업데이트 완료');
+      // 기존 파일 S3에서 삭제 (profile/ 경로인 경우만)
+      if (user.profile_img) {
+        const oldKey = user.profile_img.replace(`${process.env.CDN_URL}/`, '');
+        if (oldKey.startsWith('profile/')) {
+          await this.awsService.deleteFromS3(oldKey).catch(() => {});
+        }
+      }
+
       return profileImageUrl;
     } catch (error) {
       console.error('프로필 이미지 업로드 실패:', error);
