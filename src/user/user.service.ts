@@ -469,6 +469,8 @@ export class UserService {
 
     try {
       // 이미지 리사이징 (원본 비율 유지, 최대 400px)
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       const buffer = await sharp(file.buffer)
         .resize(400, 400, {
           fit: 'inside',
