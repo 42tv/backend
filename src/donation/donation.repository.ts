@@ -231,6 +231,51 @@ export class DonationRepository {
   }
 
   /**
+   * 기간별 후원 추이 조회 (차트용 시계열 데이터)
+   * @param streamerIdx 스트리머 인덱스
+   * @param options 기간 및 단위 옵션
+   * @returns 기간별 집계 데이터
+   */
+  async getDonationTrend(
+    streamerIdx: number,
+    options: {
+      startDate: Date;
+      endDate: Date;
+      unit: 'day' | 'week' | 'month';
+    },
+  ) {
+    const rows = await this.prisma.$queryRaw<
+      {
+        period: Date;
+        total_coin_amount: bigint;
+        total_coin_value: bigint;
+        donation_count: bigint;
+      }[]
+    >`
+      SELECT
+        date_trunc(${options.unit}, donated_at) AS period,
+        SUM(coin_amount)::bigint AS total_coin_amount,
+        SUM(coin_value)::bigint  AS total_coin_value,
+        COUNT(*)::bigint         AS donation_count
+      FROM donations
+      WHERE streamer_idx = ${streamerIdx}
+        AND donated_at >= ${options.startDate}
+        AND donated_at <= ${options.endDate}
+        AND donor_deleted_at IS NULL
+        AND streamer_deleted_at IS NULL
+      GROUP BY period
+      ORDER BY period ASC
+    `;
+
+    return rows.map((r) => ({
+      period: formatPeriod(r.period, options.unit),
+      total_coin_amount: Number(r.total_coin_amount),
+      total_coin_value: Number(r.total_coin_value),
+      donation_count: Number(r.donation_count),
+    }));
+  }
+
+  /**
    * 후원자별 통계 조회
    * @param streamerIdx 스트리머 인덱스
    * @param options 옵션
@@ -304,4 +349,19 @@ export class DonationRepository {
       donation_count: r._count,
     }));
   }
+}
+
+function formatPeriod(date: Date, unit: 'day' | 'week' | 'month'): string {
+  if (unit === 'month') return date.toISOString().slice(0, 7);
+  if (unit === 'week') {
+    const d = new Date(date);
+    const dayOfWeek = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayOfWeek);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(
+      (((d as any) - (yearStart as any)) / 86400000 + 1) / 7,
+    );
+    return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+  }
+  return date.toISOString().slice(0, 10);
 }

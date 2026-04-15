@@ -16,6 +16,17 @@ import { AdminGuard } from '../auth/guard/admin.guard';
 import { GetUser } from '../auth/get-user.decorator';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
+import { GetRankingQueryDto } from './dto/get-ranking-query.dto';
+import { GetTrendQueryDto } from './dto/get-trend-query.dto';
+
+// donated_at은 KST naive timestamp로 저장됨.
+// endDate를 날짜 문자열(YYYY-MM-DD)로 받으면 new Date()가 당일 00:00:00이 되어
+// 하루치 데이터가 모두 누락됨 → 23:59:59.999로 보정.
+function parseEndDate(dateStr: string): Date {
+  const d = new Date(dateStr);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
 
 @Controller('donation')
 export class DonationController {
@@ -73,7 +84,7 @@ export class DonationController {
   ): Promise<SuccessResponseDto<{ donations: any[] }>> {
     const options = {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      endDate: query.endDate ? parseEndDate(query.endDate) : undefined,
       limit: query.limit ? Number(query.limit) : 50,
       offset: query.offset ? Number(query.offset) : 0,
     };
@@ -123,7 +134,7 @@ export class DonationController {
   ): Promise<SuccessResponseDto<{ donations: any[] }>> {
     const options = {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      endDate: query.endDate ? parseEndDate(query.endDate) : undefined,
       limit: query.limit ? Number(query.limit) : 50,
       offset: query.offset ? Number(query.offset) : 0,
     };
@@ -172,7 +183,7 @@ export class DonationController {
   ): Promise<SuccessResponseDto<any>> {
     const options = {
       startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      endDate: query.endDate ? parseEndDate(query.endDate) : undefined,
     };
 
     const stats = await this.donationService.getReceivedStats(
@@ -181,6 +192,54 @@ export class DonationController {
     );
 
     return ResponseWrapper.success(stats, '후원 통계를 조회했습니다.');
+  }
+
+  /**
+   * 후원 순위 조회 (GET /donation/stats/ranking)
+   * @param query 쿼리 파라미터
+   * @param streamerIdx 스트리머 idx (JWT에서 추출)
+   * @returns 상위 10명 후원자 순위
+   */
+  @Get('stats/ranking')
+  @UseGuards(MemberGuard)
+  async getRanking(
+    @Query() query: GetRankingQueryDto,
+    @GetUser('idx') streamerIdx: number,
+  ): Promise<SuccessResponseDto<{ ranking: any[] }>> {
+    const options = {
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? parseEndDate(query.endDate) : undefined,
+      limit: 10,
+    };
+
+    const donors = await this.donationService.getTopDonors(
+      streamerIdx,
+      options,
+    );
+    return ResponseWrapper.success(
+      { ranking: donors.map((d, i) => ({ rank: i + 1, ...d })) },
+      '후원 순위를 조회했습니다.',
+    );
+  }
+
+  /**
+   * 기간별 후원 추이 조회 (GET /donation/stats/trend)
+   * @param query 쿼리 파라미터
+   * @param streamerIdx 스트리머 idx (JWT에서 추출)
+   * @returns 기간별 후원 집계 데이터
+   */
+  @Get('stats/trend')
+  @UseGuards(MemberGuard)
+  async getTrend(
+    @Query() query: GetTrendQueryDto,
+    @GetUser('idx') streamerIdx: number,
+  ): Promise<SuccessResponseDto<{ trend: any[] }>> {
+    const trend = await this.donationService.getDonationTrend(streamerIdx, {
+      startDate: new Date(query.startDate),
+      endDate: parseEndDate(query.endDate),
+      unit: query.unit || 'day',
+    });
+    return ResponseWrapper.success({ trend }, '후원 추이를 조회했습니다.');
   }
 
   /**
