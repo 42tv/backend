@@ -107,6 +107,21 @@ export class SettlementController {
   }
 
   /**
+   * 내 정산 통계 조회
+   * GET /settlement/my/stats
+   */
+  @Get('my/stats')
+  // @UseGuards(MemberGuard)
+  async getMySettlementStats(
+    @Request() req: any,
+  ): Promise<SuccessResponseDto<any>> {
+    const streamerIdx = req.user?.idx || 1;
+
+    const stats = await this.settlementService.getSettlementStats(streamerIdx);
+    return ResponseWrapper.success(stats, '정산 통계를 조회했습니다.');
+  }
+
+  /**
    * 정산 상세 조회
    * GET /settlement/my/:id
    */
@@ -125,21 +140,6 @@ export class SettlementController {
     }
 
     return ResponseWrapper.success(settlement, '정산 상세를 조회했습니다.');
-  }
-
-  /**
-   * 내 정산 통계 조회
-   * GET /settlement/my/stats
-   */
-  @Get('my/stats')
-  // @UseGuards(MemberGuard)
-  async getMySettlementStats(
-    @Request() req: any,
-  ): Promise<SuccessResponseDto<any>> {
-    const streamerIdx = req.user?.idx || 1;
-
-    const stats = await this.settlementService.getSettlementStats(streamerIdx);
-    return ResponseWrapper.success(stats, '정산 통계를 조회했습니다.');
   }
 
   // ===== 관리자 API =====

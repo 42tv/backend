@@ -8,105 +8,69 @@ datasource db {
   extensions = [pgcrypto]
 }
 
-// 회원 테이블
 model User {
-  idx                  Int      @id @default(autoincrement())
-  user_id              String   @unique
+  idx                  Int                  @id @default(autoincrement())
+  user_id              String               @unique
   password             String?
-  nickname             String   @unique
-  profile_img          String   @default("")
+  nickname             String               @unique
+  profile_img          String               @default("")
   oauth_provider       String?
   oauth_provider_id    String?
-  is_admin             Boolean  @default(false)
-  is_identity_verified Boolean  @default(false)
+  is_admin             Boolean              @default(false)
+  is_identity_verified Boolean              @default(false)
   identity_verified_at DateTime?
-  identity_ci_hash     String?  @unique
-  created_at           DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at           DateTime @updatedAt
-
-  userDetail       UserDetail?
-  channel          Channel?
-  ivs              IVSChannel?
-  broadcastSetting BroadcastSetting?
-  postSettings     PostSettings?
-  UserTerms        UserTerms[]
-
-  streams Stream? @relation("StreamData")
-
-  // Posts relations
-  sentPosts     Posts[] @relation("SentPosts")
-  receivedPosts Posts[] @relation("ReceivedPosts")
-
-  // Fan relations
-  fans      Fan[] @relation("UserFans")
-  following Fan[] @relation("UserFollowing")
-
-  // Fan Rank Tier relation
-  fanLevel FanLevel[] @relation("CreatorRankTiers")
-
-  // Block relations
-  blockedUsers PostBlockedUsers[] @relation("PostBlockingUser")
-  blockedBy    PostBlockedUsers[] @relation("PostBlockedUser")
-
-  // Stream viewer relation
-  // viewingSessions StreamViewer[] @relation("StreamViewers")
-
-  // Bookmark relations
-  bookmarksMade Bookmark[] @relation("UserBookmarksMade") // 내가 즐겨찾기 한 유저 목록
-  bookmarkedBy  Bookmark[] @relation("UserBookmarkedBy") // 나를 즐겨찾기 한 유저 목록
-
-  // Blacklist relations
-  blacklistedUsers Blacklist[] @relation("BlacklistOwner") // 내가 차단한 유저 목록
-  blacklistedBy    Blacklist[] @relation("BlacklistedUser") // 나를 차단한 유저 목록
-
-  // Manager relations
-  managedCreators Manager[] @relation("UserManager") // 내가 매니저로 관리하는 크리에이터들
-  managers        Manager[] @relation("CreatorManaged") // 나를 관리하는 매니저들
-
-  // Article relations
-  articles Article[] @relation("ArticleAuthor") // 내가 작성한 게시글들
-
-  // Policy Agreement relations
-  policyAgreements PolicyAgreement[] @relation("UserPolicyAgreements") // 내가 동의한 정책들
-
-  // Payment relations (1단계: 결제 시스템)
-  paymentTransactions PaymentTransaction[]
-  bootpayTransactions BootpayTransaction[]
-
-  // Coin Topup relations (2단계: 충전 시스템)
-  coinTopups  CoinTopup[]
-  coinBalance CoinBalance? // 1:1 관계 (사용자당 하나의 코인 잔액)
-
-  // Donation relations (3단계: 후원 시스템)
-  sentDonations     Donation[] @relation("SentDonations")
-  receivedDonations Donation[] @relation("ReceivedDonations")
-
-  // Settlement relations (4단계: 정산 시스템)
-  payoutCoins PayoutCoin[] @relation("PayoutCoins")
-  settlements Settlement[] @relation("Settlements")
-
-  // Widget relations
-  widgetTokens WidgetToken[]
+  identity_ci_hash     String?              @unique
+  created_at           DateTime             @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at           DateTime             @updatedAt
+  articles             Article[]            @relation("ArticleAuthor")
+  blacklistedBy        Blacklist[]          @relation("BlacklistedUser")
+  blacklistedUsers     Blacklist[]          @relation("BlacklistOwner")
+  bookmarkedBy         Bookmark[]           @relation("UserBookmarkedBy")
+  bookmarksMade        Bookmark[]           @relation("UserBookmarksMade")
+  bootpayTransactions  BootpayTransaction[]
+  broadcastSetting     BroadcastSetting?
+  channel              Channel?
+  coinBalance          CoinBalance?
+  coinTopups           CoinTopup[]
+  sentDonations        Donation[]           @relation("SentDonations")
+  receivedDonations    Donation[]           @relation("ReceivedDonations")
+  fanLevel             FanLevel[]           @relation("CreatorRankTiers")
+  fans                 Fan[]                @relation("UserFans")
+  following            Fan[]                @relation("UserFollowing")
+  ivs                  IVSChannel?
+  managers             Manager[]            @relation("CreatorManaged")
+  managedCreators      Manager[]            @relation("UserManager")
+  paymentTransactions  PaymentTransaction[]
+  payoutCoins          PayoutCoin[]         @relation("PayoutCoins")
+  policyAgreements     PolicyAgreement[]    @relation("UserPolicyAgreements")
+  blockedBy            PostBlockedUsers[]   @relation("PostBlockedUser")
+  blockedUsers         PostBlockedUsers[]   @relation("PostBlockingUser")
+  postSettings         PostSettings?
+  receivedPosts        Posts[]              @relation("ReceivedPosts")
+  sentPosts            Posts[]              @relation("SentPosts")
+  settlements          Settlement[]         @relation("Settlements")
+  streams              Stream?              @relation("StreamData")
+  userDetail           UserDetail?
+  UserTerms            UserTerms[]
+  widgetTokens         WidgetToken[]
 
   @@map("users")
 }
 
-// 유저 상세 정보 (개인정보는 암호화 AES암호화 + base64 인코딩 하여 저장)
 model UserDetail {
   user_idx        Int      @id
   name            String
   sex             String
-  resident_number String // 암호화 필요
-  phone           String // 암호화 필요
-  email           String   @unique // 암호화 필요
-  address         String // 암호화 필요
+  resident_number String
+  phone           String
+  email           String   @unique
+  address         String
   created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  User            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade) // 반드시 1:1 관계를 유지하도록 설정
+  User            User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("user_details")
 }
 
-// 이용약관
 model Terms {
   id            Int         @id @default(autoincrement())
   version       Float
@@ -118,24 +82,19 @@ model Terms {
   @@map("terms")
 }
 
-// 이용약관 동의 여부
 model UserTerms {
   id        Int      @id @default(autoincrement())
   agreedAt  DateTime
   createdAt DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  user_idx  Int
+  terms_id  Int
+  terms     Terms    @relation(fields: [terms_id], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
-  // Relations
-  user_idx Int
-  terms_id Int
-  user     User  @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
-  terms    Terms @relation(fields: [terms_id], references: [id], onDelete: Cascade)
-
-  // Constraints
-  @@unique([user_idx, terms_id]) // 한 사용자당 한 약관 버전에 대해 한 번만 동의 가능
+  @@unique([user_idx, terms_id])
   @@map("user_terms")
 }
 
-// 채널 테이블
 model Channel {
   user_idx         Int       @id
   title            String    @default("")
@@ -146,9 +105,7 @@ model Channel {
   total_time       Int       @default(0)
   first_start_time DateTime?
   createdAt        DateTime  @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-
-  // Relations
-  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  User             User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("channels")
 }
@@ -158,20 +115,16 @@ model BroadcastSetting {
   title     String
   is_adult  Boolean  @default(false)
   is_pw     Boolean  @default(false)
-  //팬 등급 제한 설정
   is_fan    Boolean  @default(false)
   fan_level Int      @default(1)
-  password  String? // 비밀번호 (암호화 필요)
+  password  String?
   createdAt DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updatedAt DateTime @updatedAt
-
-  // Relations
-  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  User      User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("broadcast_settings")
 }
 
-// AWS IVS 채널 정보
 model IVSChannel {
   user_idx               Int      @id
   channel_id             String   @unique
@@ -184,397 +137,279 @@ model IVSChannel {
   restriction_policy_arn String?
   name                   String
   createdAt              DateTime @default(now())
-
-  // relations
-  User User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  User                   User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("ivs_channels")
 }
 
-// Stream 정보
-// 이 정보들은 아마 서비스할때에는 redis에 복사본을 들고있다가
-// 일정 주기별로 업데이트를 하는 방식으로 사용될듯(?)
 model Stream {
-  idx        Int    @id @default(autoincrement())
-  request_id String
-  stream_id  String @unique
-  title      String
-  start_time String
-
+  idx             Int    @id @default(autoincrement())
+  request_id      String
+  stream_id       String @unique
+  title           String
+  start_time      String
   play_cnt        Int    @default(0)
   recommend_cnt   Int    @default(0)
   thumbnail       String @default("")
-  // Relations
   broadcaster_idx Int    @unique
   broadcaster     User   @relation("StreamData", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
-
-  // Stream viewers relation
-  // viewers         StreamViewer[]
 
   @@map("streams")
 }
 
-// 쪽지 설정 테이블 - 크리에이터별 쪽지 수신 설정
 model PostSettings {
-  user_idx         Int      @id
-  min_fan_level_id Int? // 쪽지를 보낼 수 있는 최소 팬 레벨 ID (null이면 제한 없음)
-  created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at       DateTime @updatedAt
-
-  // Relations
-  user        User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
-  minFanLevel FanLevel? @relation(fields: [min_fan_level_id], references: [id], onDelete: SetNull)
+  user_idx         Int       @id
+  min_fan_level_id Int?
+  created_at       DateTime  @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at       DateTime  @updatedAt
+  minFanLevel      FanLevel? @relation(fields: [min_fan_level_id], references: [id])
+  user             User      @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("post_settings")
 }
 
-// 쪽지 테이블 - 통합된 쪽지 관리
 model Posts {
   id               Int       @id @default(autoincrement())
-  content          String // 쪽지 내용
+  content          String
   sent_at          DateTime  @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  read_at          DateTime? // 읽은 시간
-  is_read          Boolean   @default(false) // 읽음 상태
-  sender_deleted   Boolean   @default(false) // 보낸 사람이 삭제했는지 여부
-  receiver_deleted Boolean   @default(false) // 받은 사람이 삭제했는지 여부
-
-  // Relations
-  sender_idx   Int // 보낸 사용자
-  receiver_idx Int // 받는 사용자
-  sender       User @relation("SentPosts", fields: [sender_idx], references: [idx], onDelete: Cascade)
-  receiver     User @relation("ReceivedPosts", fields: [receiver_idx], references: [idx], onDelete: Cascade)
+  read_at          DateTime?
+  is_read          Boolean   @default(false)
+  sender_deleted   Boolean   @default(false)
+  receiver_deleted Boolean   @default(false)
+  sender_idx       Int
+  receiver_idx     Int
+  receiver         User      @relation("ReceivedPosts", fields: [receiver_idx], references: [idx], onDelete: Cascade)
+  sender           User      @relation("SentPosts", fields: [sender_idx], references: [idx], onDelete: Cascade)
 
   @@map("posts")
 }
 
-// 팬 관계 테이블 - 사용자간 팬 관계 관리
-// 후원 시 자동으로 Fan으로 등록됨 (최소한 기본 레벨 보유)
 model Fan {
-  id Int @id @default(autoincrement())
-
-  total_donation   Int      @default(0) // 팬이 보낸 총 선물 수
-  hidden           Boolean  @default(false) // 팬 등급 숨김 여부
-  current_level_id Int // 현재 팬 레벨 (캐시/성능 최적화용, 기본 레벨 포함)
+  id               Int      @id @default(autoincrement())
+  total_donation   Int      @default(0)
+  hidden           Boolean  @default(false)
+  current_level_id Int
   created_at       DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at       DateTime @updatedAt
+  broadcaster_idx  Int
+  fan_idx          Int
+  broadcaster      User     @relation("UserFans", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
+  current_level    FanLevel @relation("FanCurrentLevel", fields: [current_level_id], references: [id], onDelete: Cascade)
+  fan              User     @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
 
-  // Relations
-  broadcaster_idx Int // 방송인(팔로우 당하는 사람) 인덱스
-  broadcaster     User @relation("UserFans", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
-
-  fan_idx Int // 팬(팔로우 하는 사람) 인덱스
-  fan     User @relation("UserFollowing", fields: [fan_idx], references: [idx], onDelete: Cascade)
-
-  current_level FanLevel @relation("FanCurrentLevel", fields: [current_level_id], references: [id], onDelete: Cascade)
-
-  // Ensure a user can only follow another user once
   @@unique([broadcaster_idx, fan_idx])
   @@map("fans")
 }
 
-// 팬 등급 시스템 - 각 크리에이터별 팬 등급 정의
-// 중요: 모든 크리에이터는 min_donation: 0 인 기본 레벨을 가져야 함 (예: "일반 팬")
-// 이를 통해 모든 후원자는 최소한 기본 팬 레벨을 보유하게 됨
 model FanLevel {
-  id Int @id @default(autoincrement())
-
-  name         String // 등급 이름 (예: "일반 팬", "브론즈", "실버", "골드")
-  min_donation Int // 해당 등급에 도달하기 위한 최소 후원 금액 (기본 레벨은 0)
-  color        String   @default("#808080") // 팬 등급 색상 (헥스 코드)
-  created_at   DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at   DateTime @updatedAt
-
-  // Relations
-  user_idx     Int // 크리에이터(등급 소유자) 인덱스
+  id           Int            @id @default(autoincrement())
+  name         String
+  min_donation Int
+  color        String         @default("#808080")
+  created_at   DateTime       @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at   DateTime       @updatedAt
+  user_idx     Int
   user         User           @relation("CreatorRankTiers", fields: [user_idx], references: [idx], onDelete: Cascade)
-  postSettings PostSettings[] // 이 팬레벨을 최소 요구사항으로 설정한 쪽지 설정들
-  fans         Fan[]          @relation("FanCurrentLevel") // 이 레벨을 현재 레벨로 가진 팬들
+  fans         Fan[]          @relation("FanCurrentLevel")
+  postSettings PostSettings[]
 
-  // 한 크리에이터는 같은 이름의 등급을 중복해서 가질 수 없음
   @@unique([user_idx, name])
   @@map("fan_levels")
 }
 
-// 유저 차단 테이블 - 메시지 차단 관리
 model PostBlockedUsers {
-  id         Int      @id @default(autoincrement())
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  id          Int      @id @default(autoincrement())
+  created_at  DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  blocker_idx Int
+  blocked_idx Int
+  blocked     User     @relation("PostBlockedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
+  blocker     User     @relation("PostBlockingUser", fields: [blocker_idx], references: [idx], onDelete: Cascade)
 
-  // Relations
-  blocker_idx Int // 차단한 사용자
-  blocked_idx Int // 차단된 사용자
-  blocker     User @relation("PostBlockingUser", fields: [blocker_idx], references: [idx], onDelete: Cascade)
-  blocked     User @relation("PostBlockedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
-
-  // Ensure a user can only block another user once
   @@unique([blocker_idx, blocked_idx])
   @@map("post_blocked_users")
 }
 
-// 즐겨찾기 테이블 - 사용자 간 즐겨찾기 관계 관리
 model Bookmark {
-  id         Int      @id @default(autoincrement())
-  hidden     Boolean  @default(false) // 즐겨찾기 숨김 여부
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  id             Int      @id @default(autoincrement())
+  hidden         Boolean  @default(false)
+  created_at     DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  bookmarker_idx Int
+  bookmarked_idx Int
+  bookmarked     User     @relation("UserBookmarkedBy", fields: [bookmarked_idx], references: [idx], onDelete: Cascade)
+  bookmarker     User     @relation("UserBookmarksMade", fields: [bookmarker_idx], references: [idx], onDelete: Cascade)
 
-  // Relations
-  bookmarker_idx Int // 즐겨찾기 한 사용자
-  bookmarked_idx Int // 즐겨찾기 된 사용자
-  bookmarker     User @relation("UserBookmarksMade", fields: [bookmarker_idx], references: [idx], onDelete: Cascade)
-  bookmarked     User @relation("UserBookmarkedBy", fields: [bookmarked_idx], references: [idx], onDelete: Cascade)
-
-  // Ensure a user can only bookmark another user once
   @@unique([bookmarker_idx, bookmarked_idx])
   @@map("bookmarks")
 }
 
-// 블랙리스트 테이블 - 방송 시청 차단 관리
 model Blacklist {
-  id         Int      @id @default(autoincrement())
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  id              Int      @id @default(autoincrement())
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  broadcaster_idx Int
+  blocked_idx     Int
+  blocked         User     @relation("BlacklistedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
+  broadcaster     User     @relation("BlacklistOwner", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
 
-  // Relations
-  broadcaster_idx Int // 블랙리스트 소유자 (방송인)
-  blocked_idx     Int // 차단된 사용자
-  broadcaster     User @relation("BlacklistOwner", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
-  blocked         User @relation("BlacklistedUser", fields: [blocked_idx], references: [idx], onDelete: Cascade)
-
-  // Ensure a user can only block another user once
   @@unique([broadcaster_idx, blocked_idx])
   @@map("blacklists")
 }
 
-// 매니저 관계 테이블 - 크리에이터와 매니저 간의 관계 관리
 model Manager {
-  id         Int      @id @default(autoincrement())
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  id              Int      @id @default(autoincrement())
+  created_at      DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  broadcaster_idx Int
+  manager_idx     Int
+  broadcaster     User     @relation("CreatorManaged", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
+  manager         User     @relation("UserManager", fields: [manager_idx], references: [idx], onDelete: Cascade)
 
-  // Relations
-  broadcaster_idx Int // 크리에이터 (관리 받는 사람)
-  manager_idx     Int // 매니저 (관리하는 사람)
-  broadcaster     User @relation("CreatorManaged", fields: [broadcaster_idx], references: [idx], onDelete: Cascade)
-  manager         User @relation("UserManager", fields: [manager_idx], references: [idx], onDelete: Cascade)
-
-  // 한 매니저는 같은 크리에이터를 중복해서 관리할 수 없음
   @@unique([broadcaster_idx, manager_idx])
   @@map("managers")
 }
 
-// 채널 게시글 테이블 - 스트리머가 채널에 남기는 게시글
 model Article {
-  id         Int      @id @default(autoincrement())
-  title      String // 게시글 제목
-  content    String // 게시글 내용
-  is_pinned  Boolean  @default(false) // 상단 고정 여부
-  is_active  Boolean  @default(true) // 활성화 여부
-  view_count Int      @default(0) // 조회수
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at DateTime @updatedAt
-
-  // Relations
-  author_idx Int // 작성자 (스트리머)
+  id         Int            @id @default(autoincrement())
+  title      String
+  content    String
+  is_pinned  Boolean        @default(false)
+  is_active  Boolean        @default(true)
+  view_count Int            @default(0)
+  created_at DateTime       @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at DateTime       @updatedAt
+  author_idx Int
+  images     ArticleImage[]
   author     User           @relation("ArticleAuthor", fields: [author_idx], references: [idx], onDelete: Cascade)
-  images     ArticleImage[] // 첨부된 이미지들
 
   @@map("articles")
 }
 
-// 게시글 첨부 이미지 테이블 - 게시글에 첨부된 이미지 관리
 model ArticleImage {
   id          Int      @id @default(autoincrement())
-  image_url   String // S3 이미지 URL
-  image_order Int      @default(0) // 이미지 순서
+  image_url   String
+  image_order Int      @default(0)
   created_at  DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-
-  // Relations
-  article_id Int
-  article    Article @relation(fields: [article_id], references: [id], onDelete: Cascade)
+  article_id  Int
+  article     Article  @relation(fields: [article_id], references: [id], onDelete: Cascade)
 
   @@map("article_images")
 }
 
-// 정책 문서 테이블 - 개인정보처리방침, 이용약관 등
 model Policy {
-  id         Int      @id @default(autoincrement())
-  page       String // privacy, terms, etc.
-  title      String // 정책 제목
-  content    String // 정책 내용
-  version    String // 버전
-  is_active  Boolean  @default(true) // 활성화 여부
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at DateTime @updatedAt
-
-  // Relations
+  id         Int               @id @default(autoincrement())
+  page       String
+  title      String
+  content    String
+  version    String
+  is_active  Boolean           @default(true)
+  created_at DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at DateTime          @updatedAt
   agreements PolicyAgreement[]
 
   @@map("policies")
 }
 
-// 정책 동의 내역 테이블
 model PolicyAgreement {
   id             Int      @id @default(autoincrement())
-  user_idx       Int // 동의한 사용자
-  policy_id      Int // 동의한 정책
-  policy_version String // 동의 당시 정책 버전
+  user_idx       Int
+  policy_id      Int
+  policy_version String
   agreed_at      DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  ip_address     String? // 동의 시점의 IP 주소 (법적 증명용)
+  ip_address     String?
+  policy         Policy   @relation(fields: [policy_id], references: [id], onDelete: Cascade)
+  user           User     @relation("UserPolicyAgreements", fields: [user_idx], references: [idx], onDelete: Cascade)
 
-  // Relations
-  user   User   @relation("UserPolicyAgreements", fields: [user_idx], references: [idx], onDelete: Cascade)
-  policy Policy @relation(fields: [policy_id], references: [id], onDelete: Cascade)
-
-  // 사용자는 같은 정책에 대해 여러 버전에 동의할 수 있지만, 같은 버전에는 한 번만 동의
   @@unique([user_idx, policy_id, policy_version])
   @@map("policy_agreements")
 }
 
-// 상품 테이블 (1단계: 기본 상품 시스템)
 model Product {
-  id Int @id @default(autoincrement())
-
-  // 상품 정보
-  name         String // "100 코인"
-  description  String? // 상품 설명
-  image_url    String? // 상품 이미지 URL
-  base_coins   Int // 기본 코인량
-  bonus_coins  Int     @default(0) // 보너스 코인량
-  total_coins  Int // 실제 지급될 총 코인량 (base_coins + bonus_coins)
-  base_price   Int     @default(0) // 공급가 (원, 부가세 제외)
-  vat_rate     Int     @default(10) // 부가가치세율 (%)
-  price        Int // 최종 가격 (원, 부가세 포함) = base_price * (1 + vat_rate/100)
-  product_type String  @default("star") // 상품 타입: "normal" (일반) 또는 "star" (스타 코인)
-
-  // 상태
-  is_active  Boolean @default(true)
-  sort_order Int     @default(0)
-
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at DateTime @updatedAt
-
-  // Relations
-  topups CoinTopup[]
+  id           Int         @id @default(autoincrement())
+  name         String
+  description  String?
+  image_url    String?
+  base_coins   Int
+  bonus_coins  Int         @default(0)
+  total_coins  Int
+  base_price   Int         @default(0)
+  vat_rate     Int         @default(10)
+  price        Int
+  product_type String      @default("star")
+  is_active    Boolean     @default(true)
+  sort_order   Int         @default(0)
+  created_at   DateTime    @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at   DateTime    @updatedAt
+  topups       CoinTopup[]
 
   @@map("products")
 }
 
-// 결제 거래 내역 테이블 (1단계: 법적 증빙 핵심)
 model PaymentTransaction {
-  id       String @id @default(cuid())
-  user_idx Int? // 결제자 (5년 보관 위해 nullable)
-  product_id Int? // 결제 상품 (웹훅 처리용)
-
-  // PG사 결제 정보 (법적 증빙 필수)
-  pg_provider       String // "inicis", "toss", "kakaopay", "bootpay"
-  pg_transaction_id String @unique // PG사 거래 고유번호
-  payment_method    String? // "card", "bank", "vbank", "phone" 등 (결제 완료 후 웹훅에서 설정)
-
-  // Bootpay 연결 정보
-  bootpay_receipt_id    String?  @unique // Bootpay 영수증 ID (BootpayTransaction 직접 조인용)
-  bootpay_status        Int? // Bootpay 상태코드 (0: 대기, 1: 완료, 2: 승인중, 4: 승인요청, 5: 가상계좌입금대기, 20: 취소)
-  bootpay_status_locale String? // Bootpay 상태 한글
-
-  // 결제 금액
-  amount   Int // 결제 금액 (원 단위)
-  currency String @default("KRW")
-
-  // 상태 및 시간
-  status       PaymentTransactionStatus @default(PENDING)
-  requested_at DateTime                 @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  approved_at  DateTime?
-  canceled_at  DateTime?
-  paid_at      DateTime? // 실 결제완료 시각 (Bootpay purchased_at 매핑)
-
-  // PG사 응답 원본 (감사용)
-  pg_response Json?
-
-  // 5년 보관 의무
+  id                    String                   @id @default(cuid())
+  user_idx              Int?
+  product_id            Int?
+  pg_provider           String
+  pg_transaction_id     String                   @unique
+  payment_method        String?
+  bootpay_receipt_id    String?                  @unique
+  bootpay_status        Int?
+  bootpay_status_locale String?
+  amount                Int
+  currency              String                   @default("KRW")
+  status                PaymentTransactionStatus @default(PENDING)
+  requested_at          DateTime                 @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  approved_at           DateTime?
+  canceled_at           DateTime?
+  paid_at               DateTime?
+  pg_response           Json?
   deleted_user_snapshot Json?
   user_deleted_at       DateTime?
-  should_delete_at      DateTime? // 5년 후 삭제
-
-  // Relations
-  user   User?       @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
-  topups CoinTopup[]
+  should_delete_at      DateTime?
+  topups                CoinTopup[]
+  user                  User?                    @relation(fields: [user_idx], references: [idx])
 
   @@index([pg_provider, bootpay_receipt_id], map: "idx_payment_pg_bootpay_receipt")
   @@map("payment_transactions")
 }
 
-enum PaymentTransactionStatus {
-  PENDING // 결제 진행중
-  WAITING_DEPOSIT // 무통장입금 대기 (가상계좌 발급 완료, 입금 대기)
-  SUCCESS // 결제 성공
-  FAILED // 결제 실패
-  CANCELED // 결제 취소
-  EXPIRED // 결제 만료 (가상계좌 입금 기한 초과)
-}
-
-// Bootpay 결제 거래 내역 테이블 (PG사 응답 전체 저장)
 model BootpayTransaction {
-  id       String @id @default(cuid())
-  user_idx Int? // 결제자 (5년 보관 위해 nullable)
-
-  // Bootpay 핵심 식별자
-  receipt_id     String @unique // Bootpay 영수증 ID (가장 중요한 키)
-  order_id       String @unique // 주문 ID (우리 시스템에서 생성)
-  application_id String // Bootpay 앱 ID
-
-  // 금액 정보
-  price              Int // 결제 금액 (원)
-  tax_free           Int    @default(0) // 면세 금액
-  cancelled_price    Int    @default(0) // 취소된 금액
-  cancelled_tax_free Int    @default(0) // 취소된 면세 금액
-  currency           String @default("KRW")
-
-  // 주문 정보
-  order_name   String // 주문명 (예: "100 코인")
-  company_name String? // 회사명
-
-  // PG/결제수단 정보
-  pg                   String // PG사 (이니시스, 나이스, 토스 등)
-  method               String // 결제수단 한글 (카드, 계좌이체, 휴대폰 등)
-  method_symbol        String // 결제수단 코드 (card, bank, phone 등)
-  method_origin        String? // 원래 결제수단 (네이버페이, 카카오페이 등)
-  method_origin_symbol String? // 원래 결제수단 코드 (naverpay, kakaopay 등)
-
-  // 상태
-  status        Int // Bootpay 상태코드 (0: 대기, 1: 완료, 2: 승인중, 4: 승인요청, 5: 가상계좌입금대기, 20: 취소)
-  status_locale String? // 상태 한글 (결제완료, 결제취소 등)
-
-  // 에스크로 (선택)
-  escrow_status        String?
-  escrow_status_locale String?
-
-  // 시간
-  requested_at DateTime // 결제 요청 시간
-  purchased_at DateTime? // 결제 완료 시간
-  cancelled_at DateTime? // 취소 시간
-
-  // URL 정보
-  gateway_url String? // PG 게이트웨이 URL
-  receipt_url String? // 영수증 URL
-
-  // 메타데이터
-  metadata Json? // 커스텀 메타데이터 (우리가 전송한 추가 정보)
-  sandbox  Boolean @default(false) // 테스트 결제 여부
-
-  // PG 응답 원본 (감사/디버깅용)
-  raw_response Json // Bootpay 응답 전체 저장
-
-  // 5년 보관 의무
-  deleted_user_snapshot Json? // 사용자 삭제 시 스냅샷
-  user_deleted_at       DateTime? // 사용자 삭제 시간
-  should_delete_at      DateTime? // 5년 후 삭제 예정일
-
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at DateTime @updatedAt
-
-  // Relations
-  user      User?             @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
-  cardData  BootpayCardData?
-  vbankData BootpayVbankData?
-  easyData  BootpayEasyData?
-  topups    CoinTopup[]
+  id                    String            @id @default(cuid())
+  user_idx              Int?
+  receipt_id            String            @unique
+  order_id              String            @unique
+  application_id        String
+  price                 Int
+  tax_free              Int               @default(0)
+  cancelled_price       Int               @default(0)
+  cancelled_tax_free    Int               @default(0)
+  currency              String            @default("KRW")
+  order_name            String
+  company_name          String?
+  pg                    String
+  method                String
+  method_symbol         String
+  method_origin         String?
+  method_origin_symbol  String?
+  status                Int
+  status_locale         String?
+  escrow_status         String?
+  escrow_status_locale  String?
+  requested_at          DateTime
+  purchased_at          DateTime?
+  cancelled_at          DateTime?
+  gateway_url           String?
+  receipt_url           String?
+  metadata              Json?
+  sandbox               Boolean           @default(false)
+  raw_response          Json
+  deleted_user_snapshot Json?
+  user_deleted_at       DateTime?
+  should_delete_at      DateTime?
+  created_at            DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at            DateTime          @updatedAt
+  cardData              BootpayCardData?
+  easyData              BootpayEasyData?
+  user                  User?             @relation(fields: [user_idx], references: [idx])
+  vbankData             BootpayVbankData?
+  topups                CoinTopup[]
 
   @@index([user_idx], map: "idx_bootpay_user")
   @@index([order_id], map: "idx_bootpay_order")
@@ -583,243 +418,153 @@ model BootpayTransaction {
   @@map("bootpay_transactions")
 }
 
-// Bootpay 카드 결제 상세 정보 테이블
 model BootpayCardData {
-  id Int @id @default(autoincrement())
-
-  // PG 거래 정보
-  tid             String // PG사 거래 ID (예: INIMX_CARD...)
-  card_approve_no String // 카드 승인번호
-
-  // 카드 정보 (마스킹됨)
-  card_no           String // 마스킹된 카드번호 (557042*********9)
-  card_company_code String // 카드사 코드 (06 = 국민)
-  card_company      String // 카드사명 (국민계열)
-  card_type         String // 카드 타입 (신용/체크)
-
-  // 할부 정보
-  card_quota    String // 할부 개월 (00 = 일시불)
-  card_interest String // 무이자 여부 (0 = 이자, 1 = 무이자)
-
-  // 영수증
-  receipt_url String? // 카드사 영수증 URL
-
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-
-  // Relations
-  transaction_id String             @unique
-  transaction    BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+  id                Int                @id @default(autoincrement())
+  tid               String
+  card_approve_no   String
+  card_no           String
+  card_company_code String
+  card_company      String
+  card_type         String
+  card_quota        String
+  card_interest     String
+  receipt_url       String?
+  created_at        DateTime           @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  transaction_id    String             @unique
+  transaction       BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
 
   @@map("bootpay_card_data")
 }
 
-// Bootpay 가상계좌 결제 상세 정보 테이블
 model BootpayVbankData {
-  id Int @id @default(autoincrement())
-
-  // PG 거래 정보
-  tid String // PG사 거래 ID
-
-  // 은행 정보
-  bank_name     String // 은행명
-  bank_username String? // 예금주명 (가상계좌 발급 시점에는 없을 수 있음)
-  bank_account  String? // 가상계좌 번호
-
-  // 입금 정보
-  sender_name String? // 입금자명
-  expired_at  DateTime? // 입금 만료일시
-
-  // 현금영수증
-  cash_receipt_tid  String? // 현금영수증 거래 ID
-  cash_receipt_type String? // 현금영수증 타입 (소득공제/지출증빙)
-  cash_receipt_no   String? // 현금영수증 번호
-
-  // 영수증
-  receipt_url String? // 영수증 URL
-
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-
-  // Relations
-  transaction_id String             @unique
-  transaction    BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+  id                Int                @id @default(autoincrement())
+  tid               String
+  bank_name         String
+  bank_username     String?
+  bank_account      String?
+  sender_name       String?
+  expired_at        DateTime?
+  cash_receipt_tid  String?
+  cash_receipt_type String?
+  cash_receipt_no   String?
+  receipt_url       String?
+  created_at        DateTime           @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  transaction_id    String             @unique
+  transaction       BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
 
   @@map("bootpay_vbank_data")
 }
 
-// Bootpay 간편결제 상세 정보 테이블
-// 카카오페이, 네이버페이 등 간편결제 시 PG사별 포인트/머니 거래 ID 저장
 model BootpayEasyData {
-  id Int @id @default(autoincrement())
-
-  // 간편결제 거래 정보
-  tid String? // 간편결제 거래 ID
-
-  // 원래 결제수단 정보
-  method_origin        String? // 원래 결제수단명 (카카오페이, 네이버페이 등)
-  method_origin_symbol String? // 원래 결제수단 코드 (kakaopay, naverpay 등)
-
-  // 간편결제 원본 데이터 (PG사별로 필드가 다르므로 JSON 보존)
-  raw_data Json?
-
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-
-  // Relations
-  transaction_id String             @unique
-  transaction    BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+  id                   Int                @id @default(autoincrement())
+  tid                  String?
+  method_origin        String?
+  method_origin_symbol String?
+  raw_data             Json?
+  created_at           DateTime           @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  transaction_id       String             @unique
+  transaction          BootpayTransaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
 
   @@map("bootpay_easy_data")
 }
 
-// 코인 충전 내역 테이블 (2단계: 결제와 지갑 연결)
 model CoinTopup {
-  id                     String  @id @default(cuid())
-  transaction_id         String? // 기존 결제 거래 ID (레거시)
-  bootpay_transaction_id String? // Bootpay 결제 거래 ID
-  user_idx               Int? // 충전자 (5년 보관 위해 nullable)
-
-  // 상품 정보 (충전 시점 스냅샷)
-  product_id Int // 구매한 상품
-
-  // 충전 정보 (시점 고정 - 나중에 상품 정보가 변경되어도 보존)
-  product_name    String // 상품명 스냅샷
-  base_coins      Int // 기본 코인량
-  bonus_coins     Int    @default(0) // 보너스 코인량
-  total_coins     Int // 실제 지급된 총 코인량
-  remaining_coins Int // 남은 코인량 (성능 최적화용)
-  paid_amount     Int // 실제 결제 금액
-  coin_unit_price Float // 코인당 가격
-
-  // 상태 및 시간
-  status       TopupStatus @default(PENDING)
-  topped_up_at DateTime    @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-
-  // 5년 보관 의무
-  deleted_user_snapshot Json?
-  user_deleted_at       DateTime?
-
-  // Relations
-  transaction        PaymentTransaction?  @relation(fields: [transaction_id], references: [id])
-  bootpayTransaction BootpayTransaction?  @relation(fields: [bootpay_transaction_id], references: [id])
-  user               User?                @relation(fields: [user_idx], references: [idx], onDelete: SetNull)
-  product            Product              @relation(fields: [product_id], references: [id])
-  usages             CoinUsage[] // 이 충전분의 사용 내역
-  payoutCoins        PayoutCoin[] // 이 충전분으로 생성된 PayoutCoin들
+  id                     String              @id @default(cuid())
+  transaction_id         String?
+  bootpay_transaction_id String?
+  user_idx               Int?
+  product_id             Int
+  product_name           String
+  base_coins             Int
+  bonus_coins            Int                 @default(0)
+  total_coins            Int
+  remaining_coins        Int
+  paid_amount            Int
+  coin_unit_price        Float
+  status                 TopupStatus         @default(PENDING)
+  topped_up_at           DateTime            @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  deleted_user_snapshot  Json?
+  user_deleted_at        DateTime?
+  bootpayTransaction     BootpayTransaction? @relation(fields: [bootpay_transaction_id], references: [id])
+  product                Product             @relation(fields: [product_id], references: [id])
+  transaction            PaymentTransaction? @relation(fields: [transaction_id], references: [id])
+  user                   User?               @relation(fields: [user_idx], references: [idx])
+  usages                 CoinUsage[]
+  payoutCoins            PayoutCoin[]
 
   @@index([bootpay_transaction_id], map: "idx_topup_bootpay_transaction")
   @@map("coin_topups")
 }
 
-enum TopupStatus {
-  PENDING // 충전 대기
-  COMPLETED // 충전 완료
-  FAILED // 충전 실패
-  REFUNDED // 환불됨
-  FROZEN // 컴플라이언스 차단 (불법 자금 의심)
-}
-
-// 지갑 잔액 테이블 (2단계: 편의성)
 model CoinBalance {
-  user_idx       Int      @id // 사용자 (Primary Key)
-  coin_balance   Int      @default(0) // 현재 코인 잔액
-  total_charged  Int      @default(0) // 총 충전 금액
-  total_used     Int      @default(0) // 총 사용 금액
-  total_received Int      @default(0) // 총 받은 금액 (후원 받은 금액)
+  user_idx       Int      @id
+  coin_balance   Int      @default(0)
+  total_charged  Int      @default(0)
+  total_used     Int      @default(0)
+  total_received Int      @default(0)
   created_at     DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at     DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  user           User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("coin_balances")
 }
 
-// 후원 내역 테이블 (3단계: 실제 사용)
 model Donation {
-  id           String @id @default(cuid())
-  donor_idx    Int? // 후원자 (5년 보관 위해 nullable)
-  streamer_idx Int? // 스트리머 (5년 보관 위해 nullable)
-
-  // 후원 정보 (코인으로 통일)
-  coin_amount Int // 후원한 코인량
-  coin_value  Int // 코인의 원화 가치 (1코인=1원 또는 충전 시점 기준)
-
-  // 메시지
-  message String? // 후원 메시지
-
-  // 시간
-  donated_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-
-  // 5년 보관 의무
-  deleted_donor_snapshot    Json? // 후원자 삭제 시
-  deleted_streamer_snapshot Json? // 스트리머 삭제 시
+  id                        String       @id @default(cuid())
+  donor_idx                 Int?
+  streamer_idx              Int?
+  coin_amount               Int
+  coin_value                Int
+  message                   String?
+  donated_at                DateTime     @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  deleted_donor_snapshot    Json?
+  deleted_streamer_snapshot Json?
   donor_deleted_at          DateTime?
   streamer_deleted_at       DateTime?
-  should_delete_at          DateTime? // 5년 후 삭제
-
-  // Relations
-  donor       User?        @relation("SentDonations", fields: [donor_idx], references: [idx], onDelete: SetNull)
-  streamer    User?        @relation("ReceivedDonations", fields: [streamer_idx], references: [idx], onDelete: SetNull)
-  usages      CoinUsage[] // 어떤 충전분에서 차감되었는지
-  payoutCoins PayoutCoin[] // 이 후원으로 생성된 PayoutCoin들
+  should_delete_at          DateTime?
+  usages                    CoinUsage[]
+  donor                     User?        @relation("SentDonations", fields: [donor_idx], references: [idx])
+  streamer                  User?        @relation("ReceivedDonations", fields: [streamer_idx], references: [idx])
+  payoutCoins               PayoutCoin[]
 
   @@map("donations")
 }
 
-// 코인 사용 내역 테이블 (3단계: FIFO 추적)
 model CoinUsage {
-  id          Int     @id @default(autoincrement())
-  topup_id    String // 충전 ID (어떤 충전분에서 차감되었는지)
-  donation_id String? // 후원 ID (후원으로 사용된 경우)
-
-  // 사용 정보
-  used_coins Int // 사용된 코인량
-
-  // 시간
-  used_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-
-  // Relations
-  topup      CoinTopup   @relation(fields: [topup_id], references: [id])
-  donation   Donation?   @relation(fields: [donation_id], references: [id])
-  payoutCoin PayoutCoin? // 이 사용 내역으로 생성된 PayoutCoin (1:1 관계)
+  id          Int         @id @default(autoincrement())
+  topup_id    String
+  donation_id String?
+  used_coins  Int
+  used_at     DateTime    @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  donation    Donation?   @relation(fields: [donation_id], references: [id])
+  topup       CoinTopup   @relation(fields: [topup_id], references: [id])
+  payoutCoin  PayoutCoin?
 
   @@map("coin_usages")
 }
 
-// PayoutCoin 모델 - 스트리머 정산 전용 장부
-// CoinUsage와 1:1 관계 (usage_id에 unique 제약)
 model PayoutCoin {
-  id           String @id @default(cuid())
-  streamer_idx Int? // 스트리머 (5년 보관 위해 nullable)
-  donation_id  String // 연결된 후원 ID
-  usage_id     Int    @unique // 연결된 CoinUsage ID (1:1 관계)
-  topup_id     String // 원천 CoinTopup ID
-
-  // 금액 정보
-  coin_amount Int // 코인량
-  coin_value  Int // 원화 가치
-  donated_at  DateTime // 후원 시각
-
-  // 정산 성숙도
-  settlement_ready_at DateTime // 정산 가능 시각 (donated_at + 3일)
-  status              PayoutStatus @default(PENDING)
-
-  // 차단 관련
-  block_reason         String? // 차단 사유
-  blocked_topup_reason String? // CoinTopup 차단 사유
-
-  // 정산 연결
-  settlement_id    String? // 연결된 정산 ID
-  last_reviewed_at DateTime? // 마지막 검토 시각
-
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at DateTime @updatedAt
-
-  // Relations
-  streamer   User?       @relation("PayoutCoins", fields: [streamer_idx], references: [idx], onDelete: SetNull)
-  donation   Donation    @relation(fields: [donation_id], references: [id])
-  usage      CoinUsage   @relation(fields: [usage_id], references: [id])
-  topup      CoinTopup   @relation(fields: [topup_id], references: [id])
-  settlement Settlement? @relation(fields: [settlement_id], references: [id])
+  id                   String       @id @default(cuid())
+  streamer_idx         Int?
+  donation_id          String
+  usage_id             Int          @unique
+  topup_id             String
+  coin_amount          Int
+  coin_value           Int
+  donated_at           DateTime
+  settlement_ready_at  DateTime
+  status               PayoutStatus @default(PENDING)
+  block_reason         String?
+  blocked_topup_reason String?
+  settlement_id        String?
+  last_reviewed_at     DateTime?
+  created_at           DateTime     @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at           DateTime     @updatedAt
+  donation             Donation     @relation(fields: [donation_id], references: [id])
+  settlement           Settlement?  @relation(fields: [settlement_id], references: [id])
+  streamer             User?        @relation("PayoutCoins", fields: [streamer_idx], references: [idx])
+  topup                CoinTopup    @relation(fields: [topup_id], references: [id])
+  usage                CoinUsage    @relation(fields: [usage_id], references: [id])
 
   @@index([streamer_idx, status, settlement_ready_at], map: "idx_payout_streamer_status_maturity")
   @@index([topup_id], map: "idx_payout_topup")
@@ -828,76 +573,45 @@ model PayoutCoin {
   @@map("payout_coins")
 }
 
-enum PayoutStatus {
-  PENDING // 3일 미경과
-  MATURED // 정산 가능
-  BLOCKED // 컴플라이언스 차단
-  SETTLED // 정산 완료
-}
-
-// Settlement 모델 - 정산 이벤트
 model Settlement {
-  id           String @id @default(cuid())
-  streamer_idx Int? // 스트리머 (5년 보관 위해 nullable)
-
-  // 정산 기간
-  period_start DateTime // 정산 시작일
-  period_end   DateTime // 정산 종료일
-
-  // 금액 정보
-  total_value   Int // 총 정산 대상 금액
-  fee_amount    Int // 수수료
-  payout_amount Int // 실제 지급액
-
-  // 상태
-  status SettlementStatus @default(PENDING)
-
-  // 정산 메타데이터
-  payout_method  String? // 지급 방법 (bank_transfer 등)
-  payout_account String? // 지급 계좌 (암호화 필요)
-  admin_memo     String? // 관리자 메모
-
-  // 시간
-  requested_at  DateTime  @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  approved_at   DateTime? // 승인 시각
-  paid_at       DateTime? // 지급 완료 시각
-  rejected_at   DateTime? // 거절 시각
-  reject_reason String? // 거절 사유
-
-  created_at DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at DateTime @updatedAt
-
-  // Relations
-  streamer    User?        @relation("Settlements", fields: [streamer_idx], references: [idx], onDelete: SetNull)
-  payoutCoins PayoutCoin[]
+  id             String           @id @default(cuid())
+  streamer_idx   Int?
+  period_start   DateTime
+  period_end     DateTime
+  total_value    Int
+  fee_amount     Int
+  payout_amount  Int
+  status         SettlementStatus @default(PENDING)
+  payout_method  String?
+  payout_account String?
+  admin_memo     String?
+  requested_at   DateTime         @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  approved_at    DateTime?
+  paid_at        DateTime?
+  rejected_at    DateTime?
+  reject_reason  String?
+  created_at     DateTime         @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at     DateTime         @updatedAt
+  payoutCoins    PayoutCoin[]
+  streamer       User?            @relation("Settlements", fields: [streamer_idx], references: [idx])
 
   @@index([streamer_idx, status, period_start], map: "idx_settlement_streamer_status_period")
   @@index([status, created_at], map: "idx_settlement_status_created")
   @@map("settlements")
 }
 
-enum SettlementStatus {
-  PENDING // 정산 요청됨
-  APPROVED // 승인됨
-  PAID // 지급 완료
-  REJECTED // 거절됨
-}
-
-// ─── Widget Token System ───────────────────────────────────────────
-
 model WidgetToken {
-  id                 String @id @default(cuid())
-  token              String @unique // ULID 26자
-  broadcaster_id     Int
-  widget_type        WidgetType
-  chat_config_id     String @unique
-  goal_config_id String @unique
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
-
-  broadcaster     User                @relation(fields: [broadcaster_id], references: [idx])
-  chat_config     WidgetChatConfig    @relation(fields: [chat_config_id], references: [id])
-  goal_config WidgetGoalConfig @relation(fields: [goal_config_id], references: [id])
+  id             String           @id @default(cuid())
+  token          String           @unique
+  broadcaster_id Int
+  widget_type    WidgetType
+  chat_config_id String           @unique
+  goal_config_id String           @unique
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  broadcaster    User             @relation(fields: [broadcaster_id], references: [idx])
+  chat_config    WidgetChatConfig @relation(fields: [chat_config_id], references: [id])
+  goal_config    WidgetGoalConfig @relation(fields: [goal_config_id], references: [id])
 
   @@index([broadcaster_id])
   @@map("widget_tokens")
@@ -912,8 +626,7 @@ model WidgetChatConfig {
   show_user_id       Boolean         @default(true)
   created_at         DateTime        @default(now())
   updated_at         DateTime        @updatedAt
-
-  widget_token WidgetToken?
+  widget_token       WidgetToken?
 
   @@map("widget_chat_configs")
 }
@@ -928,10 +641,40 @@ model WidgetGoalConfig {
   animation_type String          @default("slide")
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt
-
-  widget_token WidgetToken?
+  widget_token   WidgetToken?
 
   @@map("widget_goal_configs")
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  WAITING_DEPOSIT
+  SUCCESS
+  FAILED
+  CANCELED
+  EXPIRED
+}
+
+enum TopupStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  FROZEN
+}
+
+enum PayoutStatus {
+  PENDING
+  MATURED
+  BLOCKED
+  SETTLED
+}
+
+enum SettlementStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
 }
 
 enum WidgetType {
@@ -949,4 +692,3 @@ enum GoalWidgetStyle {
   GOAL_RING
   GOAL_STEP
 }
-

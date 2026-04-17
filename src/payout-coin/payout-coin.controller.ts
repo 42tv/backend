@@ -87,27 +87,6 @@ export class PayoutCoinController {
   }
 
   /**
-   * PayoutCoin 상세 조회
-   * GET /payout-coin/my/:id
-   */
-  @Get('my/:id')
-  // @UseGuards(MemberGuard)
-  async getMyPayoutCoinById(
-    @Request() req: any,
-    @Param('id') id: string,
-  ): Promise<SuccessResponseDto<any>> {
-    const streamerIdx = req.user?.idx || 1;
-    const payoutCoin = await this.payoutCoinService.findById(id);
-
-    // 본인의 PayoutCoin인지 확인
-    if (payoutCoin.streamer_idx !== streamerIdx) {
-      throw new BadRequestException('Access denied');
-    }
-
-    return ResponseWrapper.success(payoutCoin, '정산 코인을 조회했습니다.');
-  }
-
-  /**
    * 정산 가능한 PayoutCoin 목록 조회
    * GET /payout-coin/my/matured
    */
@@ -199,6 +178,27 @@ export class PayoutCoinController {
     );
   }
 
+  /**
+   * PayoutCoin 상세 조회
+   * GET /payout-coin/my/:id
+   */
+  @Get('my/:id')
+  // @UseGuards(MemberGuard)
+  async getMyPayoutCoinById(
+    @Request() req: any,
+    @Param('id') id: string,
+  ): Promise<SuccessResponseDto<any>> {
+    const streamerIdx = req.user?.idx || 1;
+    const payoutCoin = await this.payoutCoinService.findById(id);
+
+    // 본인의 PayoutCoin인지 확인
+    if (payoutCoin.streamer_idx !== streamerIdx) {
+      throw new BadRequestException('Access denied');
+    }
+
+    return ResponseWrapper.success(payoutCoin, '정산 코인을 조회했습니다.');
+  }
+
   // ===== 관리자 API =====
 
   /**
@@ -246,6 +246,17 @@ export class PayoutCoinController {
       '스트리머의 PayoutCoin을 조회했습니다.',
       pagination,
     );
+  }
+
+  /**
+   * PENDING → MATURED/BLOCKED 성숙도 업데이트 (관리자)
+   * POST /payout-coin/admin/mature
+   */
+  @Post('admin/mature')
+  // @UseGuards(AdminGuard)
+  async triggerMaturity(): Promise<SuccessResponseDto<any>> {
+    const result = await this.payoutCoinService.maturePendingCoins();
+    return ResponseWrapper.success(result, 'PayoutCoin 성숙도를 업데이트했습니다.');
   }
 
   /**
