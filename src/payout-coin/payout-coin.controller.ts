@@ -256,7 +256,10 @@ export class PayoutCoinController {
   // @UseGuards(AdminGuard)
   async triggerMaturity(): Promise<SuccessResponseDto<any>> {
     const result = await this.payoutCoinService.maturePendingCoins();
-    return ResponseWrapper.success(result, 'PayoutCoin 성숙도를 업데이트했습니다.');
+    return ResponseWrapper.success(
+      result,
+      'PayoutCoin 성숙도를 업데이트했습니다.',
+    );
   }
 
   /**

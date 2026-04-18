@@ -115,10 +115,10 @@ export class SettlementService {
         tx,
       );
 
-      // 4. PayoutCoin들을 SETTLED로 변경 및 settlement 연결
+      // 4. PayoutCoin들을 IN_SETTLEMENT으로 변경 및 settlement 연결
       await this.payoutCoinRepository.updateStatusBatch(
         payoutCoinIds,
-        PayoutStatus.SETTLED,
+        PayoutStatus.IN_SETTLEMENT,
         tx,
       );
       await this.payoutCoinRepository.linkToSettlement(
@@ -170,7 +170,20 @@ export class SettlementService {
       );
     }
 
-    return await this.settlementRepository.markAsPaid(settlementId, new Date());
+    return await this.prisma.$transaction(async (tx) => {
+      const payoutCoinIds = settlement.payoutCoins.map((coin) => coin.id);
+      await this.payoutCoinRepository.updateStatusBatch(
+        payoutCoinIds,
+        PayoutStatus.SETTLED,
+        tx,
+      );
+
+      return await this.settlementRepository.markAsPaid(
+        settlementId,
+        new Date(),
+        tx,
+      );
+    });
   }
 
   /**

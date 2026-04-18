@@ -667,6 +667,7 @@ enum PayoutStatus {
   PENDING
   MATURED
   BLOCKED
+  IN_SETTLEMENT
   SETTLED
 }
 
