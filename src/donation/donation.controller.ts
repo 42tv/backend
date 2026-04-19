@@ -1,18 +1,9 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Query,
-  Param,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards } from '@nestjs/common';
 import { DonationService } from './donation.service';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { GetDonationsQueryDto } from './dto/get-donations-query.dto';
 import { GetStatsQueryDto } from './dto/get-stats-query.dto';
 import { MemberGuard } from '../auth/guard/jwt.member.guard';
-import { AdminGuard } from '../auth/guard/admin.guard';
 import { GetUser } from '../auth/get-user.decorator';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
@@ -240,52 +231,5 @@ export class DonationController {
       unit: query.unit || 'day',
     });
     return ResponseWrapper.success({ trend }, '후원 추이를 조회했습니다.');
-  }
-
-  /**
-   * 후원 상세 조회 (GET /donation/:id)
-   * @param id Donation ID
-   * @returns 후원 상세 정보
-   */
-  @Get(':id')
-  @UseGuards(AdminGuard)
-  async getDonationById(
-    @Param('id') id: string,
-  ): Promise<SuccessResponseDto<{ donation: any }>> {
-    const donation = await this.donationService.findById(id);
-
-    return ResponseWrapper.success(
-      {
-        donation: {
-          id: donation.id,
-          coin_amount: donation.coin_amount,
-          coin_value: donation.coin_value,
-          message: donation.message,
-          donated_at: donation.donated_at.toISOString(),
-          donor: {
-            idx: donation.donor.idx,
-            nickname: donation.donor.nickname,
-            user_id: donation.donor.user_id,
-            profile_img: donation.donor.profile_img || '',
-          },
-          streamer: {
-            idx: donation.streamer.idx,
-            nickname: donation.streamer.nickname,
-            user_id: donation.streamer.user_id,
-            profile_img: donation.streamer.profile_img || '',
-          },
-          usages: donation.usages.map((usage) => ({
-            id: usage.id,
-            used_coins: usage.used_coins,
-            topup: {
-              id: usage.topup.id,
-              product_name: usage.topup.product_name,
-              topped_up_at: usage.topup.topped_up_at.toISOString(),
-            },
-          })),
-        },
-      },
-      '후원 상세 정보를 조회했습니다.',
-    );
   }
 }

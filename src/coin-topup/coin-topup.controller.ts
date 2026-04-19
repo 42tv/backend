@@ -12,7 +12,6 @@ import {
 import { CoinTopupService } from './coin-topup.service';
 import { ProcessTopupDto } from './dto/create-coin-topup.dto';
 import { MemberGuard } from '../auth/guard/jwt.member.guard';
-import { AdminGuard } from '../auth/guard/admin.guard';
 import { GetUser } from '../auth/get-user.decorator';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
@@ -32,27 +31,6 @@ export class CoinTopupController {
       processDto,
     );
     return ResponseWrapper.success(topup, '코인 충전을 처리했습니다.');
-  }
-
-  @Post(':transaction_id/fail')
-  @UseGuards(AdminGuard)
-  async failTopup(
-    @Param('transaction_id') transaction_id: string,
-  ): Promise<SuccessResponseDto<any>> {
-    const result = await this.coinTopupService.failTopup(transaction_id);
-    return ResponseWrapper.success(
-      result,
-      '충전 트랜잭션을 실패 처리했습니다.',
-    );
-  }
-
-  @Post(':topup_id/refund')
-  @UseGuards(AdminGuard)
-  async processRefund(
-    @Param('topup_id') topup_id: string,
-  ): Promise<SuccessResponseDto<any>> {
-    const refund = await this.coinTopupService.processRefund(topup_id);
-    return ResponseWrapper.success(refund, '코인 환불을 처리했습니다.');
   }
 
   @Get('me')
