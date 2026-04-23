@@ -19,7 +19,6 @@ import { PostModule } from './post/post.module';
 import { FanLevelModule } from './fan-level/fan-level.module';
 import { BroadcastSettingModule } from './broadcast-setting/broadcast-setting.module';
 import { AwsModule } from './aws/aws.module';
-import { LiveController } from './live/live.controller';
 import { LiveModule } from './live/live.module';
 import { PlayModule } from './play/play.module';
 import { StreamViewerModule } from './stream-viewer/stream-viewer.module';
@@ -83,7 +82,7 @@ import { WidgetModule } from './widget/widget.module';
     OverlayModule,
     WidgetModule,
   ],
-  controllers: [AppController, LiveController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {

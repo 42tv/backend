@@ -1,15 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   Length,
   Max,
   Min,
   ValidateIf,
-  IsOptional,
 } from 'class-validator';
+import { BroadcastCategory } from '@prisma/client';
 
 /**
  * 방송 설정 DTO
@@ -68,6 +70,15 @@ export class BroadcastSettingDto {
     example: '1234',
   })
   password: string;
+
+  @IsNotEmpty()
+  @IsEnum(BroadcastCategory)
+  @ApiProperty({
+    description: '방송 카테고리',
+    enum: BroadcastCategory,
+    example: BroadcastCategory.TALK_DAILY,
+  })
+  category: BroadcastCategory;
 }
 
 /**
@@ -131,4 +142,14 @@ export class UpdateBroadcastSettingDto {
     required: false,
   })
   password?: string;
+
+  @IsOptional()
+  @IsEnum(BroadcastCategory)
+  @ApiProperty({
+    description: '방송 카테고리',
+    enum: BroadcastCategory,
+    example: BroadcastCategory.TALK_DAILY,
+    required: false,
+  })
+  category?: BroadcastCategory;
 }

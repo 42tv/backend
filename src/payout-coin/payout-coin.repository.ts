@@ -240,6 +240,30 @@ export class PayoutCoinRepository {
   }
 
   /**
+   * 금액 기준으로 정산할 MATURED 코인 선택 (FIFO)
+   * @param streamerIdx 스트리머 인덱스
+   * @param targetAmount 정산할 목표 금액
+   * @returns 선택된 PayoutCoin 배열 (누적 금액이 targetAmount 이하)
+   */
+  async findMaturedCoinsByAmount(streamerIdx: number, targetAmount: number) {
+    const coins = await this.prisma.payoutCoin.findMany({
+      where: { streamer_idx: streamerIdx, status: PayoutStatus.MATURED },
+      orderBy: { settlement_ready_at: 'asc' },
+    });
+
+    const selected = [];
+    let accumulated = 0;
+
+    for (const coin of coins) {
+      if (accumulated + coin.coin_value > targetAmount) break;
+      selected.push(coin);
+      accumulated += coin.coin_value;
+    }
+
+    return { coins: selected, totalValue: accumulated };
+  }
+
+  /**
    * 정산 준비가 완료된 PENDING 코인 조회 (스케줄러용)
    * @returns settlement_ready_at이 현재보다 이전이고 status=PENDING인 PayoutCoin 목록
    */
@@ -361,58 +385,44 @@ export class PayoutCoinRepository {
    * @returns 상태별 금액 합계
    */
   async getPayoutSummary(streamerIdx: number) {
-    const [matured, pending, blocked, settled] = await Promise.all([
-      // MATURED 상태 금액 합계
-      this.prisma.payoutCoin.aggregate({
-        where: {
-          streamer_idx: streamerIdx,
-          status: PayoutStatus.MATURED,
-        },
-        _sum: {
-          coin_value: true,
-        },
-      }),
-      // PENDING 상태 금액 합계
-      this.prisma.payoutCoin.aggregate({
-        where: {
-          streamer_idx: streamerIdx,
-          status: PayoutStatus.PENDING,
-        },
-        _sum: {
-          coin_value: true,
-        },
-      }),
-      // BLOCKED 상태 금액 합계
-      this.prisma.payoutCoin.aggregate({
-        where: {
-          streamer_idx: streamerIdx,
-          status: PayoutStatus.BLOCKED,
-        },
-        _sum: {
-          coin_value: true,
-        },
-      }),
-      // SETTLED 상태 금액 합계
-      this.prisma.payoutCoin.aggregate({
-        where: {
-          streamer_idx: streamerIdx,
-          status: PayoutStatus.SETTLED,
-        },
-        _sum: {
-          coin_value: true,
-        },
-      }),
-    ]);
+    const [matured, pending, blocked, inSettlement, settled] =
+      await Promise.all([
+        this.prisma.payoutCoin.aggregate({
+          where: { streamer_idx: streamerIdx, status: PayoutStatus.MATURED },
+          _sum: { coin_value: true },
+        }),
+        this.prisma.payoutCoin.aggregate({
+          where: { streamer_idx: streamerIdx, status: PayoutStatus.PENDING },
+          _sum: { coin_value: true },
+        }),
+        this.prisma.payoutCoin.aggregate({
+          where: { streamer_idx: streamerIdx, status: PayoutStatus.BLOCKED },
+          _sum: { coin_value: true },
+        }),
+        this.prisma.payoutCoin.aggregate({
+          where: {
+            streamer_idx: streamerIdx,
+            status: PayoutStatus.IN_SETTLEMENT,
+          },
+          _sum: { coin_value: true },
+        }),
+        this.prisma.payoutCoin.aggregate({
+          where: { streamer_idx: streamerIdx, status: PayoutStatus.SETTLED },
+          _sum: { coin_value: true },
+        }),
+      ]);
 
     return {
       matured_amount: matured._sum.coin_value || 0,
       pending_amount: pending._sum.coin_value || 0,
       blocked_amount: blocked._sum.coin_value || 0,
+      in_settlement_amount: inSettlement._sum.coin_value || 0,
       settled_amount: settled._sum.coin_value || 0,
       total_received:
         (matured._sum.coin_value || 0) +
         (pending._sum.coin_value || 0) +
         (blocked._sum.coin_value || 0) +
+        (inSettlement._sum.coin_value || 0) +
         (settled._sum.coin_value || 0),
     };
   }

@@ -6,6 +6,7 @@
 /docs
 /z_etc
 /spec
+.codex
 
 # Logs
 logs

@@ -42,7 +42,6 @@ import * as multer from 'multer';
 import { ProfileImageUploadDto } from './dto/profile-upload.dto';
 // User 응답/요청 DTO imports
 import {
-  GetUserResponseDto,
   UpdateNicknameResponseDto,
   UpdatePasswordResponseDto,
   ProfileImageUploadResponseDto,
@@ -62,24 +61,6 @@ import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 @UsePipes(new ValidationPipe())
 export class UserController {
   constructor(private readonly userService: UserService) {}
-
-  @Get('')
-  @UseGuards(MemberGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '사용자 정보 조회 (코인 잔액 포함)' })
-  @ApiResponse({
-    status: 200,
-    description: '사용자 정보 조회 성공',
-    type: GetUserResponseDto,
-  })
-  @ApiBadRequestResponse({
-    description: '사용자 조회 실패',
-    type: UserErrorResponseDto,
-  })
-  async getUser(@Req() req): Promise<SuccessResponseDto<GetUserResponseDto>> {
-    const user = await this.userService.getUserWithCoin(req.user.idx);
-    return ResponseWrapper.success({ user }, '사용자 정보를 조회했습니다.');
-  }
 
   @Patch('nickname')
   @UseGuards(MemberGuard)

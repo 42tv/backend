@@ -115,14 +115,91 @@ export class SettlementService {
         tx,
       );
 
-      // 4. PayoutCoin들을 SETTLED로 변경 및 settlement 연결
+      // 4. PayoutCoin들을 IN_SETTLEMENT으로 변경 및 settlement 연결
       await this.payoutCoinRepository.updateStatusBatch(
         payoutCoinIds,
-        PayoutStatus.SETTLED,
+        PayoutStatus.IN_SETTLEMENT,
         tx,
       );
       await this.payoutCoinRepository.linkToSettlement(
         payoutCoinIds,
+        settlement.id,
+        tx,
+      );
+
+      return settlement;
+    });
+  }
+
+  /**
+   * 금액 기반 정산 신청 (스트리머)
+   * MATURED 코인을 settlement_ready_at 오름차순(FIFO)으로 선택
+   */
+  async requestSettlement(
+    streamerIdx: number,
+    amount: number,
+    options?: {
+      payout_method?: string;
+      payout_account?: string;
+    },
+  ) {
+    if (amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      const { coins, totalValue } =
+        await this.payoutCoinRepository.findMaturedCoinsByAmount(
+          streamerIdx,
+          amount,
+        );
+
+      if (coins.length === 0) {
+        throw new BadRequestException(
+          'No matured coins available for settlement',
+        );
+      }
+
+      if (totalValue < amount) {
+        throw new BadRequestException(
+          `Requested amount ${amount} exceeds available matured amount ${totalValue}`,
+        );
+      }
+
+      const feeAmount = Math.floor(totalValue * this.FEE_RATE);
+      const payoutAmount = totalValue - feeAmount;
+
+      const donatedDates = coins.map((c) => c.donated_at);
+      const periodStart = new Date(
+        Math.min(...donatedDates.map((d) => d.getTime())),
+      );
+      const periodEnd = new Date(
+        Math.max(...donatedDates.map((d) => d.getTime())),
+      );
+
+      const settlement = await this.settlementRepository.create(
+        {
+          streamer: { connect: { idx: streamerIdx } },
+          period_start: periodStart,
+          period_end: periodEnd,
+          total_value: totalValue,
+          fee_amount: feeAmount,
+          payout_amount: payoutAmount,
+          status: SettlementStatus.PENDING,
+          payout_method: options?.payout_method,
+          payout_account: options?.payout_account,
+        },
+        tx,
+      );
+
+      const coinIds = coins.map((c) => c.id);
+      await this.payoutCoinRepository.updateStatusBatch(
+        coinIds,
+        PayoutStatus.IN_SETTLEMENT,
+        tx,
+      );
+      await this.payoutCoinRepository.linkToSettlement(
+        coinIds,
         settlement.id,
         tx,
       );
@@ -170,7 +247,20 @@ export class SettlementService {
       );
     }
 
-    return await this.settlementRepository.markAsPaid(settlementId, new Date());
+    return await this.prisma.$transaction(async (tx) => {
+      const payoutCoinIds = settlement.payoutCoins.map((coin) => coin.id);
+      await this.payoutCoinRepository.updateStatusBatch(
+        payoutCoinIds,
+        PayoutStatus.SETTLED,
+        tx,
+      );
+
+      return await this.settlementRepository.markAsPaid(
+        settlementId,
+        new Date(),
+        tx,
+      );
+    });
   }
 
   /**

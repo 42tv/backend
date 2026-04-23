@@ -93,6 +93,7 @@ export class StreamRepository {
                 is_pw: true,
                 title: true,
                 fan_level: true,
+                category: true,
               },
             },
           },

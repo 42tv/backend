@@ -15,7 +15,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PaymentTransactionService } from './payment-transaction.service';
-import { CreatePaymentTransactionDto } from './dto/create-payment-transaction.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { PreparePaymentDto } from './dto/prepare-payment.dto';
 import { MemberGuard } from '../auth/guard/jwt.member.guard';
@@ -55,22 +54,6 @@ export class PaymentTransactionController {
     );
 
     return ResponseWrapper.success(payment, '결제 준비가 완료되었습니다.');
-  }
-
-  @Post()
-  @UseGuards(MemberGuard)
-  async create(
-    @GetUser() user: { user_idx: number },
-    @Body() createDto: CreatePaymentTransactionDto,
-  ): Promise<SuccessResponseDto<any>> {
-    const transaction = await this.paymentTransactionService.create(
-      user.user_idx,
-      createDto,
-    );
-    return ResponseWrapper.success(
-      transaction,
-      '결제 트랜잭션을 생성했습니다.',
-    );
   }
 
   @Post('success')

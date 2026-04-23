@@ -431,6 +431,7 @@ export class UserService {
         settingDto.isFanClub,
         settingDto.fanLevel,
         settingDto.isPrivate ? settingDto.password : null,
+        settingDto.category,
       );
     } catch (e) {
       console.log(e);

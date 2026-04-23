@@ -487,4 +487,21 @@ export class DonationService {
   ) {
     return await this.donationRepository.getTopDonors(streamerIdx, options);
   }
+
+  /**
+   * 기간별 후원 추이 조회
+   * @param streamerIdx 스트리머 인덱스
+   * @param options 기간 및 단위 옵션
+   * @returns 기간별 집계 데이터
+   */
+  async getDonationTrend(
+    streamerIdx: number,
+    options: {
+      startDate: Date;
+      endDate: Date;
+      unit: 'day' | 'week' | 'month';
+    },
+  ) {
+    return await this.donationRepository.getDonationTrend(streamerIdx, options);
+  }
 }

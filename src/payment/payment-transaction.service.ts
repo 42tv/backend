@@ -8,10 +8,7 @@ import {
 } from '@nestjs/common';
 import { PaymentTransactionRepository } from './payment-transaction.repository';
 import { BootpayTransactionRepository } from './bootpay-transaction.repository';
-import {
-  CreatePaymentTransactionDto,
-  PgProvider,
-} from './dto/create-payment-transaction.dto';
+import { PgProvider } from './dto/create-payment-transaction.dto';
 import { PaymentTransactionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CoinTopupService } from '../coin-topup/coin-topup.service';
@@ -46,26 +43,6 @@ export class PaymentTransactionService {
     private readonly configService: ConfigService,
     private readonly identityVerificationService: IdentityVerificationService,
   ) {}
-
-  /**
-   * 결제 거래 생성
-   * @param user_idx 결제자 ID
-   * @param createDto 결제 거래 생성 데이터
-   * @returns 생성된 결제 거래
-   */
-  async create(user_idx: number, createDto: CreatePaymentTransactionDto) {
-    // PG 거래 ID 중복 확인
-    const existingTransaction =
-      await this.paymentTransactionRepository.findByPgTransactionId(
-        createDto.pg_transaction_id,
-      );
-
-    if (existingTransaction) {
-      throw new BadRequestException('이미 존재하는 PG 거래 ID입니다.');
-    }
-
-    return await this.paymentTransactionRepository.create(user_idx, createDto);
-  }
 
   /**
    * PG사 거래 ID로 결제 거래 조회
