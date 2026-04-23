@@ -111,16 +111,17 @@ model Channel {
 }
 
 model BroadcastSetting {
-  user_idx  Int      @id
+  user_idx  Int               @id
   title     String
-  is_adult  Boolean  @default(false)
-  is_pw     Boolean  @default(false)
-  is_fan    Boolean  @default(false)
-  fan_level Int      @default(1)
+  is_adult  Boolean           @default(false)
+  is_pw     Boolean           @default(false)
+  is_fan    Boolean           @default(false)
+  fan_level Int               @default(1)
   password  String?
-  createdAt DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updatedAt DateTime @updatedAt
-  User      User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  category  BroadcastCategory @default(TALK_DAILY)
+  createdAt DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updatedAt DateTime          @updatedAt
+  User      User              @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("broadcast_settings")
 }
@@ -692,4 +693,12 @@ enum GoalWidgetStyle {
   GOAL_BAR
   GOAL_RING
   GOAL_STEP
+}
+
+enum BroadcastCategory {
+  GAME
+  MUKBANG
+  TALK_DAILY
+  ADULT
+  MUSIC
 }

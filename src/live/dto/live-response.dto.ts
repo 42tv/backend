@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { BroadcastCategory } from '@prisma/client';
 
 /**
  * 방송 설정 정보 DTO
@@ -33,6 +34,13 @@ export class BroadcastSettingInfoDto {
     example: 1,
   })
   fan_level: number;
+
+  @ApiProperty({
+    description: '방송 카테고리',
+    enum: BroadcastCategory,
+    example: BroadcastCategory.TALK_DAILY,
+  })
+  category: BroadcastCategory;
 }
 
 /**

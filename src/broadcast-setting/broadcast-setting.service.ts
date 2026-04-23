@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { BroadcastCategory, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -48,6 +48,7 @@ export class BroadcastSettingService {
     is_fan: boolean,
     fan_level: number,
     password?: string,
+    category: BroadcastCategory = BroadcastCategory.TALK_DAILY,
   ) {
     return await this.prisma.user.update({
       where: {
@@ -62,6 +63,7 @@ export class BroadcastSettingService {
             is_fan: is_fan,
             fan_level: fan_level,
             password: password,
+            category: category,
           },
         },
       },

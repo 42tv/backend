@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { BroadcastCategory } from '@prisma/client';
 
 /**
  * IVS 정보 DTO
@@ -69,6 +70,13 @@ export class GetBroadcastSettingResponseDto {
     required: false,
   })
   password?: string;
+
+  @ApiProperty({
+    description: '방송 카테고리',
+    enum: BroadcastCategory,
+    example: BroadcastCategory.TALK_DAILY,
+  })
+  category: BroadcastCategory;
 
   @ApiProperty({
     description: 'IVS 설정 정보',
