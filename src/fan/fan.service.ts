@@ -171,4 +171,8 @@ export class FanService {
       );
     }
   }
+
+  async countFansByBroadcaster(broadcaster_idx: number): Promise<number> {
+    return this.fanRepository.countFansByBroadcaster(broadcaster_idx);
+  }
 }

@@ -70,6 +70,12 @@ export class ChannelInfoDto {
     example: 15000,
   })
   total_time: number;
+
+  @ApiProperty({
+    description: '팬클럽 가입자 수',
+    example: 42,
+  })
+  fanCount: number;
 }
 
 /**
