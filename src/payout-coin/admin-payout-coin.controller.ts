@@ -54,12 +54,12 @@ export class AdminPayoutCoinController {
     );
   }
 
-  @Post('mature')
-  async triggerMaturity(): Promise<SuccessResponseDto<any>> {
-    const result = await this.payoutCoinService.maturePendingCoins();
+  @Post('refresh-availability')
+  async triggerAvailabilityRefresh(): Promise<SuccessResponseDto<any>> {
+    const result = await this.payoutCoinService.updateWaitingCoinsToAvailable();
     return ResponseWrapper.success(
       result,
-      'PayoutCoin 성숙도를 업데이트했습니다.',
+      'PayoutCoin 정산 가능 상태를 업데이트했습니다.',
     );
   }
 

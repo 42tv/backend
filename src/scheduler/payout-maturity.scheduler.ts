@@ -7,37 +7,29 @@ export class PayoutMaturityScheduler {
 
   constructor(private readonly payoutCoinService: PayoutCoinService) {}
 
-  /**
-   * PayoutCoin 성숙도 업데이트 (10분마다 실행)
-   * settlement_ready_at이 현재보다 이전이고 status=PENDING인 PayoutCoin을
-   * MATURED 또는 BLOCKED로 전환
-   */
   // @Cron('0 */10 * * * *', {
-  //   name: 'payout-maturity-update',
+  //   name: 'payout-availability-update',
   //   timeZone: 'Asia/Seoul',
   // })
-  // async updatePayoutMaturity() {
-  //   this.logger.log('Starting PayoutCoin maturity update...');
+  // async updatePayoutAvailability() {
+  //   this.logger.log('Starting PayoutCoin availability update...');
 
   //   try {
-  //     const result = await this.payoutCoinService.maturePendingCoins();
+  //     const result = await this.payoutCoinService.updateWaitingCoinsToAvailable();
 
   //     this.logger.log(
-  //       `PayoutCoin maturity update completed: ${JSON.stringify(result)}`,
+  //       `PayoutCoin availability update completed: ${JSON.stringify(result)}`,
   //     );
   //     this.logger.log(`  - Total processed: ${result.total}`);
-  //     this.logger.log(`  - Matured: ${result.matured}`);
+  //     this.logger.log(`  - Available: ${result.available}`);
   //     this.logger.log(`  - Blocked: ${result.blocked}`);
   //   } catch (error) {
-  //     this.logger.error('Failed to update PayoutCoin maturity', error.stack);
+  //     this.logger.error('Failed to update PayoutCoin availability', error.stack);
   //   }
   // }
 
-  /**
-   * 수동 실행 (테스트용)
-   */
   async manualTrigger() {
-    this.logger.log('Manual trigger: PayoutCoin maturity update');
-    // await this.updatePayoutMaturity();
+    this.logger.log('Manual trigger: PayoutCoin availability update');
+    // await this.updatePayoutAvailability();
   }
 }

@@ -56,15 +56,15 @@ export class SettlementService {
         );
       }
 
-      // 모든 PayoutCoin이 MATURED 상태인지 검증
+      // 모든 PayoutCoin이 AVAILABLE 상태인지 검증
       const validCoins = coins.filter((coin) => coin !== null);
-      const notMaturedCoins = validCoins.filter(
-        (coin) => coin.status !== PayoutStatus.MATURED,
+      const notAvailableCoins = validCoins.filter(
+        (coin) => coin.status !== PayoutStatus.AVAILABLE,
       );
 
-      if (notMaturedCoins.length > 0) {
+      if (notAvailableCoins.length > 0) {
         throw new BadRequestException(
-          `Some PayoutCoins are not MATURED: ${notMaturedCoins.map((c) => c.id).join(', ')}`,
+          `Some PayoutCoins are not AVAILABLE: ${notAvailableCoins.map((c) => c.id).join(', ')}`,
         );
       }
 
@@ -149,20 +149,18 @@ export class SettlementService {
 
     return await this.prisma.$transaction(async (tx) => {
       const { coins, totalValue } =
-        await this.payoutCoinRepository.findMaturedCoinsByAmount(
+        await this.payoutCoinRepository.findAvailableCoinsByAmount(
           streamerIdx,
           amount,
         );
 
       if (coins.length === 0) {
-        throw new BadRequestException(
-          'No matured coins available for settlement',
-        );
+        throw new BadRequestException('No available coins for settlement');
       }
 
       if (totalValue < amount) {
         throw new BadRequestException(
-          `Requested amount ${amount} exceeds available matured amount ${totalValue}`,
+          `Requested amount ${amount} exceeds available amount ${totalValue}`,
         );
       }
 
@@ -251,7 +249,7 @@ export class SettlementService {
       const payoutCoinIds = settlement.payoutCoins.map((coin) => coin.id);
       await this.payoutCoinRepository.updateStatusBatch(
         payoutCoinIds,
-        PayoutStatus.SETTLED,
+        PayoutStatus.COMPLETED,
         tx,
       );
 
@@ -295,11 +293,11 @@ export class SettlementService {
         tx,
       );
 
-      // 2. 연결된 PayoutCoin들을 다시 MATURED로 되돌림
+      // 2. 연결된 PayoutCoin들을 다시 AVAILABLE로 되돌림
       const payoutCoinIds = settlement.payoutCoins.map((coin) => coin.id);
       await this.payoutCoinRepository.updateStatusBatch(
         payoutCoinIds,
-        PayoutStatus.MATURED,
+        PayoutStatus.AVAILABLE,
         tx,
       );
 

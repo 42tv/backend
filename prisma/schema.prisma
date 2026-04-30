@@ -554,7 +554,7 @@ model PayoutCoin {
   coin_value           Int
   donated_at           DateTime
   settlement_ready_at  DateTime
-  status               PayoutStatus @default(PENDING)
+  status               PayoutStatus @default(WAITING)
   block_reason         String?
   blocked_topup_reason String?
   settlement_id        String?
@@ -665,11 +665,11 @@ enum TopupStatus {
 }
 
 enum PayoutStatus {
-  PENDING
-  MATURED
+  WAITING
+  AVAILABLE
   BLOCKED
   IN_SETTLEMENT
-  SETTLED
+  COMPLETED
 }
 
 enum SettlementStatus {
