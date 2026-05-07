@@ -40,6 +40,7 @@ import { BootpayModule } from './bootpay/bootpay.module';
 import { IdentityVerificationModule } from './identity-verification/identity-verification.module';
 import { OverlayModule } from './overlay/overlay.module';
 import { WidgetModule } from './widget/widget.module';
+import { SettlementAccountModule } from './settlement-account/settlement-account.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { WidgetModule } from './widget/widget.module';
     IdentityVerificationModule,
     OverlayModule,
     WidgetModule,
+    SettlementAccountModule,
   ],
   controllers: [AppController],
   providers: [AppService],
