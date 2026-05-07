@@ -26,15 +26,7 @@ export class SettlementService {
    * @param options 추가 옵션 (지급 방법, 계좌 등)
    * @returns 생성된 Settlement
    */
-  async createSettlement(
-    streamerIdx: number,
-    payoutCoinIds: string[],
-    options?: {
-      payout_method?: string;
-      payout_account?: string;
-      admin_memo?: string;
-    },
-  ) {
+  async createSettlement(streamerIdx: number, payoutCoinIds: string[]) {
     if (payoutCoinIds.length === 0) {
       throw new BadRequestException('PayoutCoin IDs are required');
     }
@@ -87,30 +79,16 @@ export class SettlementService {
       const feeAmount = Math.floor(totalValue * this.FEE_RATE);
       const payoutAmount = totalValue - feeAmount;
 
-      // 정산 기간 계산 (donated_at 기준)
-      const donatedDates = validCoins.map((coin) => coin.donated_at);
-      const periodStart = new Date(
-        Math.min(...donatedDates.map((d) => d.getTime())),
-      );
-      const periodEnd = new Date(
-        Math.max(...donatedDates.map((d) => d.getTime())),
-      );
-
       // 3. Settlement 생성
       const settlement = await this.settlementRepository.create(
         {
           streamer: {
             connect: { idx: streamerIdx },
           },
-          period_start: periodStart,
-          period_end: periodEnd,
           total_value: totalValue,
           fee_amount: feeAmount,
           payout_amount: payoutAmount,
           status: SettlementStatus.PENDING,
-          payout_method: options?.payout_method,
-          payout_account: options?.payout_account, // TODO: 암호화 필요
-          admin_memo: options?.admin_memo,
         },
         tx,
       );
@@ -135,14 +113,7 @@ export class SettlementService {
    * 금액 기반 정산 신청 (스트리머)
    * MATURED 코인을 settlement_ready_at 오름차순(FIFO)으로 선택
    */
-  async requestSettlement(
-    streamerIdx: number,
-    amount: number,
-    options?: {
-      payout_method?: string;
-      payout_account?: string;
-    },
-  ) {
+  async requestSettlement(streamerIdx: number, amount: number) {
     if (amount <= 0) {
       throw new BadRequestException('Amount must be greater than 0');
     }
@@ -167,25 +138,13 @@ export class SettlementService {
       const feeAmount = Math.floor(totalValue * this.FEE_RATE);
       const payoutAmount = totalValue - feeAmount;
 
-      const donatedDates = coins.map((c) => c.donated_at);
-      const periodStart = new Date(
-        Math.min(...donatedDates.map((d) => d.getTime())),
-      );
-      const periodEnd = new Date(
-        Math.max(...donatedDates.map((d) => d.getTime())),
-      );
-
       const settlement = await this.settlementRepository.create(
         {
           streamer: { connect: { idx: streamerIdx } },
-          period_start: periodStart,
-          period_end: periodEnd,
           total_value: totalValue,
           fee_amount: feeAmount,
           payout_amount: payoutAmount,
           status: SettlementStatus.PENDING,
-          payout_method: options?.payout_method,
-          payout_account: options?.payout_account,
         },
         tx,
       );

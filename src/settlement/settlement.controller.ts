@@ -45,10 +45,6 @@ export class SettlementController {
     const settlement = await this.settlementService.requestSettlement(
       req.user.idx,
       dto.amount,
-      {
-        payout_method: dto.payout_method,
-        payout_account: dto.payout_account,
-      },
     );
     return ResponseWrapper.success(settlement, '정산을 신청했습니다.');
   }
