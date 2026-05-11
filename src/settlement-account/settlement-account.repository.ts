@@ -63,6 +63,22 @@ export class SettlementAccountRepository {
     });
   }
 
+  updateVerificationStatus(
+    accountId: string,
+    data: {
+      verification_status: SettlementAccountVerificationStatus;
+      verification_provider?: string;
+      verification_provider_ref?: string;
+      verification_requested_at?: Date;
+      verified_at?: Date | null;
+    },
+  ) {
+    return this.prisma.settlementAccount.update({
+      where: { id: accountId },
+      data,
+    });
+  }
+
   softDelete(userIdx: number) {
     return this.prisma.settlementAccount.updateMany({
       where: { user_idx: userIdx, deleted_at: null },

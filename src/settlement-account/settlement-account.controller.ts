@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Post,
   Put,
   Request,
   UseGuards,
@@ -50,5 +51,20 @@ export class SettlementAccountController {
   async delete(@Request() req: any): Promise<SuccessResponseDto<null>> {
     await this.settlementAccountService.delete(req.user.idx);
     return ResponseWrapper.success(null, '정산 계좌가 삭제되었습니다.');
+  }
+
+  @Post('verify')
+  async verify(@Request() req: any): Promise<
+    SuccessResponseDto<{
+      verification_status: string;
+      failure_reason: string | null;
+    }>
+  > {
+    const result = await this.settlementAccountService.verify(req.user.idx);
+    const message =
+      result.verification_status === 'VERIFIED'
+        ? '계좌 인증이 완료되었습니다.'
+        : '계좌 인증에 실패했습니다.';
+    return ResponseWrapper.success(result, message);
   }
 }
