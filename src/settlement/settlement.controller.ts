@@ -9,28 +9,12 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
-import { Type } from 'class-transformer';
 import { SettlementService } from './settlement.service';
 import { SettlementStatus } from '@prisma/client';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
-
-class RequestSettlementDto {
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  amount: number;
-
-  @IsOptional()
-  @IsString()
-  payout_method?: string;
-
-  @IsOptional()
-  @IsString()
-  payout_account?: string;
-}
+import { RequestSettlementDto } from './dto/request-settlement.dto';
 
 @Controller('settlement')
 @UseGuards(MemberGuard)
@@ -44,7 +28,7 @@ export class SettlementController {
   ): Promise<SuccessResponseDto<any>> {
     const settlement = await this.settlementService.requestSettlement(
       req.user.idx,
-      dto.amount,
+      dto,
     );
     return ResponseWrapper.success(settlement, '정산을 신청했습니다.');
   }

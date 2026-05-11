@@ -85,8 +85,7 @@ export class SettlementAccountService {
         : undefined,
     });
 
-    const providerName =
-      process.env.APP_ENV === 'prod' ? 'prod' : 'dev';
+    const providerName = process.env.APP_ENV === 'prod' ? 'prod' : 'dev';
 
     if (result.verified) {
       await this.repository.updateVerificationStatus(account.id, {

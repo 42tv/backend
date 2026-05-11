@@ -6,9 +6,7 @@ import {
 } from './account-verification-provider.interface';
 
 @Injectable()
-export class DevSettlementAccountVerificationProvider
-  extends SettlementAccountVerificationProvider
-{
+export class DevSettlementAccountVerificationProvider extends SettlementAccountVerificationProvider {
   async verify(
     command: VerifySettlementAccountCommand,
   ): Promise<VerifySettlementAccountResult> {

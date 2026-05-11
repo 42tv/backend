@@ -6,7 +6,12 @@ import {
 import { SettlementRepository } from './settlement.repository';
 import { PayoutCoinRepository } from '../payout-coin/payout-coin.repository';
 import { PrismaService } from '../prisma/prisma.service';
-import { SettlementStatus, PayoutStatus } from '@prisma/client';
+import {
+  SettlementStatus,
+  PayoutStatus,
+  SettlementAccountVerificationStatus,
+} from '@prisma/client';
+import { RequestSettlementDto } from './dto/request-settlement.dto';
 
 @Injectable()
 export class SettlementService {
@@ -113,26 +118,33 @@ export class SettlementService {
    * 금액 기반 정산 신청 (스트리머)
    * MATURED 코인을 settlement_ready_at 오름차순(FIFO)으로 선택
    */
-  async requestSettlement(streamerIdx: number, amount: number) {
-    if (amount <= 0) {
-      throw new BadRequestException('Amount must be greater than 0');
-    }
-
+  async requestSettlement(streamerIdx: number, dto: RequestSettlementDto) {
     return await this.prisma.$transaction(async (tx) => {
+      const account = await tx.settlementAccount.findUnique({
+        where: { user_idx: streamerIdx },
+      });
+
+      if (!account) {
+        throw new NotFoundException('등록된 정산 계좌가 없습니다.');
+      }
+      if (account.deleted_at) {
+        throw new BadRequestException('삭제된 계좌입니다.');
+      }
+      if (
+        account.verification_status !==
+        SettlementAccountVerificationStatus.VERIFIED
+      ) {
+        throw new BadRequestException('인증된 계좌만 정산 신청이 가능합니다.');
+      }
+
       const { coins, totalValue } =
         await this.payoutCoinRepository.findAvailableCoinsByAmount(
           streamerIdx,
-          amount,
+          dto.amount,
         );
 
-      if (coins.length === 0) {
-        throw new BadRequestException('No available coins for settlement');
-      }
-
-      if (totalValue < amount) {
-        throw new BadRequestException(
-          `Requested amount ${amount} exceeds available amount ${totalValue}`,
-        );
+      if (coins.length === 0 || totalValue < dto.amount) {
+        throw new BadRequestException('정산 가능한 코인이 부족합니다.');
       }
 
       const feeAmount = Math.floor(totalValue * this.FEE_RATE);
@@ -141,6 +153,7 @@ export class SettlementService {
       const settlement = await this.settlementRepository.create(
         {
           streamer: { connect: { idx: streamerIdx } },
+          settlementAccount: { connect: { id: account.id } },
           total_value: totalValue,
           fee_amount: feeAmount,
           payout_amount: payoutAmount,
