@@ -174,7 +174,8 @@ export class SettlementService {
         tx,
       );
 
-      return settlement;
+      const { settlement_account_id: _, ...result } = settlement;
+      return result;
     });
   }
 
