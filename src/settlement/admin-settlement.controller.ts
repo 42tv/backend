@@ -133,17 +133,6 @@ export class AdminSettlementController {
     return ResponseWrapper.success(settlement, '정산을 승인했습니다.');
   }
 
-  @Post(':id/pay')
-  async markSettlementAsPaid(
-    @Param('id') id: string,
-  ): Promise<SuccessResponseDto<any>> {
-    const settlement = await this.settlementService.markSettlementAsPaid(id);
-    return ResponseWrapper.success(
-      settlement,
-      '정산을 지급 완료 처리했습니다.',
-    );
-  }
-
   @Post(':id/reject')
   async rejectSettlement(
     @Param('id') id: string,
