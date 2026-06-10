@@ -62,7 +62,6 @@ model UserDetail {
   user_idx        Int      @id
   name            String
   sex             String
-  resident_number String
   phone           String
   email           String   @unique
   address         String

@@ -125,7 +125,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 실시간 채팅방 관련 Redis 구조 작업 시 항상 멀티 서버 스케일링 시나리오를 고려하여 작성한다.
 
 ## 보안 및 운영 주의사항
-- **개인정보 보호**: UserDetail 모델의 개인정보(주민번호, 전화번호, 이메일, 주소)는 반드시 암호화 (pgcrypto)
+- **개인정보 보호**: UserDetail 모델의 개인정보(전화번호, 이메일, 주소)는 반드시 암호화 (pgcrypto). 주민등록번호는 수집 금지(개인정보보호법 §24의2) — 본인확인은 CI 해시 사용
 - **AWS IVS**: 채널 생성 시 중복 확인 필수
 - **Redis**: 연결 상태 확인 후 채팅 기능 사용
 - **파일 업로드**: 5MB 제한 (Sharp를 통한 이미지 최적화)
