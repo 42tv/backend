@@ -602,24 +602,23 @@ model Settlement {
 }
 
 model WidgetToken {
-  id             String           @id @default(cuid())
-  token          String           @unique
+  id             String            @id @default(cuid())
+  token          String            @unique
   broadcaster_id Int
   widget_type    WidgetType
-  chat_config_id String           @unique
-  goal_config_id String           @unique
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @updatedAt
-  broadcaster    User             @relation(fields: [broadcaster_id], references: [idx])
-  chat_config    WidgetChatConfig @relation(fields: [chat_config_id], references: [id])
-  goal_config    WidgetGoalConfig @relation(fields: [goal_config_id], references: [id])
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @updatedAt
+  broadcaster    User              @relation(fields: [broadcaster_id], references: [idx], onDelete: Cascade)
+  chat_config    WidgetChatConfig?
+  goal_config    WidgetGoalConfig?
 
-  @@index([broadcaster_id])
+  @@unique([broadcaster_id, widget_type])
   @@map("widget_tokens")
 }
 
 model WidgetChatConfig {
   id                 String          @id @default(cuid())
+  widget_token_id    String          @unique
   style              ChatWidgetStyle @default(DEFAULT)
   max_messages       Int             @default(5)
   show_profile_image Boolean         @default(true)
@@ -627,22 +626,23 @@ model WidgetChatConfig {
   show_user_id       Boolean         @default(true)
   created_at         DateTime        @default(now())
   updated_at         DateTime        @updatedAt
-  widget_token       WidgetToken?
+  widget_token       WidgetToken     @relation(fields: [widget_token_id], references: [id], onDelete: Cascade)
 
   @@map("widget_chat_configs")
 }
 
 model WidgetGoalConfig {
-  id             String          @id @default(cuid())
-  style          GoalWidgetStyle @default(GOAL_BAR)
-  goal_amount    Int             @default(500)
-  goal_label     String          @default("리액션 미션 달성까지")
-  bg_opacity     Int             @default(55)
-  font_size      Int             @default(14)
-  animation_type String          @default("slide")
-  created_at     DateTime        @default(now())
-  updated_at     DateTime        @updatedAt
-  widget_token   WidgetToken?
+  id              String          @id @default(cuid())
+  widget_token_id String          @unique
+  style           GoalWidgetStyle @default(GOAL_BAR)
+  goal_amount     Int             @default(500)
+  goal_label      String          @default("리액션 미션 달성까지")
+  bg_opacity      Int             @default(55)
+  font_size       Int             @default(14)
+  animation_type  String          @default("slide")
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  widget_token    WidgetToken     @relation(fields: [widget_token_id], references: [id], onDelete: Cascade)
 
   @@map("widget_goal_configs")
 }

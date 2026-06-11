@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ulid } from 'ulid';
-import { WidgetType, WidgetChatConfig, WidgetGoalConfig } from '@prisma/client';
+import {
+  Prisma,
+  WidgetType,
+  WidgetChatConfig,
+  WidgetGoalConfig,
+} from '@prisma/client';
 import { WidgetRepository } from './widget.repository';
 import { UpdateChatConfigDto } from './dto/update-chat-config.dto';
 import { UpdateGoalConfigDto } from './dto/update-goal-config.dto';
@@ -65,17 +70,34 @@ export class WidgetService {
     const existingTypes = new Set(existing.map((wt) => wt.widget_type));
 
     const missing = requiredTypes.filter((type) => !existingTypes.has(type));
-    const created = await Promise.all(
-      missing.map((type) =>
-        this.widgetRepository.createToken(
-          broadcasterId,
-          this.generateToken(),
-          type,
-        ),
-      ),
-    );
 
-    const tokens = [...existing, ...created];
+    let tokens = existing;
+    if (missing.length > 0) {
+      try {
+        const created = await Promise.all(
+          missing.map((type) =>
+            this.widgetRepository.createToken(
+              broadcasterId,
+              this.generateToken(),
+              type,
+            ),
+          ),
+        );
+        tokens = [...existing, ...created];
+      } catch (e) {
+        // P2002: a concurrent request already issued the token — refetch instead
+        if (
+          e instanceof Prisma.PrismaClientKnownRequestError &&
+          e.code === 'P2002'
+        ) {
+          tokens =
+            await this.widgetRepository.findAllByBroadcaster(broadcasterId);
+        } else {
+          throw e;
+        }
+      }
+    }
+
     return tokens.map((wt) => ({
       token: wt.token,
       widgetType: wt.widget_type,
@@ -85,12 +107,14 @@ export class WidgetService {
 
   private formatConfig(
     widgetType: WidgetType,
-    chatConfig: WidgetChatConfig,
-    goalConfig: WidgetGoalConfig,
+    chatConfig: WidgetChatConfig | null,
+    goalConfig: WidgetGoalConfig | null,
   ): ChatConfigResponse | GoalConfigResponse {
+    const config = widgetType === WidgetType.CHAT ? chatConfig : goalConfig;
+    if (!config) throw new NotFoundException('위젯 설정을 찾을 수 없습니다.');
     return widgetType === WidgetType.CHAT
-      ? this.formatChatConfig(chatConfig)
-      : this.formatGoalConfig(goalConfig);
+      ? this.formatChatConfig(config as WidgetChatConfig)
+      : this.formatGoalConfig(config as WidgetGoalConfig);
   }
 
   async updateChatConfig(
@@ -104,7 +128,7 @@ export class WidgetService {
     if (!widgetToken) throw new NotFoundException('위젯을 찾을 수 없습니다.');
 
     const updated = await this.widgetRepository.updateChatConfig(
-      widgetToken.chat_config_id,
+      widgetToken.id,
       {
         ...(dto.style !== undefined && { style: dto.style }),
         ...(dto.max_messages !== undefined && {
@@ -133,7 +157,7 @@ export class WidgetService {
     if (!widgetToken) throw new NotFoundException('위젯을 찾을 수 없습니다.');
 
     const updated = await this.widgetRepository.updateGoalConfig(
-      widgetToken.goal_config_id,
+      widgetToken.id,
       {
         ...(dto.style !== undefined && { style: dto.style }),
         ...(dto.goal_amount !== undefined && { goal_amount: dto.goal_amount }),
