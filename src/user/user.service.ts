@@ -137,13 +137,15 @@ export class UserService {
   /**
    * 본인인증 완료 상태 반영
    * @param user_idx
+   * @param is_adult
    * @param tx
    */
   async markIdentityVerified(
     user_idx: number,
+    is_adult: boolean,
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
-    await this.userRepository.markIdentityVerified(user_idx, tx);
+    await this.userRepository.markIdentityVerified(user_idx, is_adult, tx);
   }
 
   /**
@@ -158,16 +160,19 @@ export class UserService {
    * 본인인증 완료 상태 및 CI hash 반영
    * @param user_idx
    * @param ci_hash
+   * @param is_adult
    * @param tx
    */
   async markIdentityVerifiedWithCiHash(
     user_idx: number,
     ci_hash: string,
+    is_adult: boolean,
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
     await this.userRepository.markIdentityVerifiedWithCiHash(
       user_idx,
       ci_hash,
+      is_adult,
       tx,
     );
   }

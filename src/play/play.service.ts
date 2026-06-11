@@ -38,6 +38,7 @@ export class PlayService {
     const { broadcaster, stream, bookmarkCount } =
       await this.getBasicPlayData(streamerId);
     if (isGuest) {
+      await this.validateGuestAccess(broadcaster);
       return this.handleGuestPlay(broadcaster, stream, bookmarkCount, guestId);
     }
 
@@ -49,7 +50,6 @@ export class PlayService {
 
     // 블랙리스트 체크 (본인이 아닌 경우에만)
     if (user.idx !== broadcaster.idx) {
-      await this.validateGuestAccess(broadcaster);
       await this.checkBlacklist(broadcaster.idx, user.idx);
     }
 
@@ -84,7 +84,7 @@ export class PlayService {
     const fan = await this.fanService.findFan(userIdx, broadcaster.idx);
     if (fan) {
       // Member는 일부 제한 사항을 우회할 수 있음
-      await this.validateMemberAccess(broadcaster, password);
+      await this.validateMemberAccess(broadcaster, user, password);
       return this.handleUserPlay(
         broadcaster,
         stream,
@@ -152,13 +152,12 @@ export class PlayService {
     }
   }
 
-  private async validateMemberAccess(broadcaster: any, password?: string) {
-    if (broadcaster.broadcastSetting?.is_adult) {
-      // 성인 여부 검사 로직
-    }
-    if (broadcaster.broadcastSetting?.is_fan) {
-      // 팬 여부 검사 로직
-    }
+  private async validateMemberAccess(
+    broadcaster: any,
+    user: any,
+    password?: string,
+  ) {
+    this.assertAdultAccess(broadcaster, user);
     if (broadcaster.broadcastSetting?.is_pw) {
       if (password !== broadcaster.broadcastSetting.password) {
         throw new BadRequestException('비밀번호가 틀렸습니다');
@@ -172,12 +171,7 @@ export class PlayService {
     user?: any,
   ) {
     // Viewer는 가장 제한적인 접근 권한을 가짐
-    if (broadcaster.broadcastSetting?.is_adult) {
-      // 성인 여부 검사 로직 - Viewer는 더 엄격한 검증 필요
-      if (!user.is_adult_verified) {
-        throw new BadRequestException('성인 인증이 필요합니다');
-      }
-    }
+    this.assertAdultAccess(broadcaster, user);
     if (broadcaster.broadcastSetting?.is_fan) {
       // 팬 전용 방송 - Viewer는 접근 불가
       throw new BadRequestException('팬 전용 방송입니다');
@@ -186,6 +180,12 @@ export class PlayService {
       if (password !== broadcaster.broadcastSetting.password) {
         throw new BadRequestException('비밀번호가 틀렸습니다');
       }
+    }
+  }
+
+  private assertAdultAccess(broadcaster: any, user: any) {
+    if (broadcaster.broadcastSetting?.is_adult && !user?.is_adult_verified) {
+      throw new ForbiddenException('성인 인증이 필요합니다');
     }
   }
 

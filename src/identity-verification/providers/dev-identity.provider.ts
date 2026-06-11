@@ -14,6 +14,10 @@ export class DevIdentityProvider implements IdentityProviderInterface {
   }
 
   async confirm(_: ConfirmIdentityCommand): Promise<ConfirmIdentityResult> {
-    return { verified: true };
+    // 개발용: 항상 성인. 미성년 시나리오는 IDENTITY_DEV_BIRTH_DATE 환경변수로 재정의
+    return {
+      verified: true,
+      birth_date: process.env.IDENTITY_DEV_BIRTH_DATE ?? '1990-01-01',
+    };
   }
 }

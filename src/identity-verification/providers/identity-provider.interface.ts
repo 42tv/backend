@@ -18,6 +18,7 @@ export interface ConfirmIdentityResult {
   verified: boolean;
   provider_ref?: string;
   ci?: string;
+  birth_date?: string; // 'YYYY-MM-DD' — 성인 판정 후 폐기, 저장하지 않음
   echoed_request_id?: string;
 }
 

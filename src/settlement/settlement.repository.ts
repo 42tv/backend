@@ -240,11 +240,7 @@ export class SettlementRepository {
    * @param tx 트랜잭션 클라이언트 (선택)
    * @returns 업데이트된 Settlement
    */
-  async reject(
-    id: string,
-    reason: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async reject(id: string, reason: string, tx?: Prisma.TransactionClient) {
     const client = tx || this.prisma;
     return await client.settlement.update({
       where: { id },
