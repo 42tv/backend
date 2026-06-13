@@ -141,10 +141,12 @@ export class UserRepository {
   /**
    * 본인인증 완료 상태 반영
    * @param user_idx
+   * @param is_adult
    * @param tx
    */
   async markIdentityVerified(
     user_idx: number,
+    is_adult: boolean,
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
     const prismaClient = tx ?? this.prisma;
@@ -153,6 +155,8 @@ export class UserRepository {
       data: {
         is_identity_verified: true,
         identity_verified_at: new Date(),
+        is_adult_verified: is_adult,
+        ...(is_adult ? { adult_verified_at: new Date() } : {}),
       },
     });
   }
@@ -174,11 +178,13 @@ export class UserRepository {
    * 본인인증 완료 상태 및 CI hash 반영
    * @param user_idx
    * @param ci_hash
+   * @param is_adult
    * @param tx
    */
   async markIdentityVerifiedWithCiHash(
     user_idx: number,
     ci_hash: string,
+    is_adult: boolean,
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
     const prismaClient = tx ?? this.prisma;
@@ -188,6 +194,8 @@ export class UserRepository {
         is_identity_verified: true,
         identity_verified_at: new Date(),
         identity_ci_hash: ci_hash,
+        is_adult_verified: is_adult,
+        ...(is_adult ? { adult_verified_at: new Date() } : {}),
       },
     });
   }
@@ -373,6 +381,22 @@ export class UserRepository {
             },
           },
         },
+      },
+    });
+  }
+
+  /**
+   * 유저 삭제 (회원 탈퇴) — cascade로 연관 데이터 즉시 파기,
+   * 거래 레코드는 DB FK의 SET NULL로 user_idx가 끊긴다
+   * @param user_idx
+   * @param tx
+   * @returns
+   */
+  async deleteUser(user_idx: number, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.delete({
+      where: {
+        idx: user_idx,
       },
     });
   }

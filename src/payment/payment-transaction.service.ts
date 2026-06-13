@@ -9,7 +9,8 @@ import {
 import { PaymentTransactionRepository } from './payment-transaction.repository';
 import { BootpayTransactionRepository } from './bootpay-transaction.repository';
 import { PgProvider } from './dto/create-payment-transaction.dto';
-import { PaymentTransactionStatus } from '@prisma/client';
+import { PaymentTransactionStatus, Prisma } from '@prisma/client';
+import { UserSnapshot } from '../common/utils/retention.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CoinTopupService } from '../coin-topup/coin-topup.service';
 import { ProductService } from '../product/product.service';
@@ -322,14 +323,22 @@ export class PaymentTransactionService {
       },
     });
 
-    // 5. DB에 거래 생성 (PENDING)
+    // 5. DB에 거래 생성 (PENDING) — 거래 당시 사용자 스냅샷 함께 기록
     // payment_method는 결제 완료 후 웹훅에서 설정됨
-    await this.paymentTransactionRepository.create(user_idx, {
-      pg_provider,
-      pg_transaction_id: paymentResponse.pg_transaction_id,
-      amount: product.price,
-      product_id: product_id,
-    });
+    await this.paymentTransactionRepository.create(
+      user_idx,
+      {
+        user_idx: user.idx,
+        user_id: user.user_id,
+        nickname: user.nickname,
+      },
+      {
+        pg_provider,
+        pg_transaction_id: paymentResponse.pg_transaction_id,
+        amount: product.price,
+        product_id: product_id,
+      },
+    );
 
     // 6-1. Mock인 경우: 즉시 승인 처리 + 충전
     if (pg_provider === PgProvider.MOCK) {
@@ -399,6 +408,7 @@ export class PaymentTransactionService {
   private async saveBootpayData(
     receiptData: ReceiptResponseParameters,
     user_idx: number,
+    user_snapshot: UserSnapshot,
     tx: any,
   ) {
     const applicationId =
@@ -410,6 +420,7 @@ export class PaymentTransactionService {
       BootpayTransactionRepository.fromReceiptResponse(
         receiptData,
         user_idx,
+        user_snapshot,
         applicationId,
       );
 
@@ -495,7 +506,12 @@ export class PaymentTransactionService {
    * - PaymentTransaction 동기화 필드 구성
    */
   private async syncBootpayDataForTransaction(
-    transaction: { pg_provider: string; user_idx: number | null },
+    transaction: {
+      pg_provider: string;
+      user_idx: number | null;
+      user: { idx: number; user_id: string; nickname: string } | null;
+      user_snapshot: Prisma.JsonValue;
+    },
     pg_response: any,
     tx: any,
   ): Promise<{
@@ -523,9 +539,19 @@ export class PaymentTransactionService {
       throw new BadRequestException('결제 사용자 정보가 없습니다.');
     }
 
+    // 거래 당시 사용자 스냅샷 — user가 없으면(이론상 탈퇴 경합) 결제 거래의 스냅샷으로 폴백
+    const userSnapshot: UserSnapshot = transaction.user
+      ? {
+          user_idx: transaction.user.idx,
+          user_id: transaction.user.user_id,
+          nickname: transaction.user.nickname,
+        }
+      : (transaction.user_snapshot as unknown as UserSnapshot);
+
     const bootpayTransaction = await this.saveBootpayData(
       receiptData,
       transaction.user_idx,
+      userSnapshot,
       tx,
     );
 

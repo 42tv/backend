@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentTransactionDto } from './dto/create-payment-transaction.dto';
 import { Prisma, PaymentTransactionStatus } from '@prisma/client';
+import {
+  retentionDeadline,
+  UserSnapshot,
+} from '../common/utils/retention.util';
 
 @Injectable()
 export class PaymentTransactionRepository {
@@ -9,13 +13,16 @@ export class PaymentTransactionRepository {
 
   /**
    * 결제 거래 생성 (PENDING 상태로 시작)
+   * 거래 당시 사용자 스냅샷과 파기 예정 시각(거래일 + 5년)을 함께 기록
    * @param user_idx 결제자 ID
+   * @param user_snapshot 거래 당시 사용자 스냅샷
    * @param createDto 결제 거래 생성 데이터
    * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 생성된 결제 거래
    */
   async create(
     user_idx: number,
+    user_snapshot: UserSnapshot,
     createDto: CreatePaymentTransactionDto,
     tx?: Prisma.TransactionClient,
   ) {
@@ -24,6 +31,8 @@ export class PaymentTransactionRepository {
     return await prismaClient.paymentTransaction.create({
       data: {
         user_idx,
+        user_snapshot: { ...user_snapshot },
+        should_delete_at: retentionDeadline(),
         product_id: createDto.product_id,
         pg_provider: createDto.pg_provider,
         pg_transaction_id: createDto.pg_transaction_id,
@@ -153,34 +162,8 @@ export class PaymentTransactionRepository {
   }
 
   /**
-   * 5년 보관을 위한 사용자 스냅샷 저장 (사용자 삭제 시)
-   * @param transaction_id 결제 거래 ID
-   * @param user_snapshot 사용자 정보 스냅샷
-   * @param tx 트랜잭션 클라이언트 (선택사항)
-   * @returns 업데이트된 결제 거래
-   */
-  async saveUserSnapshot(
-    transaction_id: string,
-    user_snapshot: any,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const prismaClient = tx ?? this.prisma;
-
-    const fiveYearsLater = new Date();
-    fiveYearsLater.setFullYear(fiveYearsLater.getFullYear() + 5);
-
-    return await prismaClient.paymentTransaction.update({
-      where: { id: transaction_id },
-      data: {
-        deleted_user_snapshot: user_snapshot,
-        user_deleted_at: new Date(),
-        should_delete_at: fiveYearsLater,
-      },
-    });
-  }
-
-  /**
-   * 5년이 지난 결제 거래 조회 (정리 작업용)
+   * 보존 기간(5년)이 지난 탈퇴자 결제 거래 조회 (정리 작업용)
+   * 활동 회원의 거래는 서비스 제공 근거로 유지되므로 user_idx가 NULL인 행만 대상
    * @returns 삭제 가능한 결제 거래 목록
    */
   async findExpiredTransactions() {
@@ -190,6 +173,7 @@ export class PaymentTransactionRepository {
         should_delete_at: {
           lte: now,
         },
+        user_idx: null,
       },
     });
   }

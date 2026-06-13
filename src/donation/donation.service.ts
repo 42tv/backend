@@ -17,6 +17,8 @@ import { RedisMessages } from '../redis/interfaces/message-namespace';
 import { UserService } from '../user/user.service';
 import { FanLevelInfo } from '../fan/interfaces/fan-level.interface';
 import { DonationTransactionResult } from './dto/donation-transaction-result.dto';
+import { User } from '@prisma/client';
+import { retentionDeadline } from '../common/utils/retention.util';
 
 @Injectable()
 export class DonationService {
@@ -49,25 +51,31 @@ export class DonationService {
     message?: string,
   ) {
     // 1. 검증 및 스트리머 조회
-    const streamerIdx = await this.validateAndGetStreamer(
+    const streamer = await this.validateAndGetStreamer(
       donorIdx,
       streamerUserId,
       coinAmount,
     );
 
-    // 2. 트랜잭션 처리
+    // 2. 후원자 조회 (거래 당시 스냅샷 기록용)
+    const donor = await this.userService.findByUserIdx(donorIdx);
+    if (!donor) {
+      throw new NotFoundException('존재하지 않는 사용자입니다');
+    }
+
+    // 3. 트랜잭션 처리
     const { donation, isLevelUpgraded, oldLevel, updatedFan } =
       await this.processDonationTransaction(
-        donorIdx,
-        streamerIdx,
+        donor,
+        streamer,
         coinAmount,
         message,
       );
 
-    // 3. 실시간 알림 발송
+    // 4. 실시간 알림 발송
     await this.sendDonationNotifications(
       donation,
-      streamerIdx,
+      streamer.idx,
       isLevelUpgraded,
       oldLevel,
       updatedFan,
@@ -81,13 +89,13 @@ export class DonationService {
    * @param donorIdx 후원자 인덱스
    * @param streamerUserId 스트리머 user_id
    * @param coinAmount 후원 코인량
-   * @returns 스트리머 인덱스
+   * @returns 스트리머
    */
   private async validateAndGetStreamer(
     donorIdx: number,
     streamerUserId: string,
     coinAmount: number,
-  ): Promise<number> {
+  ): Promise<User> {
     // 입력값 검증
     if (coinAmount <= 0) {
       throw new BadRequestException('Coin amount must be greater than 0');
@@ -99,30 +107,30 @@ export class DonationService {
       throw new NotFoundException('존재하지 않는 사용자입니다');
     }
 
-    const streamerIdx = streamer.idx;
-
     // 자기 자신에게 후원 방지
-    if (donorIdx === streamerIdx) {
+    if (donorIdx === streamer.idx) {
       throw new BadRequestException('Cannot donate to yourself');
     }
 
-    return streamerIdx;
+    return streamer;
   }
 
   /**
    * 후원 트랜잭션 처리
-   * @param donorIdx 후원자 인덱스
-   * @param streamerIdx 스트리머 인덱스
+   * @param donor 후원자
+   * @param streamer 스트리머
    * @param coinAmount 후원 코인량
    * @param message 후원 메시지 (선택)
    * @returns 트랜잭션 결과
    */
   private async processDonationTransaction(
-    donorIdx: number,
-    streamerIdx: number,
+    donor: User,
+    streamer: User,
     coinAmount: number,
     message?: string,
   ): Promise<DonationTransactionResult> {
+    const donorIdx = donor.idx;
+    const streamerIdx = streamer.idx;
     return await this.prisma.$transaction(async (tx) => {
       // 1. 후원자의 코인 잔액 확인
       const donorBalance = await this.coinBalanceService.getCoinBalance(
@@ -134,7 +142,7 @@ export class DonationService {
         throw new BadRequestException('Insufficient coin balance');
       }
 
-      // 2. Donation 생성
+      // 2. Donation 생성 — 거래 당시 양측 스냅샷과 파기 예정 시각(거래일 + 5년) 기록
       const donation = await this.donationRepository.create(
         {
           donor: {
@@ -143,6 +151,17 @@ export class DonationService {
           streamer: {
             connect: { idx: streamerIdx },
           },
+          donor_snapshot: {
+            user_idx: donor.idx,
+            user_id: donor.user_id,
+            nickname: donor.nickname,
+          },
+          streamer_snapshot: {
+            user_idx: streamer.idx,
+            user_id: streamer.user_id,
+            nickname: streamer.nickname,
+          },
+          should_delete_at: retentionDeadline(),
           coin_amount: coinAmount,
           coin_value: coinAmount,
           message: message || null,

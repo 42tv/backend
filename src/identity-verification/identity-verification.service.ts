@@ -77,12 +77,13 @@ export class IdentityVerificationService {
     }
 
     const verifiedAt = new Date();
+    const isAdult = this.isAdultByBirthDate(result.birth_date);
 
     if (result.ci) {
       const ciHash = this.hashCi(result.ci);
-      await this.applyWithCiHash(user_idx, ciHash);
+      await this.applyWithCiHash(user_idx, ciHash, isAdult);
     } else {
-      await this.userService.markIdentityVerified(user_idx);
+      await this.userService.markIdentityVerified(user_idx, isAdult);
     }
 
     return {
@@ -102,8 +103,11 @@ export class IdentityVerificationService {
     }
   }
 
-  async markIdentityVerified(user_idx: number): Promise<void> {
-    await this.userService.markIdentityVerified(user_idx);
+  async markIdentityVerified(
+    user_idx: number,
+    is_adult: boolean,
+  ): Promise<void> {
+    await this.userService.markIdentityVerified(user_idx, is_adult);
   }
 
   private verifyRequestToken(
@@ -136,9 +140,18 @@ export class IdentityVerificationService {
     return createHash('sha256').update(ci.trim().toUpperCase()).digest('hex');
   }
 
+  /** 청소년보호법 연 나이 기준: 만 19세가 되는 해의 1월 1일부터 성인 */
+  private isAdultByBirthDate(birthDate?: string): boolean {
+    if (!birthDate) return false;
+    const birthYear = Number(birthDate.slice(0, 4));
+    if (!Number.isInteger(birthYear)) return false;
+    return new Date().getFullYear() - birthYear >= 19;
+  }
+
   private async applyWithCiHash(
     user_idx: number,
     ciHash: string,
+    is_adult: boolean,
   ): Promise<void> {
     const existingUser = await this.userService.findByIdentityCiHash(ciHash);
 
@@ -148,6 +161,10 @@ export class IdentityVerificationService {
       );
     }
 
-    await this.userService.markIdentityVerifiedWithCiHash(user_idx, ciHash);
+    await this.userService.markIdentityVerifiedWithCiHash(
+      user_idx,
+      ciHash,
+      is_adult,
+    );
   }
 }

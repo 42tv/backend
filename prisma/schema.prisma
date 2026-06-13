@@ -20,6 +20,8 @@ model User {
   is_identity_verified Boolean              @default(false)
   identity_verified_at DateTime?
   identity_ci_hash     String?              @unique
+  is_adult_verified    Boolean              @default(false)
+  adult_verified_at    DateTime?
   created_at           DateTime             @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at           DateTime             @updatedAt
   articles             Article[]            @relation("ArticleAuthor")
@@ -62,7 +64,6 @@ model UserDetail {
   user_idx        Int      @id
   name            String
   sex             String
-  resident_number String
   phone           String
   email           String   @unique
   address         String
@@ -362,9 +363,8 @@ model PaymentTransaction {
   canceled_at           DateTime?
   paid_at               DateTime?
   pg_response           Json?
-  deleted_user_snapshot Json?
-  user_deleted_at       DateTime?
-  should_delete_at      DateTime?
+  user_snapshot         Json
+  should_delete_at      DateTime
   topups                CoinTopup[]
   user                  User?                    @relation(fields: [user_idx], references: [idx])
 
@@ -402,9 +402,8 @@ model BootpayTransaction {
   metadata              Json?
   sandbox               Boolean           @default(false)
   raw_response          Json
-  deleted_user_snapshot Json?
-  user_deleted_at       DateTime?
-  should_delete_at      DateTime?
+  user_snapshot         Json
+  should_delete_at      DateTime
   created_at            DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at            DateTime          @updatedAt
   cardData              BootpayCardData?
@@ -485,8 +484,8 @@ model CoinTopup {
   coin_unit_price        Float
   status                 TopupStatus         @default(PENDING)
   topped_up_at           DateTime            @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  deleted_user_snapshot  Json?
-  user_deleted_at        DateTime?
+  user_snapshot          Json
+  should_delete_at       DateTime
   bootpayTransaction     BootpayTransaction? @relation(fields: [bootpay_transaction_id], references: [id])
   product                Product             @relation(fields: [product_id], references: [id])
   transaction            PaymentTransaction? @relation(fields: [transaction_id], references: [id])
@@ -519,11 +518,9 @@ model Donation {
   coin_value                Int
   message                   String?
   donated_at                DateTime     @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  deleted_donor_snapshot    Json?
-  deleted_streamer_snapshot Json?
-  donor_deleted_at          DateTime?
-  streamer_deleted_at       DateTime?
-  should_delete_at          DateTime?
+  donor_snapshot            Json
+  streamer_snapshot         Json
+  should_delete_at          DateTime
   usages                    CoinUsage[]
   donor                     User?        @relation("SentDonations", fields: [donor_idx], references: [idx])
   streamer                  User?        @relation("ReceivedDonations", fields: [streamer_idx], references: [idx])
@@ -601,24 +598,23 @@ model Settlement {
 }
 
 model WidgetToken {
-  id             String           @id @default(cuid())
-  token          String           @unique
+  id             String            @id @default(cuid())
+  token          String            @unique
   broadcaster_id Int
   widget_type    WidgetType
-  chat_config_id String           @unique
-  goal_config_id String           @unique
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @updatedAt
-  broadcaster    User             @relation(fields: [broadcaster_id], references: [idx])
-  chat_config    WidgetChatConfig @relation(fields: [chat_config_id], references: [id])
-  goal_config    WidgetGoalConfig @relation(fields: [goal_config_id], references: [id])
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @updatedAt
+  broadcaster    User              @relation(fields: [broadcaster_id], references: [idx], onDelete: Cascade)
+  chat_config    WidgetChatConfig?
+  goal_config    WidgetGoalConfig?
 
-  @@index([broadcaster_id])
+  @@unique([broadcaster_id, widget_type])
   @@map("widget_tokens")
 }
 
 model WidgetChatConfig {
   id                 String          @id @default(cuid())
+  widget_token_id    String          @unique
   style              ChatWidgetStyle @default(DEFAULT)
   max_messages       Int             @default(5)
   show_profile_image Boolean         @default(true)
@@ -626,22 +622,23 @@ model WidgetChatConfig {
   show_user_id       Boolean         @default(true)
   created_at         DateTime        @default(now())
   updated_at         DateTime        @updatedAt
-  widget_token       WidgetToken?
+  widget_token       WidgetToken     @relation(fields: [widget_token_id], references: [id], onDelete: Cascade)
 
   @@map("widget_chat_configs")
 }
 
 model WidgetGoalConfig {
-  id             String          @id @default(cuid())
-  style          GoalWidgetStyle @default(GOAL_BAR)
-  goal_amount    Int             @default(500)
-  goal_label     String          @default("리액션 미션 달성까지")
-  bg_opacity     Int             @default(55)
-  font_size      Int             @default(14)
-  animation_type String          @default("slide")
-  created_at     DateTime        @default(now())
-  updated_at     DateTime        @updatedAt
-  widget_token   WidgetToken?
+  id              String          @id @default(cuid())
+  widget_token_id String          @unique
+  style           GoalWidgetStyle @default(GOAL_BAR)
+  goal_amount     Int             @default(500)
+  goal_label      String          @default("리액션 미션 달성까지")
+  bg_opacity      Int             @default(55)
+  font_size       Int             @default(14)
+  animation_type  String          @default("slide")
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  widget_token    WidgetToken     @relation(fields: [widget_token_id], references: [id], onDelete: Cascade)
 
   @@map("widget_goal_configs")
 }

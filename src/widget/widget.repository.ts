@@ -10,8 +10,8 @@ import {
 } from '@prisma/client';
 
 type WidgetTokenWithConfigs = WidgetToken & {
-  chat_config: WidgetChatConfig;
-  goal_config: WidgetGoalConfig;
+  chat_config: WidgetChatConfig | null;
+  goal_config: WidgetGoalConfig | null;
 };
 
 type WidgetTokenWithConfigsAndBroadcaster = WidgetTokenWithConfigs & {
@@ -60,39 +60,34 @@ export class WidgetRepository {
     token: string,
     widgetType: WidgetType,
   ): Promise<WidgetTokenWithConfigs> {
-    return this.prisma.$transaction(async (tx) => {
-      const chatConfig = await tx.widgetChatConfig.create({ data: {} });
-      const goalConfig = await tx.widgetGoalConfig.create({ data: {} });
-
-      return tx.widgetToken.create({
-        data: {
-          token,
-          broadcaster_id: broadcasterId,
-          widget_type: widgetType,
-          chat_config_id: chatConfig.id,
-          goal_config_id: goalConfig.id,
-        },
-        include: { chat_config: true, goal_config: true },
-      });
+    return this.prisma.widgetToken.create({
+      data: {
+        token,
+        broadcaster_id: broadcasterId,
+        widget_type: widgetType,
+        chat_config: { create: {} },
+        goal_config: { create: {} },
+      },
+      include: { chat_config: true, goal_config: true },
     });
   }
 
   async updateChatConfig(
-    configId: string,
+    widgetTokenId: string,
     data: Prisma.WidgetChatConfigUpdateInput,
   ): Promise<WidgetChatConfig> {
     return this.prisma.widgetChatConfig.update({
-      where: { id: configId },
+      where: { widget_token_id: widgetTokenId },
       data,
     });
   }
 
   async updateGoalConfig(
-    configId: string,
+    widgetTokenId: string,
     data: Prisma.WidgetGoalConfigUpdateInput,
   ): Promise<WidgetGoalConfig> {
     return this.prisma.widgetGoalConfig.update({
-      where: { id: configId },
+      where: { widget_token_id: widgetTokenId },
       data,
     });
   }

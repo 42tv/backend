@@ -3,10 +3,10 @@
 /node_modules
 /build
 /json_data
-/docs
 /z_etc
 /spec
-.codex
+.codex/*
+docs/
 
 # Logs
 logs
