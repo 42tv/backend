@@ -6,12 +6,17 @@ import {
   CardData,
   BankData,
 } from '@bootpay/backend-js';
+import {
+  retentionDeadline,
+  UserSnapshot,
+} from '../common/utils/retention.util';
 
 /**
  * Bootpay 트랜잭션 저장을 위한 DTO
  */
 export interface CreateBootpayTransactionDto {
   user_idx: number;
+  user_snapshot: UserSnapshot;
   receipt_id: string;
   order_id: string;
   application_id: string;
@@ -101,10 +106,12 @@ export class BootpayTransactionRepository {
   static fromReceiptResponse(
     receiptData: ReceiptResponseParameters,
     user_idx: number,
+    user_snapshot: UserSnapshot,
     application_id: string,
   ): CreateBootpayTransactionDto {
     return {
       user_idx,
+      user_snapshot,
       receipt_id: receiptData.receipt_id,
       order_id: receiptData.order_id,
       application_id,
@@ -267,6 +274,8 @@ export class BootpayTransactionRepository {
     return await prismaClient.bootpayTransaction.create({
       data: {
         user_idx: dto.user_idx,
+        user_snapshot: { ...dto.user_snapshot },
+        should_delete_at: retentionDeadline(dto.requested_at),
         receipt_id: dto.receipt_id,
         order_id: dto.order_id,
         application_id: dto.application_id,

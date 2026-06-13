@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, TopupStatus } from '@prisma/client';
+import {
+  retentionDeadline,
+  UserSnapshot,
+} from '../common/utils/retention.util';
 
 @Injectable()
 export class CoinTopupRepository {
@@ -8,6 +12,7 @@ export class CoinTopupRepository {
 
   /**
    * 코인 충전 내역 생성
+   * 거래 당시 사용자 스냅샷과 파기 예정 시각(거래일 + 5년)을 함께 기록
    * @param data 충전 데이터
    * @param tx 트랜잭션 클라이언트 (선택사항)
    * @returns 생성된 충전 내역
@@ -17,6 +22,7 @@ export class CoinTopupRepository {
       transaction_id: string;
       bootpay_transaction_id?: string;
       user_idx: number;
+      user_snapshot: UserSnapshot;
       product_id: number;
       product_name: string;
       base_coins: number;
@@ -33,6 +39,8 @@ export class CoinTopupRepository {
     return await prismaClient.coinTopup.create({
       data: {
         ...data,
+        user_snapshot: { ...data.user_snapshot },
+        should_delete_at: retentionDeadline(),
         status: TopupStatus.PENDING,
       },
     });
@@ -144,29 +152,6 @@ export class CoinTopupRepository {
     return await prismaClient.coinTopup.update({
       where: { id },
       data: { status },
-    });
-  }
-
-  /**
-   * 5년 보관을 위한 사용자 스냅샷 저장 (사용자 삭제 시)
-   * @param topup_id 충전 내역 ID
-   * @param user_snapshot 사용자 정보 스냅샷
-   * @param tx 트랜잭션 클라이언트 (선택사항)
-   * @returns 업데이트된 충전 내역
-   */
-  async saveUserSnapshot(
-    topup_id: string,
-    user_snapshot: any,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const prismaClient = tx ?? this.prisma;
-
-    return await prismaClient.coinTopup.update({
-      where: { id: topup_id },
-      data: {
-        deleted_user_snapshot: user_snapshot,
-        user_deleted_at: new Date(),
-      },
     });
   }
 

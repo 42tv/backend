@@ -8,14 +8,18 @@ import {
   Post,
   Put,
   Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { UserService } from './user.service';
+import { AccountDeletionService } from './account-deletion.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import {
   AddToBlacklistDto,
   RemoveFromBlacklistDto,
@@ -60,7 +64,30 @@ import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 @Controller('user')
 @UsePipes(new ValidationPipe())
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly accountDeletionService: AccountDeletionService,
+  ) {}
+
+  /**
+   * 회원 탈퇴 (개인정보보호법 §36 삭제권)
+   * @param req 인증된 요청
+   * @param dto 본인 재확인 정보
+   * @param res 인증 쿠키 만료 처리용
+   */
+  @Delete('me')
+  @UseGuards(MemberGuard)
+  async deleteAccount(
+    @Req() req,
+    @Body() dto: DeleteAccountDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<SuccessResponseDto<null>> {
+    await this.accountDeletionService.deleteAccount(req.user.idx, dto);
+    // auth.controller.ts logout과 동일한 쿠키 만료 처리
+    res.cookie('jwt', '', { httpOnly: true, expires: new Date(0) });
+    res.cookie('refresh', '', { httpOnly: true, expires: new Date(0) });
+    return ResponseWrapper.success(null, '회원 탈퇴가 완료되었습니다.');
+  }
 
   @Patch('nickname')
   @UseGuards(MemberGuard)

@@ -15,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TopupStatus, PaymentTransactionStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { PayoutCoinService } from '../payout-coin/payout-coin.service';
+import { UserSnapshot } from '../common/utils/retention.util';
 
 @Injectable()
 export class CoinTopupService {
@@ -98,11 +99,22 @@ export class CoinTopupService {
     }
 
     // 5. 코인 충전 내역 생성
+    // 거래 당시 사용자 스냅샷 — user가 없으면(이론상 탈퇴 경합) 결제 거래의 스냅샷으로 폴백
+    const txUser = paymentTransaction.user;
+    const user_snapshot: UserSnapshot = txUser
+      ? {
+          user_idx: txUser.idx,
+          user_id: txUser.user_id,
+          nickname: txUser.nickname,
+        }
+      : (paymentTransaction.user_snapshot as unknown as UserSnapshot);
+
     const coinTopup = await this.coinTopupRepository.create(
       {
         transaction_id: processDto.transaction_id,
         bootpay_transaction_id: processDto.bootpay_transaction_id,
         user_idx,
+        user_snapshot,
         product_id: processDto.product_id,
         product_name: product.name,
         base_coins: product.base_coins,

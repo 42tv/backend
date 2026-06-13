@@ -384,4 +384,20 @@ export class UserRepository {
       },
     });
   }
+
+  /**
+   * 유저 삭제 (회원 탈퇴) — cascade로 연관 데이터 즉시 파기,
+   * 거래 레코드는 DB FK의 SET NULL로 user_idx가 끊긴다
+   * @param user_idx
+   * @param tx
+   * @returns
+   */
+  async deleteUser(user_idx: number, tx?: Prisma.TransactionClient) {
+    const prismaClient = tx ?? this.prisma;
+    return await prismaClient.user.delete({
+      where: {
+        idx: user_idx,
+      },
+    });
+  }
 }
