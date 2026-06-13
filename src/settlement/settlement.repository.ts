@@ -203,13 +203,13 @@ export class SettlementRepository {
    * @param tx 트랜잭션 클라이언트 (선택)
    * @returns 업데이트된 Settlement
    */
-  async approve(id: string, approvedAt: Date, tx?: Prisma.TransactionClient) {
+  async approve(id: string, tx?: Prisma.TransactionClient) {
     const client = tx || this.prisma;
     return await client.settlement.update({
       where: { id },
       data: {
         status: SettlementStatus.APPROVED,
-        approved_at: approvedAt,
+        approved_at: new Date(),
       },
     });
   }
@@ -221,13 +221,13 @@ export class SettlementRepository {
    * @param tx 트랜잭션 클라이언트 (선택)
    * @returns 업데이트된 Settlement
    */
-  async markAsPaid(id: string, paidAt: Date, tx?: Prisma.TransactionClient) {
+  async markAsPaid(id: string, tx?: Prisma.TransactionClient) {
     const client = tx || this.prisma;
     return await client.settlement.update({
       where: { id },
       data: {
         status: SettlementStatus.PAID,
-        paid_at: paidAt,
+        paid_at: new Date(),
       },
     });
   }
@@ -243,7 +243,6 @@ export class SettlementRepository {
   async reject(
     id: string,
     reason: string,
-    rejectedAt: Date,
     tx?: Prisma.TransactionClient,
   ) {
     const client = tx || this.prisma;
@@ -252,7 +251,7 @@ export class SettlementRepository {
       data: {
         status: SettlementStatus.REJECTED,
         reject_reason: reason,
-        rejected_at: rejectedAt,
+        rejected_at: new Date(),
       },
     });
   }

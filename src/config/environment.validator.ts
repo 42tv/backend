@@ -35,6 +35,10 @@ export class EnvironmentValidator {
       'GOOGLE_CLIENT_ID',
       'GOOGLE_CLIENT_SECRET',
       'GOOGLE_REDIRECT_URI',
+
+      // 정산 계좌 암호화
+      'SETTLEMENT_ACCOUNT_ENCRYPTION_KEY',
+      'SETTLEMENT_ACCOUNT_FINGERPRINT_KEY',
     ];
 
     const missingEnvVars = requiredEnvVars.filter(
@@ -50,7 +54,7 @@ export class EnvironmentValidator {
       throw new Error(errorMessage);
     }
 
-    this.validateIdentityVerificationMode();
+    this.validateAppEnv();
 
     this.logger.log(
       `모든 필수 환경변수가 설정되었습니다. (총 ${requiredEnvVars.length}개)`,
@@ -58,22 +62,20 @@ export class EnvironmentValidator {
   }
 
   /**
-   * 본인인증 모드 환경변수가 유효한지 검증합니다.
+   * 애플리케이션 배포 환경(APP_ENV)이 유효한지 검증합니다.
+   * prod 환경에서는 외부 연동(계좌 인증 등)이 live 모드로 동작합니다.
    */
-  static validateIdentityVerificationMode(): void {
-    const mode = (
-      process.env.IDENTITY_VERIFICATION_MODE || 'dev'
-    ).toLowerCase();
-    const availableModes = ['dev', 'live'];
+  static validateAppEnv(): void {
+    const env = (process.env.APP_ENV || 'dev').toLowerCase();
+    const availableEnvs = ['dev', 'prod'];
 
-    if (!availableModes.includes(mode)) {
-      const errorMessage =
-        'IDENTITY_VERIFICATION_MODE는 dev 또는 live 여야 합니다.';
+    if (!availableEnvs.includes(env)) {
+      const errorMessage = 'APP_ENV는 dev 또는 prod 여야 합니다.';
       this.logger.error(errorMessage);
       throw new Error(errorMessage);
     }
 
-    this.logger.log(`IDENTITY_VERIFICATION_MODE=${mode}`);
+    this.logger.log(`APP_ENV=${env}`);
   }
 
   /**

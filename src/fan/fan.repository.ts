@@ -214,4 +214,10 @@ export class FanRepository {
       },
     });
   }
+
+  async countFansByBroadcaster(broadcaster_idx: number): Promise<number> {
+    return this.prisma.fan.count({
+      where: { broadcaster_idx },
+    });
+  }
 }

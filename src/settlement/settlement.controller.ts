@@ -14,12 +14,7 @@ import { SettlementStatus } from '@prisma/client';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
-
-class RequestSettlementDto {
-  amount: number;
-  payout_method?: string;
-  payout_account?: string;
-}
+import { RequestSettlementDto } from './dto/request-settlement.dto';
 
 @Controller('settlement')
 @UseGuards(MemberGuard)
@@ -31,17 +26,9 @@ export class SettlementController {
     @Request() req: any,
     @Body() dto: RequestSettlementDto,
   ): Promise<SuccessResponseDto<any>> {
-    if (!dto.amount || dto.amount <= 0) {
-      throw new BadRequestException('amount must be greater than 0');
-    }
-
     const settlement = await this.settlementService.requestSettlement(
       req.user.idx,
-      dto.amount,
-      {
-        payout_method: dto.payout_method,
-        payout_account: dto.payout_account,
-      },
+      dto,
     );
     return ResponseWrapper.success(settlement, '정산을 신청했습니다.');
   }

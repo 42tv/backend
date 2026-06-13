@@ -9,12 +9,14 @@ import { ChannelRepository } from './channel.repository';
 import { UserService } from 'src/user/user.service';
 import { ArticleService } from 'src/article/article.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
+import { FanService } from 'src/fan/fan.service';
 import { GetChannelResponseDto } from './dto/channel-response.dto';
 
 @Injectable()
 export class ChannelService {
   constructor(
     private readonly channelRepository: ChannelRepository,
+    private readonly fanService: FanService,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     @Inject(forwardRef(() => ArticleService))
@@ -66,10 +68,11 @@ export class ChannelService {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
 
-    const [articles, fanLevel, channel] = await Promise.all([
+    const [articles, fanLevel, channel, fanCount] = await Promise.all([
       this.getArticlesByUserId(user_id),
       this.fanLevelService.findByUserIdx(user.idx),
       this.findChannelByUserIdx(user.idx),
+      this.fanService.countFansByBroadcaster(user.idx),
     ]);
 
     return {
@@ -79,7 +82,7 @@ export class ChannelService {
         nickname: user.nickname,
         profileImg: user.profile_img,
       },
-      channel: channel || null,
+      channel: { ...channel, fanCount },
       articles: articles,
       fanLevel: fanLevel || [],
     };

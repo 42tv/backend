@@ -1,14 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { FanRepository } from './fan.repository';
-import { ManagerService } from 'src/manager/manager.service';
 
 @Injectable()
 export class FanService {
   constructor(
     private readonly fanRepository: FanRepository,
     private readonly fanLevelService: FanLevelService,
-    private readonly managerService: ManagerService,
   ) {}
 
   /**
@@ -170,5 +168,9 @@ export class FanService {
         tx,
       );
     }
+  }
+
+  async countFansByBroadcaster(broadcaster_idx: number): Promise<number> {
+    return this.fanRepository.countFansByBroadcaster(broadcaster_idx);
   }
 }

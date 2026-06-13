@@ -24,8 +24,8 @@ export class PayoutCoinController {
     return ResponseWrapper.success(summary, '정산 요약을 조회했습니다.');
   }
 
-  @Get('matured')
-  async getMaturedCoins(
+  @Get('available')
+  async getAvailableCoins(
     @Request() req: any,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
@@ -34,15 +34,18 @@ export class PayoutCoinController {
     const parsedOffset = offset ? parseInt(offset, 10) : 0;
 
     const { items, total } =
-      await this.payoutCoinService.getMaturedCoinsForSettlement(req.user.idx, {
-        limit: parsedLimit,
-        offset: parsedOffset,
-      });
+      await this.payoutCoinService.getAvailableCoinsForSettlement(
+        req.user.idx,
+        {
+          limit: parsedLimit,
+          offset: parsedOffset,
+        },
+      );
 
     const take = parsedLimit || 100;
     return ResponseWrapper.success(
       { payoutCoins: items },
-      '정산 가능한 코인을 조회했습니다.',
+      '정산 신청 가능한 코인을 조회했습니다.',
       {
         page: Math.floor(parsedOffset / take) + 1,
         limit: take,

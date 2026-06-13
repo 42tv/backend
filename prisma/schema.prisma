@@ -48,6 +48,7 @@ model User {
   postSettings         PostSettings?
   receivedPosts        Posts[]              @relation("ReceivedPosts")
   sentPosts            Posts[]              @relation("SentPosts")
+  settlementAccount    SettlementAccount?
   settlements          Settlement[]         @relation("Settlements")
   streams              Stream?              @relation("StreamData")
   userDetail           UserDetail?
@@ -554,7 +555,7 @@ model PayoutCoin {
   coin_value           Int
   donated_at           DateTime
   settlement_ready_at  DateTime
-  status               PayoutStatus @default(PENDING)
+  status               PayoutStatus @default(WAITING)
   block_reason         String?
   blocked_topup_reason String?
   settlement_id        String?
@@ -575,29 +576,27 @@ model PayoutCoin {
 }
 
 model Settlement {
-  id             String           @id @default(cuid())
-  streamer_idx   Int?
-  period_start   DateTime
-  period_end     DateTime
-  total_value    Int
-  fee_amount     Int
-  payout_amount  Int
-  status         SettlementStatus @default(PENDING)
-  payout_method  String?
-  payout_account String?
-  admin_memo     String?
-  requested_at   DateTime         @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  approved_at    DateTime?
-  paid_at        DateTime?
-  rejected_at    DateTime?
-  reject_reason  String?
-  created_at     DateTime         @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at     DateTime         @updatedAt
-  payoutCoins    PayoutCoin[]
-  streamer       User?            @relation("Settlements", fields: [streamer_idx], references: [idx])
+  id                    String            @id @default(cuid())
+  streamer_idx          Int?
+  total_value           Int
+  fee_amount            Int
+  payout_amount         Int
+  status                SettlementStatus  @default(PENDING)
+  settlement_account_id String?
+  requested_at          DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  approved_at           DateTime?
+  paid_at               DateTime?
+  rejected_at           DateTime?
+  reject_reason         String?
+  created_at            DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at            DateTime          @updatedAt
+  settlementAccount     SettlementAccount? @relation(fields: [settlement_account_id], references: [id])
+  payoutCoins           PayoutCoin[]
+  streamer              User?              @relation("Settlements", fields: [streamer_idx], references: [idx])
 
-  @@index([streamer_idx, status, period_start], map: "idx_settlement_streamer_status_period")
+  @@index([streamer_idx, status], map: "idx_settlement_streamer_status")
   @@index([status, created_at], map: "idx_settlement_status_created")
+  @@index([settlement_account_id])
   @@map("settlements")
 }
 
@@ -665,11 +664,11 @@ enum TopupStatus {
 }
 
 enum PayoutStatus {
-  PENDING
-  MATURED
+  WAITING
+  AVAILABLE
   BLOCKED
   IN_SETTLEMENT
-  SETTLED
+  COMPLETED
 }
 
 enum SettlementStatus {
@@ -677,6 +676,46 @@ enum SettlementStatus {
   APPROVED
   PAID
   REJECTED
+}
+
+model SettlementAccount {
+  id                        String                              @id @default(cuid())
+  user_idx                  Int
+
+  bank_code                 String
+  bank_name                 String
+
+  account_number_encrypted  String
+  account_number_masked     String
+  account_fingerprint       String
+
+  holder_name_encrypted     String?
+  holder_name_masked        String?
+
+  verification_status       SettlementAccountVerificationStatus @default(UNVERIFIED)
+  verification_provider     String?
+  verification_provider_ref String?
+  verification_requested_at DateTime?
+  verified_at               DateTime?
+
+  created_at                DateTime                            @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at                DateTime                            @updatedAt
+  deleted_at                DateTime?
+
+  user        User         @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+  settlements Settlement[]
+
+  @@unique([user_idx])
+  @@index([user_idx, verification_status])
+  @@map("settlement_accounts")
+}
+
+enum SettlementAccountVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  FAILED
+  REVOKED
 }
 
 enum WidgetType {

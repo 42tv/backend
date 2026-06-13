@@ -2,21 +2,30 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { SettlementRepository } from './settlement.repository';
 import { PayoutCoinRepository } from '../payout-coin/payout-coin.repository';
 import { PrismaService } from '../prisma/prisma.service';
-import { SettlementStatus, PayoutStatus } from '@prisma/client';
+import {
+  SettlementStatus,
+  PayoutStatus,
+  SettlementAccountVerificationStatus,
+} from '@prisma/client';
+import { RequestSettlementDto } from './dto/request-settlement.dto';
+import { PgPayoutService } from './pg-payout.service';
 
 @Injectable()
 export class SettlementService {
-  // 수수료율 (10%)
   private readonly FEE_RATE = 0.1;
+  private readonly logger = new Logger(SettlementService.name);
 
   constructor(
     private readonly settlementRepository: SettlementRepository,
     private readonly payoutCoinRepository: PayoutCoinRepository,
     private readonly prisma: PrismaService,
+    private readonly pgPayoutService: PgPayoutService,
   ) {}
 
   /**
@@ -26,15 +35,7 @@ export class SettlementService {
    * @param options 추가 옵션 (지급 방법, 계좌 등)
    * @returns 생성된 Settlement
    */
-  async createSettlement(
-    streamerIdx: number,
-    payoutCoinIds: string[],
-    options?: {
-      payout_method?: string;
-      payout_account?: string;
-      admin_memo?: string;
-    },
-  ) {
+  async createSettlement(streamerIdx: number, payoutCoinIds: string[]) {
     if (payoutCoinIds.length === 0) {
       throw new BadRequestException('PayoutCoin IDs are required');
     }
@@ -56,15 +57,15 @@ export class SettlementService {
         );
       }
 
-      // 모든 PayoutCoin이 MATURED 상태인지 검증
+      // 모든 PayoutCoin이 AVAILABLE 상태인지 검증
       const validCoins = coins.filter((coin) => coin !== null);
-      const notMaturedCoins = validCoins.filter(
-        (coin) => coin.status !== PayoutStatus.MATURED,
+      const notAvailableCoins = validCoins.filter(
+        (coin) => coin.status !== PayoutStatus.AVAILABLE,
       );
 
-      if (notMaturedCoins.length > 0) {
+      if (notAvailableCoins.length > 0) {
         throw new BadRequestException(
-          `Some PayoutCoins are not MATURED: ${notMaturedCoins.map((c) => c.id).join(', ')}`,
+          `Some PayoutCoins are not AVAILABLE: ${notAvailableCoins.map((c) => c.id).join(', ')}`,
         );
       }
 
@@ -87,30 +88,16 @@ export class SettlementService {
       const feeAmount = Math.floor(totalValue * this.FEE_RATE);
       const payoutAmount = totalValue - feeAmount;
 
-      // 정산 기간 계산 (donated_at 기준)
-      const donatedDates = validCoins.map((coin) => coin.donated_at);
-      const periodStart = new Date(
-        Math.min(...donatedDates.map((d) => d.getTime())),
-      );
-      const periodEnd = new Date(
-        Math.max(...donatedDates.map((d) => d.getTime())),
-      );
-
       // 3. Settlement 생성
       const settlement = await this.settlementRepository.create(
         {
           streamer: {
             connect: { idx: streamerIdx },
           },
-          period_start: periodStart,
-          period_end: periodEnd,
           total_value: totalValue,
           fee_amount: feeAmount,
           payout_amount: payoutAmount,
           status: SettlementStatus.PENDING,
-          payout_method: options?.payout_method,
-          payout_account: options?.payout_account, // TODO: 암호화 필요
-          admin_memo: options?.admin_memo,
         },
         tx,
       );
@@ -135,59 +122,46 @@ export class SettlementService {
    * 금액 기반 정산 신청 (스트리머)
    * MATURED 코인을 settlement_ready_at 오름차순(FIFO)으로 선택
    */
-  async requestSettlement(
-    streamerIdx: number,
-    amount: number,
-    options?: {
-      payout_method?: string;
-      payout_account?: string;
-    },
-  ) {
-    if (amount <= 0) {
-      throw new BadRequestException('Amount must be greater than 0');
-    }
-
+  async requestSettlement(streamerIdx: number, dto: RequestSettlementDto) {
     return await this.prisma.$transaction(async (tx) => {
-      const { coins, totalValue } =
-        await this.payoutCoinRepository.findMaturedCoinsByAmount(
-          streamerIdx,
-          amount,
-        );
+      const account = await tx.settlementAccount.findUnique({
+        where: { user_idx: streamerIdx },
+      });
 
-      if (coins.length === 0) {
-        throw new BadRequestException(
-          'No matured coins available for settlement',
-        );
+      if (!account) {
+        throw new NotFoundException('등록된 정산 계좌가 없습니다.');
+      }
+      if (account.deleted_at) {
+        throw new BadRequestException('삭제된 계좌입니다.');
+      }
+      if (
+        account.verification_status !==
+        SettlementAccountVerificationStatus.VERIFIED
+      ) {
+        throw new BadRequestException('인증된 계좌만 정산 신청이 가능합니다.');
       }
 
-      if (totalValue < amount) {
-        throw new BadRequestException(
-          `Requested amount ${amount} exceeds available matured amount ${totalValue}`,
+      const { coins, totalValue } =
+        await this.payoutCoinRepository.findAvailableCoinsByAmount(
+          streamerIdx,
+          dto.amount,
         );
+
+      if (coins.length === 0 || totalValue < dto.amount) {
+        throw new BadRequestException('정산 가능한 코인이 부족합니다.');
       }
 
       const feeAmount = Math.floor(totalValue * this.FEE_RATE);
       const payoutAmount = totalValue - feeAmount;
 
-      const donatedDates = coins.map((c) => c.donated_at);
-      const periodStart = new Date(
-        Math.min(...donatedDates.map((d) => d.getTime())),
-      );
-      const periodEnd = new Date(
-        Math.max(...donatedDates.map((d) => d.getTime())),
-      );
-
       const settlement = await this.settlementRepository.create(
         {
           streamer: { connect: { idx: streamerIdx } },
-          period_start: periodStart,
-          period_end: periodEnd,
+          settlementAccount: { connect: { id: account.id } },
           total_value: totalValue,
           fee_amount: feeAmount,
           payout_amount: payoutAmount,
           status: SettlementStatus.PENDING,
-          payout_method: options?.payout_method,
-          payout_account: options?.payout_account,
         },
         tx,
       );
@@ -204,14 +178,15 @@ export class SettlementService {
         tx,
       );
 
-      return settlement;
+      const { settlement_account_id: _, ...result } = settlement;
+      return result;
     });
   }
 
   /**
    * 정산 승인 (관리자)
-   * @param settlementId Settlement ID
-   * @returns 업데이트된 Settlement
+   * PENDING → APPROVED → PG 지급 요청 → PAID
+   * PG 실패 시 APPROVED → PENDING 롤백
    */
   async approveSettlement(settlementId: string) {
     const settlement = await this.settlementRepository.findById(settlementId);
@@ -226,41 +201,43 @@ export class SettlementService {
       );
     }
 
-    return await this.settlementRepository.approve(settlementId, new Date());
-  }
+    // 1. APPROVED 상태로 변경
+    await this.settlementRepository.approve(settlementId);
 
-  /**
-   * 정산 지급 완료 처리 (관리자)
-   * @param settlementId Settlement ID
-   * @returns 업데이트된 Settlement
-   */
-  async markSettlementAsPaid(settlementId: string) {
-    const settlement = await this.settlementRepository.findById(settlementId);
-
-    if (!settlement) {
-      throw new NotFoundException('Settlement not found');
-    }
-
-    if (settlement.status !== SettlementStatus.APPROVED) {
-      throw new BadRequestException(
-        `Cannot mark as paid settlement with status: ${settlement.status}`,
-      );
-    }
-
-    return await this.prisma.$transaction(async (tx) => {
-      const payoutCoinIds = settlement.payoutCoins.map((coin) => coin.id);
-      await this.payoutCoinRepository.updateStatusBatch(
-        payoutCoinIds,
-        PayoutStatus.SETTLED,
-        tx,
-      );
-
-      return await this.settlementRepository.markAsPaid(
+    try {
+      // 2. PG사 지급 요청 (개발 단계: 항상 성공 처리)
+      const payoutResult = await this.pgPayoutService.requestPayout({
         settlementId,
-        new Date(),
-        tx,
+        amount: settlement.payout_amount,
+      });
+
+      if (!payoutResult.success) {
+        throw new Error(payoutResult.error ?? 'PG payout failed');
+      }
+
+      // 3. 지급 완료 처리: PAID + payoutCoins COMPLETED
+      return await this.prisma.$transaction(async (tx) => {
+        const payoutCoinIds = settlement.payoutCoins.map((coin) => coin.id);
+        await this.payoutCoinRepository.updateStatusBatch(
+          payoutCoinIds,
+          PayoutStatus.COMPLETED,
+          tx,
+        );
+        return await this.settlementRepository.markAsPaid(settlementId, tx);
+      });
+    } catch (error) {
+      // 4. PG 실패 시 PENDING으로 롤백
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `PG payout failed for settlement ${settlementId}: ${message}`,
       );
-    });
+      await this.settlementRepository.updateStatus(
+        settlementId,
+        SettlementStatus.PENDING,
+        { approved_at: null },
+      );
+      throw new InternalServerErrorException(`정산 지급 처리 실패: ${message}`);
+    }
   }
 
   /**
@@ -288,18 +265,13 @@ export class SettlementService {
       }
 
       // 1. Settlement를 REJECTED로 변경
-      await this.settlementRepository.reject(
-        settlementId,
-        reason,
-        new Date(),
-        tx,
-      );
+      await this.settlementRepository.reject(settlementId, reason, tx);
 
-      // 2. 연결된 PayoutCoin들을 다시 MATURED로 되돌림
+      // 2. 연결된 PayoutCoin들을 다시 AVAILABLE로 되돌림
       const payoutCoinIds = settlement.payoutCoins.map((coin) => coin.id);
       await this.payoutCoinRepository.updateStatusBatch(
         payoutCoinIds,
-        PayoutStatus.MATURED,
+        PayoutStatus.AVAILABLE,
         tx,
       );
 
