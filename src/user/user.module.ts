@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
+import { AccountDeletionService } from './account-deletion.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { LogModule } from 'src/log/log.module';
 import { ChannelModule } from 'src/channel/channel.module';
@@ -29,7 +30,7 @@ import { CoinBalanceModule } from 'src/coin-balance/coin-balance.module';
     forwardRef(() => IvsModule),
   ],
   controllers: [UserController],
-  providers: [UserService, UserRepository],
+  providers: [UserService, UserRepository, AccountDeletionService],
   exports: [UserService],
 })
 export class UserModule {}

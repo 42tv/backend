@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 코딩 실수를 줄이기 위한 행동 가이드라인. 사소한 작업은 판단에 따라 유연하게 적용.
 현재는 배포상태가 아님으로 DB작업을 할 때 잔여 데이터를 신경 쓰지 않아도 된다.
+절대 자기판단으로 커밋하지마라. 커밋은 개발자가 직접 지시한다
 
 ## 1. 코딩 전 먼저 생각하기
 

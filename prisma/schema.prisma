@@ -363,9 +363,8 @@ model PaymentTransaction {
   canceled_at           DateTime?
   paid_at               DateTime?
   pg_response           Json?
-  deleted_user_snapshot Json?
-  user_deleted_at       DateTime?
-  should_delete_at      DateTime?
+  user_snapshot         Json
+  should_delete_at      DateTime
   topups                CoinTopup[]
   user                  User?                    @relation(fields: [user_idx], references: [idx])
 
@@ -403,9 +402,8 @@ model BootpayTransaction {
   metadata              Json?
   sandbox               Boolean           @default(false)
   raw_response          Json
-  deleted_user_snapshot Json?
-  user_deleted_at       DateTime?
-  should_delete_at      DateTime?
+  user_snapshot         Json
+  should_delete_at      DateTime
   created_at            DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at            DateTime          @updatedAt
   cardData              BootpayCardData?
@@ -486,8 +484,8 @@ model CoinTopup {
   coin_unit_price        Float
   status                 TopupStatus         @default(PENDING)
   topped_up_at           DateTime            @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  deleted_user_snapshot  Json?
-  user_deleted_at        DateTime?
+  user_snapshot          Json
+  should_delete_at       DateTime
   bootpayTransaction     BootpayTransaction? @relation(fields: [bootpay_transaction_id], references: [id])
   product                Product             @relation(fields: [product_id], references: [id])
   transaction            PaymentTransaction? @relation(fields: [transaction_id], references: [id])
@@ -520,11 +518,9 @@ model Donation {
   coin_value                Int
   message                   String?
   donated_at                DateTime     @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  deleted_donor_snapshot    Json?
-  deleted_streamer_snapshot Json?
-  donor_deleted_at          DateTime?
-  streamer_deleted_at       DateTime?
-  should_delete_at          DateTime?
+  donor_snapshot            Json
+  streamer_snapshot         Json
+  should_delete_at          DateTime
   usages                    CoinUsage[]
   donor                     User?        @relation("SentDonations", fields: [donor_idx], references: [idx])
   streamer                  User?        @relation("ReceivedDonations", fields: [streamer_idx], references: [idx])

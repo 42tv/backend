@@ -261,8 +261,7 @@ export class DonationRepository {
       WHERE streamer_idx = ${streamerIdx}
         AND donated_at >= ${options.startDate}
         AND donated_at <= ${options.endDate}
-        AND donor_deleted_at IS NULL
-        AND streamer_deleted_at IS NULL
+        AND donor_idx IS NOT NULL
       GROUP BY period
       ORDER BY period ASC
     `;
