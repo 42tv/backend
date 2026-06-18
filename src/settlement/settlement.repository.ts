@@ -253,6 +253,53 @@ export class SettlementRepository {
   }
 
   /**
+   * 스트리머의 사업자 유형 조회 (원천징수 대상 판정용)
+   * @param streamerIdx 스트리머 인덱스
+   * @param tx 트랜잭션 클라이언트 (선택)
+   * @returns business_type 또는 null
+   */
+  async findStreamerBusinessType(
+    streamerIdx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx || this.prisma;
+    return await client.user.findUnique({
+      where: { idx: streamerIdx },
+      select: { business_type: true },
+    });
+  }
+
+  /**
+   * 사용자 인덱스로 정산 계좌 조회 (삭제 포함)
+   * @param userIdx 사용자 인덱스
+   * @param tx 트랜잭션 클라이언트 (선택)
+   * @returns SettlementAccount 또는 null
+   */
+  async findSettlementAccountByUserIdx(
+    userIdx: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx || this.prisma;
+    return await client.settlementAccount.findUnique({
+      where: { user_idx: userIdx },
+    });
+  }
+
+  /**
+   * 정산 행위 감사 로그 생성
+   * @param data 감사 로그 데이터
+   * @param tx 트랜잭션 클라이언트 (선택)
+   * @returns 생성된 감사 로그
+   */
+  async createAuditLog(
+    data: Prisma.SettlementAuditLogUncheckedCreateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx || this.prisma;
+    return await client.settlementAuditLog.create({ data });
+  }
+
+  /**
    * 스트리머의 Settlement 통계 조회
    * @param streamerIdx 스트리머 인덱스
    * @returns 정산 통계
@@ -302,6 +349,61 @@ export class SettlementRepository {
       approved_amount: approved._sum.payout_amount || 0,
       approved_count: approved._count,
     };
+  }
+
+  /**
+   * 기간 내 PAID 정산의 원천세 합계 집계 (paid_at 기준)
+   * @param start 시작 시각 (포함)
+   * @param end 종료 시각 (미포함)
+   * @returns 합계 및 지급 인원(중복 스트리머 제거)
+   */
+  async aggregateWithholdingByPeriod(start: Date, end: Date) {
+    const where: Prisma.SettlementWhereInput = {
+      status: SettlementStatus.PAID,
+      paid_at: { gte: start, lt: end },
+    };
+
+    const [agg, personnel] = await Promise.all([
+      this.prisma.settlement.aggregate({
+        where,
+        _sum: {
+          tax_base: true,
+          income_tax_amount: true,
+          local_tax_amount: true,
+          payout_amount: true,
+        },
+      }),
+      this.prisma.settlement.findMany({
+        where: { ...where, streamer_idx: { not: null } },
+        distinct: ['streamer_idx'],
+        select: { streamer_idx: true },
+      }),
+    ]);
+
+    return { sum: agg._sum, personnel: personnel.length };
+  }
+
+  /**
+   * 기간 내 PAID 정산을 스트리머별로 그룹핑해 원천세 합계 집계 (지급명세서용)
+   * @param start 시작 시각 (포함)
+   * @param end 종료 시각 (미포함)
+   * @returns 스트리머별 합계
+   */
+  async groupWithholdingByStreamer(start: Date, end: Date) {
+    return await this.prisma.settlement.groupBy({
+      by: ['streamer_idx'],
+      where: {
+        status: SettlementStatus.PAID,
+        paid_at: { gte: start, lt: end },
+        streamer_idx: { not: null },
+      },
+      _sum: {
+        tax_base: true,
+        income_tax_amount: true,
+        local_tax_amount: true,
+        payout_amount: true,
+      },
+    });
   }
 
   /**

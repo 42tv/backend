@@ -22,6 +22,7 @@ model User {
   identity_ci_hash     String?              @unique
   is_adult_verified    Boolean              @default(false)
   adult_verified_at    DateTime?
+  business_type        StreamerBusinessType @default(INDIVIDUAL)
   created_at           DateTime             @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
   updated_at           DateTime             @updatedAt
   articles             Article[]            @relation("ArticleAuthor")
@@ -573,28 +574,50 @@ model PayoutCoin {
 }
 
 model Settlement {
-  id                    String            @id @default(cuid())
-  streamer_idx          Int?
-  total_value           Int
-  fee_amount            Int
-  payout_amount         Int
-  status                SettlementStatus  @default(PENDING)
-  settlement_account_id String?
-  requested_at          DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  approved_at           DateTime?
-  paid_at               DateTime?
-  rejected_at           DateTime?
-  reject_reason         String?
-  created_at            DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
-  updated_at            DateTime          @updatedAt
-  settlementAccount     SettlementAccount? @relation(fields: [settlement_account_id], references: [id])
-  payoutCoins           PayoutCoin[]
-  streamer              User?              @relation("Settlements", fields: [streamer_idx], references: [idx])
+  id                     String            @id @default(cuid())
+  streamer_idx           Int?
+  total_value            Int
+  fee_amount             Int
+  tax_base               Int               @default(0)
+  income_tax_amount      Int               @default(0)
+  local_tax_amount       Int               @default(0)
+  withholding_tax_amount Int               @default(0)
+  payout_amount          Int
+  status                 SettlementStatus  @default(PENDING)
+  settlement_account_id  String?
+  requested_at           DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  approved_at            DateTime?
+  paid_at                DateTime?
+  rejected_at            DateTime?
+  reject_reason          String?
+  created_at             DateTime          @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at             DateTime          @updatedAt
+  settlementAccount      SettlementAccount? @relation(fields: [settlement_account_id], references: [id])
+  payoutCoins            PayoutCoin[]
+  streamer               User?              @relation("Settlements", fields: [streamer_idx], references: [idx])
+  auditLogs              SettlementAuditLog[]
 
   @@index([streamer_idx, status], map: "idx_settlement_streamer_status")
   @@index([status, created_at], map: "idx_settlement_status_created")
   @@index([settlement_account_id])
+  @@index([status, paid_at], map: "idx_settlement_status_paid")
   @@map("settlements")
+}
+
+model SettlementAuditLog {
+  id            String                @id @default(cuid())
+  settlement_id String
+  admin_idx     Int
+  action        SettlementAuditAction
+  before_status SettlementStatus
+  after_status  SettlementStatus
+  reason        String?
+  created_at    DateTime              @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  settlement    Settlement            @relation(fields: [settlement_id], references: [id])
+
+  @@index([settlement_id])
+  @@index([admin_idx, created_at])
+  @@map("settlement_audit_logs")
 }
 
 model WidgetToken {
@@ -673,6 +696,19 @@ enum SettlementStatus {
   APPROVED
   PAID
   REJECTED
+}
+
+enum SettlementAuditAction {
+  APPROVE
+  REJECT
+  PAY
+  PAY_FAILED
+}
+
+enum StreamerBusinessType {
+  INDIVIDUAL
+  SOLE_PROPRIETOR
+  CORPORATION
 }
 
 model SettlementAccount {

@@ -5,11 +5,13 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseGuards,
   BadRequestException,
   ParseIntPipe,
 } from '@nestjs/common';
 import { SettlementService } from './settlement.service';
+import { WithholdingReportService } from './withholding-report.service';
 import { SettlementStatus } from '@prisma/client';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
@@ -22,7 +24,10 @@ class RejectSettlementDto {
 @Controller('admin/settlement')
 @UseGuards(AdminGuard)
 export class AdminSettlementController {
-  constructor(private readonly settlementService: SettlementService) {}
+  constructor(
+    private readonly settlementService: SettlementService,
+    private readonly withholdingReportService: WithholdingReportService,
+  ) {}
 
   @Get()
   async getAllSettlements(
@@ -72,6 +77,31 @@ export class AdminSettlementController {
       settlements,
       '승인 대기 중인 정산을 조회했습니다.',
     );
+  }
+
+  @Get('withholding/monthly')
+  async getMonthlyWithholdingReport(
+    @Query('year', ParseIntPipe) year: number,
+    @Query('month', ParseIntPipe) month: number,
+  ): Promise<SuccessResponseDto<any>> {
+    const report =
+      await this.withholdingReportService.getMonthlyWithholdingReport(
+        year,
+        month,
+      );
+    return ResponseWrapper.success(report, '월별 원천세 집계를 조회했습니다.');
+  }
+
+  @Get('withholding/statement')
+  async getPaymentStatement(
+    @Query('year', ParseIntPipe) year: number,
+    @Query('month') month?: string,
+  ): Promise<SuccessResponseDto<any>> {
+    const statement = await this.withholdingReportService.getPaymentStatement(
+      year,
+      month ? parseInt(month, 10) : undefined,
+    );
+    return ResponseWrapper.success(statement, '지급명세서를 조회했습니다.');
   }
 
   @Get('streamers/:streamerIdx')
@@ -128,8 +158,12 @@ export class AdminSettlementController {
   @Post(':id/approve')
   async approveSettlement(
     @Param('id') id: string,
+    @Req() req,
   ): Promise<SuccessResponseDto<any>> {
-    const settlement = await this.settlementService.approveSettlement(id);
+    const settlement = await this.settlementService.approveSettlement(
+      id,
+      req.user.idx,
+    );
     return ResponseWrapper.success(settlement, '정산을 승인했습니다.');
   }
 
@@ -137,6 +171,7 @@ export class AdminSettlementController {
   async rejectSettlement(
     @Param('id') id: string,
     @Body() dto: RejectSettlementDto,
+    @Req() req,
   ): Promise<SuccessResponseDto<any>> {
     if (!dto.reason) {
       throw new BadRequestException('reason is required');
@@ -145,6 +180,7 @@ export class AdminSettlementController {
     const settlement = await this.settlementService.rejectSettlement(
       id,
       dto.reason,
+      req.user.idx,
     );
     return ResponseWrapper.success(settlement, '정산을 거절했습니다.');
   }

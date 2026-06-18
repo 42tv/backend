@@ -217,6 +217,13 @@ export class PayoutCoinRepository {
     });
   }
 
+  async findByIds(ids: string[], tx?: Prisma.TransactionClient) {
+    const client = tx || this.prisma;
+    return await client.payoutCoin.findMany({
+      where: { id: { in: ids } },
+    });
+  }
+
   async updateStatus(
     id: string,
     status: PayoutStatus,
@@ -284,6 +291,14 @@ export class PayoutCoinRepository {
       data: {
         settlement_id: settlementId,
       },
+    });
+  }
+
+  async unlinkFromSettlement(ids: string[], tx?: Prisma.TransactionClient) {
+    const client = tx || this.prisma;
+    return await client.payoutCoin.updateMany({
+      where: { id: { in: ids } },
+      data: { settlement_id: null },
     });
   }
 
