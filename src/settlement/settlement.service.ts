@@ -192,13 +192,14 @@ export class SettlementService {
         throw new BadRequestException('인증된 계좌만 정산 신청이 가능합니다.');
       }
 
-      const { coins, totalValue } =
+      // dto.amount 는 신청 코인 수(코인 개수)
+      const { coins, totalValue, totalCount } =
         await this.payoutCoinRepository.findAvailableCoinsByAmount(
           streamerIdx,
           dto.amount,
         );
 
-      if (coins.length === 0 || totalValue < dto.amount) {
+      if (coins.length === 0 || totalCount < dto.amount) {
         throw new BadRequestException('정산 가능한 코인이 부족합니다.');
       }
 

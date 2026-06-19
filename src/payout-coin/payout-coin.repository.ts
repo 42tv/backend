@@ -185,22 +185,29 @@ export class PayoutCoinRepository {
     });
   }
 
-  async findAvailableCoinsByAmount(streamerIdx: number, targetAmount: number) {
+  /**
+   * 정산 신청한 코인 수(targetCount)만큼 AVAILABLE 코인을 FIFO로 선택
+   * @param targetCount 신청 코인 수 (원화가 아닌 코인 개수)
+   * @returns 선택된 코인, 합산 원화(totalValue), 합산 코인 수(totalCount)
+   */
+  async findAvailableCoinsByAmount(streamerIdx: number, targetCount: number) {
     const coins = await this.prisma.payoutCoin.findMany({
       where: { streamer_idx: streamerIdx, status: PayoutStatus.AVAILABLE },
       orderBy: { settlement_ready_at: 'asc' },
     });
 
     const selected = [];
-    let accumulated = 0;
+    let totalCount = 0;
+    let totalValue = 0;
 
     for (const coin of coins) {
-      if (accumulated + coin.coin_value > targetAmount) break;
+      if (totalCount + coin.coin_amount > targetCount) break;
       selected.push(coin);
-      accumulated += coin.coin_value;
+      totalCount += coin.coin_amount;
+      totalValue += coin.coin_value;
     }
 
-    return { coins: selected, totalValue: accumulated };
+    return { coins: selected, totalValue, totalCount };
   }
 
   async findWaitingReadyCoins() {
