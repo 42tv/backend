@@ -63,6 +63,18 @@ export class PayoutCoinService {
     const waitingCoins =
       await this.payoutCoinRepository.findWaitingReadyCoins();
 
+    return await this.applyAvailabilityToWaitingCoins(waitingCoins);
+  }
+
+  async forceAllWaitingCoinsToAvailable() {
+    const waitingCoins = await this.payoutCoinRepository.findAllWaitingCoins();
+
+    return await this.applyAvailabilityToWaitingCoins(waitingCoins);
+  }
+
+  private async applyAvailabilityToWaitingCoins(
+    waitingCoins: { id: string; topup: { status: TopupStatus } }[],
+  ) {
     let availableCount = 0;
     let blockedCount = 0;
 

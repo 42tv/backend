@@ -63,6 +63,16 @@ export class AdminPayoutCoinController {
     );
   }
 
+  @Post('force-availability')
+  async triggerForceAvailability(): Promise<SuccessResponseDto<any>> {
+    const result =
+      await this.payoutCoinService.forceAllWaitingCoinsToAvailable();
+    return ResponseWrapper.success(
+      result,
+      '대기중인 PayoutCoin을 모두 정산 가능 상태로 변경했습니다.',
+    );
+  }
+
   @Post(':id/unblock')
   async unblockPayoutCoin(
     @Param('id') id: string,

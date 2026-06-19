@@ -217,6 +217,17 @@ export class PayoutCoinRepository {
     });
   }
 
+  async findAllWaitingCoins() {
+    return await this.prisma.payoutCoin.findMany({
+      where: {
+        status: PayoutStatus.WAITING,
+      },
+      include: {
+        topup: true,
+      },
+    });
+  }
+
   async findByIds(ids: string[], tx?: Prisma.TransactionClient) {
     const client = tx || this.prisma;
     return await client.payoutCoin.findMany({
