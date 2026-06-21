@@ -69,7 +69,7 @@ describe('SettlementService', () => {
           id: 'c1',
           status: PayoutStatus.AVAILABLE,
           streamer_idx: 1,
-          coin_value: 10000,
+          coin_amount: 100,
         },
       ] as any);
       settlementRepository.findStreamerBusinessType.mockResolvedValue({

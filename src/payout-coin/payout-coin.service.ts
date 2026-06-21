@@ -18,15 +18,6 @@ export class PayoutCoinService {
     const payoutCoins = [];
 
     for (const usage of coinUsages) {
-      const topup = await this.payoutCoinRepository.findTopupById(
-        usage.topup_id,
-        tx,
-      );
-
-      if (!topup) {
-        throw new NotFoundException(`CoinTopup not found: ${usage.topup_id}`);
-      }
-
       const settlementReadyAt = new Date(donation.donated_at);
       settlementReadyAt.setDate(settlementReadyAt.getDate() + 3);
 
@@ -45,7 +36,6 @@ export class PayoutCoinService {
             connect: { id: usage.topup_id },
           },
           coin_amount: usage.used_coins,
-          coin_value: Math.floor(usage.used_coins * topup.coin_unit_price),
           donated_at: donation.donated_at,
           settlement_ready_at: settlementReadyAt,
           status: PayoutStatus.WAITING,
@@ -166,10 +156,6 @@ export class PayoutCoinService {
 
   async findWaitingCoins(streamerIdx: number) {
     return await this.payoutCoinRepository.findWaitingCoins(streamerIdx);
-  }
-
-  async getTotalAvailableAmount(streamerIdx: number) {
-    return await this.payoutCoinRepository.getTotalAvailableAmount(streamerIdx);
   }
 
   async unblockPayoutCoin(id: string) {

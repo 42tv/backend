@@ -550,7 +550,6 @@ model PayoutCoin {
   usage_id             Int          @unique
   topup_id             String
   coin_amount          Int
-  coin_value           Int
   donated_at           DateTime
   settlement_ready_at  DateTime
   status               PayoutStatus @default(WAITING)
