@@ -21,6 +21,7 @@ import { PgPayoutService } from './pg-payout.service';
 
 @Injectable()
 export class SettlementService {
+  private readonly COIN_UNIT_PRICE = 100; // 후원 코인 1개당 정산 단가(원), 고정
   private readonly FEE_RATE = 0.1;
   private readonly INCOME_TAX_RATE = 0.03; // 소득세 3% (국세, 홈택스)
   private readonly LOCAL_TAX_RATE = 0.1; // 지방소득세 = 소득세액의 10% (지방세, 위택스)
@@ -122,7 +123,8 @@ export class SettlementService {
       }
 
       // 2. 금액 계산 (수수료 + 원천징수)
-      const totalValue = coins.reduce((sum, coin) => sum + coin.coin_value, 0);
+      const totalCount = coins.reduce((sum, coin) => sum + coin.coin_amount, 0);
+      const totalValue = totalCount * this.COIN_UNIT_PRICE;
       const taxable = await this.isTaxable(streamerIdx, tx);
       const {
         feeAmount,
@@ -193,7 +195,7 @@ export class SettlementService {
       }
 
       // dto.amount 는 신청 코인 수(코인 개수)
-      const { coins, totalValue, totalCount } =
+      const { coins, totalCount } =
         await this.payoutCoinRepository.findAvailableCoinsByAmount(
           streamerIdx,
           dto.amount,
@@ -202,6 +204,8 @@ export class SettlementService {
       if (coins.length === 0 || totalCount < dto.amount) {
         throw new BadRequestException('정산 가능한 코인이 부족합니다.');
       }
+
+      const totalValue = totalCount * this.COIN_UNIT_PRICE;
 
       const taxable = await this.isTaxable(streamerIdx, tx);
       const {

@@ -188,7 +188,7 @@ export class PayoutCoinRepository {
   /**
    * 정산 신청한 코인 수(targetCount)만큼 AVAILABLE 코인을 FIFO로 선택
    * @param targetCount 신청 코인 수 (원화가 아닌 코인 개수)
-   * @returns 선택된 코인, 합산 원화(totalValue), 합산 코인 수(totalCount)
+   * @returns 선택된 코인, 합산 코인 수(totalCount)
    */
   async findAvailableCoinsByAmount(streamerIdx: number, targetCount: number) {
     const coins = await this.prisma.payoutCoin.findMany({
@@ -198,16 +198,14 @@ export class PayoutCoinRepository {
 
     const selected = [];
     let totalCount = 0;
-    let totalValue = 0;
 
     for (const coin of coins) {
       if (totalCount + coin.coin_amount > targetCount) break;
       selected.push(coin);
       totalCount += coin.coin_amount;
-      totalValue += coin.coin_value;
     }
 
-    return { coins: selected, totalValue, totalCount };
+    return { coins: selected, totalCount };
   }
 
   async findWaitingReadyCoins() {
@@ -325,62 +323,35 @@ export class PayoutCoinRepository {
       await Promise.all([
         this.prisma.payoutCoin.aggregate({
           where: { streamer_idx: streamerIdx, status: PayoutStatus.AVAILABLE },
-          _sum: { coin_value: true },
+          _sum: { coin_amount: true },
         }),
         this.prisma.payoutCoin.aggregate({
           where: { streamer_idx: streamerIdx, status: PayoutStatus.WAITING },
-          _sum: { coin_value: true },
+          _sum: { coin_amount: true },
         }),
         this.prisma.payoutCoin.aggregate({
           where: { streamer_idx: streamerIdx, status: PayoutStatus.BLOCKED },
-          _sum: { coin_value: true },
+          _sum: { coin_amount: true },
         }),
         this.prisma.payoutCoin.aggregate({
           where: {
             streamer_idx: streamerIdx,
             status: PayoutStatus.IN_SETTLEMENT,
           },
-          _sum: { coin_value: true },
+          _sum: { coin_amount: true },
         }),
         this.prisma.payoutCoin.aggregate({
           where: { streamer_idx: streamerIdx, status: PayoutStatus.COMPLETED },
-          _sum: { coin_value: true },
+          _sum: { coin_amount: true },
         }),
       ]);
 
     return {
-      available_amount: available._sum.coin_value || 0,
-      waiting_amount: waiting._sum.coin_value || 0,
-      blocked_amount: blocked._sum.coin_value || 0,
-      in_settlement_amount: inSettlement._sum.coin_value || 0,
-      completed_amount: completed._sum.coin_value || 0,
-      total_received:
-        (available._sum.coin_value || 0) +
-        (waiting._sum.coin_value || 0) +
-        (blocked._sum.coin_value || 0) +
-        (inSettlement._sum.coin_value || 0) +
-        (completed._sum.coin_value || 0),
+      available_count: available._sum.coin_amount || 0,
+      waiting_count: waiting._sum.coin_amount || 0,
+      blocked_count: blocked._sum.coin_amount || 0,
+      in_settlement_count: inSettlement._sum.coin_amount || 0,
+      completed_count: completed._sum.coin_amount || 0,
     };
-  }
-
-  async getTotalAvailableAmount(streamerIdx: number) {
-    const result = await this.prisma.payoutCoin.aggregate({
-      where: {
-        streamer_idx: streamerIdx,
-        status: PayoutStatus.AVAILABLE,
-      },
-      _sum: {
-        coin_value: true,
-      },
-    });
-
-    return result._sum.coin_value || 0;
-  }
-
-  async findTopupById(topupId: string, tx?: Prisma.TransactionClient) {
-    const client = tx || this.prisma;
-    return await client.coinTopup.findUnique({
-      where: { id: topupId },
-    });
   }
 }
