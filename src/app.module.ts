@@ -41,6 +41,7 @@ import { IdentityVerificationModule } from './identity-verification/identity-ver
 import { OverlayModule } from './overlay/overlay.module';
 import { WidgetModule } from './widget/widget.module';
 import { SettlementAccountModule } from './settlement-account/settlement-account.module';
+import { NcpLiveStationModule } from './ncp-live-station/ncp-live-station.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { SettlementAccountModule } from './settlement-account/settlement-account
     OverlayModule,
     WidgetModule,
     SettlementAccountModule,
+    NcpLiveStationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

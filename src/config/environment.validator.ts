@@ -27,6 +27,10 @@ export class EnvironmentValidator {
       'AWS_IVS_RECORDING_CONFIG_ARN',
       'AWS_WEBHOOK_TOKEN',
 
+      // NCP Live Station (API 서명)
+      'NCP_ACCESS_KEY',
+      'NCP_SECRET_KEY',
+
       // CDN 및 URL
       'CDN_URL',
       'FRONTEND_REDIRECT_URI',
