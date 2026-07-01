@@ -111,7 +111,7 @@ export class PlayService {
     const broadcaster = await this.userService.getUserByUserIdWithRelations(
       streamerId,
       {
-        ivs_channel: true,
+        ncp_channel: true,
         broadcast_setting: true,
       },
     );
@@ -232,7 +232,7 @@ export class PlayService {
       },
       stream: {
         title: broadcaster.broadcastSetting.title,
-        playback_url: broadcaster.ivs.playback_url,
+        playback_url: broadcaster.ncpChannel.playback_url,
         play_cnt: stream.play_cnt,
         recommend_cnt: stream.recommend_cnt,
         bookmark_cnt: bookmarkCount,
@@ -305,7 +305,7 @@ export class PlayService {
       },
       stream: {
         title: broadcaster.broadcastSetting.title,
-        playback_url: broadcaster.ivs.playback_url,
+        playback_url: broadcaster.ncpChannel.playback_url,
         play_cnt: stream.play_cnt,
         recommend_cnt: stream.recommend_cnt,
         bookmark_cnt: bookmarkCount,
