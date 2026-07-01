@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { RealtimeRedisModule } from 'src/redis/redis.module';
+import { StreamModule } from 'src/stream/stream.module';
+import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.module';
 import { NcpApiClient } from './ncp-api.client';
 import { NcpChannelRepository } from './ncp-channel.repository';
 import { NcpLiveStationController } from './ncp-live-station.controller';
@@ -14,6 +16,7 @@ import { NcpQualityService } from './services/ncp-quality.service';
 import { NcpRestreamService } from './services/ncp-restream.service';
 import { NcpVod2liveService } from './services/ncp-vod2live.service';
 import { NcpEventService } from './services/ncp-event.service';
+import { NcpStreamEventService } from './services/ncp-stream-event.service';
 
 /**
  * NCP Live Station API 모듈.
@@ -21,7 +24,13 @@ import { NcpEventService } from './services/ncp-event.service';
  * - NcpChannelLifecycleService: 1유저 1채널 수명 관리(30일 회수 대응, ensureChannel)
  */
 @Module({
-  imports: [ConfigModule, PrismaModule, RealtimeRedisModule],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    RealtimeRedisModule,
+    StreamModule,
+    BroadcastSettingModule,
+  ],
   controllers: [NcpLiveStationController],
   providers: [
     NcpApiClient,
@@ -35,6 +44,7 @@ import { NcpEventService } from './services/ncp-event.service';
     NcpRestreamService,
     NcpVod2liveService,
     NcpEventService,
+    NcpStreamEventService,
   ],
   exports: [
     NcpChannelService,
