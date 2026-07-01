@@ -60,12 +60,23 @@ export class NcpStreamEventService {
     if (dto.event === 'PUBLISH_START') {
       await this.streamStart(ncp, dto);
     } else if (dto.event === 'PUBLISH_END') {
-      const userId = await this.repo.findUserId(ncp.user_idx);
-      if (!userId) {
-        throw new BadRequestException('사용자를 찾을 수 없습니다.');
-      }
+      await this.streamStop(ncp);
+    }
+  }
+
+  /**
+   * 방송 종료 처리 — 시청자키를 정리하고 Stream 을 삭제해 라이브 리스트에서 제거한다.
+   * 멱등: 콜백 중복 수신/Stream 부재 시에도 안전하게 통과한다.
+   */
+  private async streamStop(ncp: NcpChannel): Promise<void> {
+    const userId = await this.repo.findUserId(ncp.user_idx);
+    if (userId) {
       await this.redisService.removeViewerKey(userId);
-      // IVS와 동일하게 Stream 삭제(streamStop)는 우선 보류
+    }
+
+    const existing = await this.streamService.getStreamByUserIdx(ncp.user_idx);
+    if (existing) {
+      await this.streamService.deleteStream(existing.stream_id);
     }
   }
 
@@ -84,7 +95,9 @@ export class NcpStreamEventService {
     }
 
     const startTime = timeFormatter(new Date(dto.timestamp).toISOString());
-    const thumbnailUrl = `${process.env.CDN_URL}/thumbnails/${dto.channelId}.jpg`;
+    // 썸네일은 채널 생성 시 확보한 NCP THUMBNAIL serviceUrl(720px)을 사용한다.
+    // URL 은 고정이고 NCP 가 이미지를 주기적으로 갱신한다(구 Lambda+S3 방식 대체).
+    const thumbnailUrl = ncp.thumbnail_url ?? '';
 
     await this.streamService.createStream(
       ncp.user_idx,

@@ -216,12 +216,14 @@ export class NcpChannelLifecycleService {
     const channelId = createRes.content.channelId;
     const info = await this.waitUntilReady(channelId);
     const playbackUrl = await this.fetchPlaybackUrl(channelId);
+    const thumbnailUrl = await this.fetchThumbnailUrl(channelId);
 
     return this.repo.upsert(userIdx, {
       channel_id: channelId,
       stream_key: info.streamKey,
       publish_url: info.publishUrl,
       playback_url: playbackUrl,
+      thumbnail_url: thumbnailUrl,
       channel_status: info.channelStatus,
       name: channelName,
     });
@@ -257,6 +259,18 @@ export class NcpChannelLifecycleService {
   private async fetchPlaybackUrl(channelId: string): Promise<string> {
     const res = await this.channel.getServiceUrls(channelId, 'GENERAL');
     return res.content?.[0]?.url ?? '';
+  }
+
+  /**
+   * serviceUrls(THUMBNAIL) 의 720px 리사이즈 썸네일 URL.
+   * TIMEMACHINE 과 달리 방송 전(READY)에도 조회 가능하므로 채널 생성 시 확보한다.
+   * NCP 가 URL 뒤 이미지를 주기적으로 갱신하므로 URL 자체는 고정이다(구 Lambda+S3 대체).
+   */
+  private async fetchThumbnailUrl(channelId: string): Promise<string> {
+    const res = await this.channel.getServiceUrls(channelId, 'THUMBNAIL');
+    const thumbnail = res.content?.[0];
+    const resized = thumbnail?.resizedUrl?.find((r) => r.type === '720px');
+    return resized?.url ?? thumbnail?.url ?? '';
   }
 
   private toCredentials(row: {

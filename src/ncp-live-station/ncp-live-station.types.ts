@@ -73,6 +73,12 @@ export interface ChannelInfo {
   [key: string]: unknown;
 }
 
+/** 리사이즈 썸네일 URL 항목 (THUMBNAIL 타입 응답에 포함) */
+export interface ResizedUrl {
+  type: string; // '100px' | '360px' | '720px'
+  url: string;
+}
+
 /** 서비스 URL 항목 */
 export interface ServiceUrl {
   name: string;
@@ -80,6 +86,7 @@ export interface ServiceUrl {
   resolution?: string;
   videoBitrate?: number;
   audioBitrate?: number;
+  resizedUrl?: ResizedUrl[]; // THUMBNAIL 타입에서만 제공
 }
 
 /** 콜백 등록 요청 바디 (POST /events/callbackEndpoint) */
