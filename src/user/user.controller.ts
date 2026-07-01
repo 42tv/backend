@@ -262,7 +262,7 @@ export class UserController {
     const broadcastSetting = await this.userService.getBroadcastSetting(
       req.user.idx,
     );
-    delete broadcastSetting.ivs.playback_url;
+    delete broadcastSetting.ncp.playback_url;
     return ResponseWrapper.success(
       broadcastSetting,
       '방송 제한 설정을 조회했습니다.',

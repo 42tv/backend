@@ -14,6 +14,7 @@ import { BookmarkModule } from 'src/bookmark/bookmark.module';
 import { BlacklistModule } from 'src/blacklist/blacklist.module';
 import { RealtimeRedisModule } from 'src/redis/redis.module';
 import { CoinBalanceModule } from 'src/coin-balance/coin-balance.module';
+import { NcpLiveStationModule } from 'src/ncp-live-station/ncp-live-station.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CoinBalanceModule } from 'src/coin-balance/coin-balance.module';
     BookmarkModule,
     BlacklistModule,
     CoinBalanceModule,
+    NcpLiveStationModule,
     forwardRef(() => RealtimeRedisModule),
     forwardRef(() => IvsModule),
   ],

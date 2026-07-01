@@ -38,6 +38,7 @@ export interface CreateChannelBody {
     profileId?: number;
     regionType?: string;
     cdnInstanceNo?: number;
+    cdnDomain?: string;
   };
   qualitySetId: number;
   useDvr: boolean;
