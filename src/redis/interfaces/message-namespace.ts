@@ -14,6 +14,7 @@ import {
   BanPayload,
   DonationPayload,
   FanLevelUpPayload,
+  StreamEndPayload,
 } from './room.message';
 import {
   DuplicateConnectPayload,
@@ -216,6 +217,14 @@ export const RedisMessages = {
         nickname,
         banned_by: bannedBy,
       } as BanPayload,
+    };
+  },
+
+  streamEnd(broadcasterId: string): ChatRoomMessage {
+    return {
+      op: OpCode.STREAM_END,
+      broadcaster_id: broadcasterId,
+      payload: { broadcaster_id: broadcasterId } as StreamEndPayload,
     };
   },
 

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from 'src/redis/redis.service';
+import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { StreamService } from 'src/stream/stream.service';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { timeFormatter } from 'src/utils/utils';
@@ -66,7 +67,8 @@ export class NcpStreamEventService {
 
   /**
    * 방송 종료 처리 — 시청자키를 정리하고 Stream 을 삭제해 라이브 리스트에서 제거한다.
-   * 멱등: 콜백 중복 수신/Stream 부재 시에도 안전하게 통과한다.
+   * 시청 중인 클라이언트에게는 Redis Pub/Sub 으로 종료 이벤트를 전파한다(멀티 서버 대응).
+   * 멱등: 콜백 중복 수신/Stream 부재 시에도 안전하게 통과한다(중복 시 이벤트 재발행 없음).
    */
   private async streamStop(ncp: NcpChannel): Promise<void> {
     const userId = await this.repo.findUserId(ncp.user_idx);
@@ -77,6 +79,13 @@ export class NcpStreamEventService {
     const existing = await this.streamService.getStreamByUserIdx(ncp.user_idx);
     if (existing) {
       await this.streamService.deleteStream(existing.stream_id);
+
+      if (userId) {
+        await this.redisService.publishRoomMessage(
+          `room:${userId}`,
+          RedisMessages.streamEnd(userId),
+        );
+      }
     }
   }
 
