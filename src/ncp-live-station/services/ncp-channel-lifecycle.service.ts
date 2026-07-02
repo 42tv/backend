@@ -46,9 +46,9 @@ export class NcpChannelLifecycleService {
 
   private readonly cdn: {
     cdnType: string;
-    cdnInstanceNo: number;
     profileId: number;
-    cdnDomain: string;
+    instanceNo: number;
+    domain: string;
   };
   private readonly qualitySetId: number;
   /** 앱 실행 환경에 맞춘 NCP 채널 타입 (프로덕션=REAL, 그 외=DEV) */
@@ -62,9 +62,9 @@ export class NcpChannelLifecycleService {
   ) {
     this.cdn = {
       cdnType: this.config.get<string>('NCP_CDN_TYPE'),
-      cdnInstanceNo: Number(this.config.get('NCP_CDN_INSTANCE_NO')),
       profileId: Number(this.config.get('NCP_CDN_PROFILE_ID')),
-      cdnDomain: this.config.get<string>('NCP_CDN_DOMAIN'),
+      instanceNo: Number(this.config.get('NCP_CDN_INSTANCE_NO')),
+      domain: this.config.get<string>('NCP_CDN_DOMAIN'),
     };
     this.qualitySetId = Number(this.config.get('NCP_QUALITY_SET_ID'));
     this.envType =
@@ -202,14 +202,16 @@ export class NcpChannelLifecycleService {
       cdn: {
         createCdn: false,
         cdnType: this.cdn.cdnType,
-        cdnInstanceNo: this.cdn.cdnInstanceNo,
-        cdnDomain: this.cdn.cdnDomain,
         profileId: this.cdn.profileId,
+        cdnInstanceNo: this.cdn.instanceNo,
+        cdnDomain: this.cdn.domain,
+        regionType: 'KOREA',
       },
       qualitySetId: this.qualitySetId,
       useDvr: false,
       record: { type: 'NO_RECORD' },
       drmEnabledYn: false,
+      outputProtocol: 'LL_HLS',
       envType: this.envType,
     });
 
@@ -295,11 +297,11 @@ export class NcpChannelLifecycleService {
   private assertChannelConfig() {
     const missing: string[] = [];
     if (!this.cdn.cdnType) missing.push('NCP_CDN_TYPE');
-    if (!this.cdn.cdnInstanceNo || Number.isNaN(this.cdn.cdnInstanceNo))
-      missing.push('NCP_CDN_INSTANCE_NO');
     if (!this.cdn.profileId || Number.isNaN(this.cdn.profileId))
       missing.push('NCP_CDN_PROFILE_ID');
-    if (!this.cdn.cdnDomain) missing.push('NCP_CDN_DOMAIN');
+    if (!this.cdn.instanceNo || Number.isNaN(this.cdn.instanceNo))
+      missing.push('NCP_CDN_INSTANCE_NO');
+    if (!this.cdn.domain) missing.push('NCP_CDN_DOMAIN');
     if (!this.qualitySetId || Number.isNaN(this.qualitySetId))
       missing.push('NCP_QUALITY_SET_ID');
     if (missing.length) {
