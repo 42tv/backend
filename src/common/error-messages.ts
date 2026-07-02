@@ -85,6 +85,6 @@ export const ErrorMessages = {
     INVALID_REQUEST: '유효하지 않은 요청입니다',
     UPDATE_FAILED: '업데이트에 실패했습니다',
     DELETE_FAILED: '삭제에 실패했습니다',
-    TRANSACTION_FAILED: 'User, Channel, Ivs 생성 트랜잭션 실패',
+    TRANSACTION_FAILED: '회원 생성 트랜잭션 실패',
   },
 } as const;

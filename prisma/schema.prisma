@@ -41,6 +41,7 @@ model User {
   fans                 Fan[]                @relation("UserFans")
   following            Fan[]                @relation("UserFollowing")
   ivs                  IVSChannel?
+  ncpChannel           NcpChannel?
   managers             Manager[]            @relation("CreatorManaged")
   managedCreators      Manager[]            @relation("UserManager")
   paymentTransactions  PaymentTransaction[]
@@ -144,6 +145,22 @@ model IVSChannel {
   User                   User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
 
   @@map("ivs_channels")
+}
+
+model NcpChannel {
+  user_idx       Int      @id
+  channel_id     String   @unique
+  stream_key     String
+  publish_url    String
+  playback_url   String
+  thumbnail_url  String?
+  channel_status String?
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  User           User     @relation(fields: [user_idx], references: [idx], onDelete: Cascade)
+
+  @@map("ncp_channels")
 }
 
 model Stream {

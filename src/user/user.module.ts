@@ -6,7 +6,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { LogModule } from 'src/log/log.module';
 import { ChannelModule } from 'src/channel/channel.module';
 import { UserRepository } from './user.repository';
-import { IvsModule } from 'src/ivs/ivs.module';
 import { FanLevelModule } from 'src/fan-level/fan-level.module';
 import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.module';
 import { AwsModule } from 'src/aws/aws.module';
@@ -14,6 +13,7 @@ import { BookmarkModule } from 'src/bookmark/bookmark.module';
 import { BlacklistModule } from 'src/blacklist/blacklist.module';
 import { RealtimeRedisModule } from 'src/redis/redis.module';
 import { CoinBalanceModule } from 'src/coin-balance/coin-balance.module';
+import { NcpLiveStationModule } from 'src/ncp-live-station/ncp-live-station.module';
 
 @Module({
   imports: [
@@ -26,8 +26,8 @@ import { CoinBalanceModule } from 'src/coin-balance/coin-balance.module';
     BookmarkModule,
     BlacklistModule,
     CoinBalanceModule,
+    NcpLiveStationModule,
     forwardRef(() => RealtimeRedisModule),
-    forwardRef(() => IvsModule),
   ],
   controllers: [UserController],
   providers: [UserService, UserRepository, AccountDeletionService],

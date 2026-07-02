@@ -2,26 +2,26 @@ import { ApiProperty } from '@nestjs/swagger';
 import { BroadcastCategory } from '@prisma/client';
 
 /**
- * IVS 정보 DTO
+ * NCP Live Station 송출 정보 DTO
  */
-export class IvsInfoDto {
+export class NcpInfoDto {
   @ApiProperty({
-    description: 'IVS 채널 ARN',
-    example: 'arn:aws:ivs:region:account:channel/channel-id',
-  })
-  arn: string;
-
-  @ApiProperty({
-    description: 'IVS 스트림 키',
-    example: 'sk_region_streamkey',
+    description: 'NCP 스트림 키',
+    example: 'streamkey',
   })
   stream_key: string;
 
   @ApiProperty({
-    description: 'IVS 인제스트 엔드포인트',
-    example: 'rtmps://ingest-endpoint.ivs.region.amazonaws.com:443/live/',
+    description: 'NCP 송출(publish) URL',
+    example: 'rtmp://xxx.livestation.gov-ncloud.com:8080/xxx',
   })
   ingest_endpoint: string;
+
+  @ApiProperty({
+    description: 'NCP 재생 URL (LL-HLS)',
+    example: 'https://cdn-domain/ls-xxx/playlist.m3u8',
+  })
+  playback_url: string;
 }
 
 /**
@@ -79,10 +79,10 @@ export class GetBroadcastSettingResponseDto {
   category: BroadcastCategory;
 
   @ApiProperty({
-    description: 'IVS 설정 정보',
-    type: IvsInfoDto,
+    description: 'NCP 송출 정보',
+    type: NcpInfoDto,
   })
-  ivs: IvsInfoDto;
+  ncp: NcpInfoDto;
 
   @ApiProperty({
     description: '생성일시',

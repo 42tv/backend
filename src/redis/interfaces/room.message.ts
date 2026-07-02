@@ -14,6 +14,7 @@ export enum OpCode {
   VIEWER_LIST = 'viewer_list',
   DONATION = 'donation',
   FAN_LEVEL_UP = 'fan_level_up',
+  STREAM_END = 'stream_end',
 }
 
 export enum RoleChangeType {
@@ -51,7 +52,12 @@ export interface ChatRoomMessage {
     | BanPayload
     | ViewerListPayload
     | DonationPayload
-    | FanLevelUpPayload;
+    | FanLevelUpPayload
+    | StreamEndPayload;
+}
+
+export interface StreamEndPayload {
+  broadcaster_id: string;
 }
 
 export interface ChatPayload {

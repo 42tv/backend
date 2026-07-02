@@ -139,6 +139,9 @@ export class RedisService {
       case OpCode.DONATION:
         await this.handleDonationMessage(message);
         break;
+      case OpCode.STREAM_END:
+        await this.handleStreamEndMessage(message);
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
     }
@@ -149,6 +152,19 @@ export class RedisService {
    * @param message 시청자 수 업데이트 메시지
    */
   private async handleViewerCountMessage(message: ChatRoomMessage) {
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
+    );
+  }
+
+  /**
+   * 방송 종료 메시지 처리 — 룸 전체 시청자에게 종료 사실을 전파
+   * @param message 방송 종료 메시지
+   */
+  private async handleStreamEndMessage(message: ChatRoomMessage) {
+    console.log(`[Stream End] received for room: ${message.broadcaster_id}`);
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,

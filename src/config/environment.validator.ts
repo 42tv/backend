@@ -19,13 +19,24 @@ export class EnvironmentValidator {
       'JWT_ACCESS_SECRET',
       'JWT_REFRESH_SECRET',
 
-      // AWS 서비스
+      // AWS 서비스 (S3/CDN)
       'AWS_REGION',
       'AWS_ACCESS_KEY_ID',
       'AWS_SECRET_ACCESS_KEY',
       'AWS_S3_BUCKET',
-      'AWS_IVS_RECORDING_CONFIG_ARN',
-      'AWS_WEBHOOK_TOKEN',
+
+      // NCP Live Station (API 서명)
+      'NCP_ACCESS_KEY',
+      'NCP_SECRET_KEY',
+
+      // NCP Live Station (채널 생성/콜백)
+      'NCP_CDN_TYPE',
+      'NCP_CDN_PROFILE_ID',
+      'NCP_CDN_INSTANCE_NO',
+      'NCP_CDN_DOMAIN',
+      'NCP_QUALITY_SET_ID',
+      'NCP_CALLBACK_URL',
+      'NCP_CALLBACK_SECRET',
 
       // CDN 및 URL
       'CDN_URL',
@@ -104,8 +115,6 @@ export class EnvironmentValidator {
       'AWS_ACCESS_KEY_ID',
       'AWS_SECRET_ACCESS_KEY',
       'AWS_S3_BUCKET',
-      'AWS_IVS_RECORDING_CONFIG_ARN',
-      'AWS_WEBHOOK_SECRET_TOKEN',
     ]);
   }
 

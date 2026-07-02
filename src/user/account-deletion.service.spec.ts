@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { AccountDeletionService } from './account-deletion.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserRepository } from 'src/user/user.repository';
-import { IvsService } from 'src/ivs/ivs.service';
+import { NcpChannelService } from 'src/ncp-live-station/services/ncp-channel.service';
 import { AwsService } from 'src/aws/aws.service';
 import { RedisService } from 'src/redis/redis.service';
 
@@ -13,7 +13,7 @@ jest.mock('bcrypt');
 describe('AccountDeletionService', () => {
   let service: AccountDeletionService;
   let userRepository: jest.Mocked<UserRepository>;
-  let ivsService: jest.Mocked<IvsService>;
+  let ncpChannelService: jest.Mocked<NcpChannelService>;
   let awsService: jest.Mocked<AwsService>;
   let redisService: jest.Mocked<RedisService>;
 
@@ -32,7 +32,7 @@ describe('AccountDeletionService', () => {
     nickname: '테스터',
     password: 'hashed-password',
     profile_img: '',
-    ivs: null,
+    ncpChannel: null,
   };
 
   const oauthUser = {
@@ -65,7 +65,7 @@ describe('AccountDeletionService', () => {
           },
         },
         {
-          provide: IvsService,
+          provide: NcpChannelService,
           useValue: { deleteChannel: jest.fn() },
         },
         {
@@ -81,11 +81,11 @@ describe('AccountDeletionService', () => {
 
     service = module.get(AccountDeletionService);
     userRepository = module.get(UserRepository);
-    ivsService = module.get(IvsService);
+    ncpChannelService = module.get(NcpChannelService);
     awsService = module.get(AwsService);
     redisService = module.get(RedisService);
 
-    ivsService.deleteChannel.mockResolvedValue({} as any);
+    ncpChannelService.deleteChannel.mockResolvedValue({} as any);
     awsService.deleteFromS3.mockResolvedValue(undefined as any);
     redisService.deleteMultipleKeys.mockResolvedValue(0);
   });
@@ -159,7 +159,7 @@ describe('AccountDeletionService', () => {
     const userWithResources = {
       ...passwordUser,
       profile_img: 'https://cdn.test/profile/abc.jpg',
-      ivs: { arn: 'arn:aws:ivs:channel/test' },
+      ncpChannel: { channel_id: 'ls-test-channel' },
     };
 
     beforeEach(() => {
@@ -174,8 +174,8 @@ describe('AccountDeletionService', () => {
 
       expect(userRepository.deleteUser).toHaveBeenCalledWith(1, mockTx);
 
-      expect(ivsService.deleteChannel).toHaveBeenCalledWith(
-        'arn:aws:ivs:channel/test',
+      expect(ncpChannelService.deleteChannel).toHaveBeenCalledWith(
+        'ls-test-channel',
       );
       expect(awsService.deleteFromS3).toHaveBeenCalledWith('profile/abc.jpg');
       expect(redisService.deleteMultipleKeys).toHaveBeenCalledWith([
@@ -183,8 +183,8 @@ describe('AccountDeletionService', () => {
       ]);
     });
 
-    it('IVS 삭제가 실패해도 탈퇴는 성공한다 (best-effort)', async () => {
-      ivsService.deleteChannel.mockRejectedValue(new Error('AWS error'));
+    it('NCP 채널 삭제가 실패해도 탈퇴는 성공한다 (best-effort)', async () => {
+      ncpChannelService.deleteChannel.mockRejectedValue(new Error('NCP error'));
 
       await expect(
         service.deleteAccount(1, { password: 'correct' }),

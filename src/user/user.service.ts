@@ -12,7 +12,6 @@ import { ChannelService } from 'src/channel/channel.service';
 import { Prisma, User } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AwsService } from 'src/aws/aws.service';
@@ -25,14 +24,14 @@ import { BroadcastSettingDto } from './dto/broadcast-setting.dto';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { ErrorMessages } from 'src/common/error-messages';
 import { CoinBalanceService } from 'src/coin-balance/coin-balance.service';
+import { NcpChannelLifecycleService } from 'src/ncp-live-station/services/ncp-channel-lifecycle.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly channelService: ChannelService,
-    @Inject(forwardRef(() => IvsService))
-    private readonly ivsService: IvsService,
+    private readonly ncpLifecycle: NcpChannelLifecycleService,
     private readonly prisma: PrismaService,
     private readonly fanLevelService: FanLevelService,
     private readonly broadcastSettingService: BroadcastSettingService,
@@ -263,8 +262,8 @@ export class UserService {
           createdUser.user_id,
           tx,
         );
-        //AWS IVS 채널 생성
-        await this.ivsService.createIvs(createdUser.user_id, tx);
+        //AWS IVS 채널 생성 (NCP 마이그레이션: 방송 진입 시 lazy 생성으로 대체 — 주석 처리)
+        // await this.ivsService.createIvs(createdUser.user_id, tx);
         //팬레벨 생성
         await this.fanLevelService.createInitFanLevel(createdUser.idx, tx);
         //쪽지 설정 생성
@@ -394,18 +393,19 @@ export class UserService {
   async getBroadcastSetting(user_idx: number) {
     // MemberGuard에서 이미 유저 존재 여부를 검증했으므로 바로 조회
     const user = await this.userRepository.getUserWithRelations(user_idx, {
-      ivs_channel: true,
       broadcast_setting: true,
     });
+    // NCP 채널이 살아있음을 보장하고 송출 자격증명 확보 (없거나 30일 회수면 재생성)
+    const creds = await this.ncpLifecycle.ensureChannel(user_idx);
     const sanitizedUser = {
       idx: user.idx,
       user_id: user.user_id,
       profile_img: user.profile_img,
       nickname: user.nickname,
-      ivs: {
-        stream_key: user.ivs.stream_key,
-        ingest_endpoint: user.ivs.ingest_endpoint,
-        playback_url: user.ivs.playback_url,
+      ncp: {
+        stream_key: creds.streamKey,
+        ingest_endpoint: creds.publishUrl,
+        playback_url: creds.playbackUrl,
       },
       broadcastSetting: user.broadcastSetting,
     };

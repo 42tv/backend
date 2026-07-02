@@ -2,7 +2,6 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { IvsModule } from './ivs/ivs.module';
 import { GraylogProviderModule } from './graylog-provider/graylog-provider.module';
 import { UserModule } from './user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -41,11 +40,11 @@ import { IdentityVerificationModule } from './identity-verification/identity-ver
 import { OverlayModule } from './overlay/overlay.module';
 import { WidgetModule } from './widget/widget.module';
 import { SettlementAccountModule } from './settlement-account/settlement-account.module';
+import { NcpLiveStationModule } from './ncp-live-station/ncp-live-station.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    IvsModule,
     GraylogProviderModule,
     UserModule,
     PrismaModule,
@@ -83,6 +82,7 @@ import { SettlementAccountModule } from './settlement-account/settlement-account
     OverlayModule,
     WidgetModule,
     SettlementAccountModule,
+    NcpLiveStationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
