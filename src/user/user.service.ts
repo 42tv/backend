@@ -12,7 +12,6 @@ import { ChannelService } from 'src/channel/channel.service';
 import { Prisma, User } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { IvsService } from 'src/ivs/ivs.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AwsService } from 'src/aws/aws.service';
@@ -32,8 +31,6 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly channelService: ChannelService,
-    @Inject(forwardRef(() => IvsService))
-    private readonly ivsService: IvsService,
     private readonly ncpLifecycle: NcpChannelLifecycleService,
     private readonly prisma: PrismaService,
     private readonly fanLevelService: FanLevelService,

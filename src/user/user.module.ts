@@ -6,7 +6,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { LogModule } from 'src/log/log.module';
 import { ChannelModule } from 'src/channel/channel.module';
 import { UserRepository } from './user.repository';
-import { IvsModule } from 'src/ivs/ivs.module';
 import { FanLevelModule } from 'src/fan-level/fan-level.module';
 import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.module';
 import { AwsModule } from 'src/aws/aws.module';
@@ -29,7 +28,6 @@ import { NcpLiveStationModule } from 'src/ncp-live-station/ncp-live-station.modu
     CoinBalanceModule,
     NcpLiveStationModule,
     forwardRef(() => RealtimeRedisModule),
-    forwardRef(() => IvsModule),
   ],
   controllers: [UserController],
   providers: [UserService, UserRepository, AccountDeletionService],

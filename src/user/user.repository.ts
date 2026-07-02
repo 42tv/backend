@@ -221,7 +221,6 @@ export class UserRepository {
         ...(includeOptions.user_detail && { user_detail: true }),
         ...(includeOptions.channel && { channel: true }),
         ...(includeOptions.broadcast_setting && { broadcastSetting: true }),
-        ...(includeOptions.ivs_channel && { ivs: true }),
         ...(includeOptions.ncp_channel && { ncpChannel: true }),
         ...(includeOptions.fan_level && {
           fanLevel: {
@@ -255,7 +254,6 @@ export class UserRepository {
         ...(includeOptions.user_detail && { user_detail: true }),
         ...(includeOptions.channel && { channel: true }),
         ...(includeOptions.broadcast_setting && { broadcastSetting: true }),
-        ...(includeOptions.ivs_channel && { ivs: true }),
         ...(includeOptions.ncp_channel && { ncpChannel: true }),
         ...(includeOptions.fan_level && {
           fanLevel: {

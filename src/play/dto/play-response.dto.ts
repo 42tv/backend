@@ -40,8 +40,8 @@ export class StreamInfoDto {
   title: string;
 
   @ApiProperty({
-    description: '재생 URL',
-    example: 'https://ivs-playback-url',
+    description: '재생 URL (NCP LL-HLS)',
+    example: 'https://cdn-domain/ls-xxx/playlist.m3u8',
   })
   playback_url: string;
 

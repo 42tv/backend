@@ -36,7 +36,6 @@ export type UserIncludeOptions = {
   user_detail?: boolean;
   channel?: boolean;
   broadcast_setting?: boolean;
-  ivs_channel?: boolean;
   ncp_channel?: boolean;
   fan_level?: boolean;
 };

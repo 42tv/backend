@@ -8,7 +8,6 @@ import * as bcrypt from 'bcrypt';
 import { Prisma, User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserRepository } from 'src/user/user.repository';
-import { IvsService } from 'src/ivs/ivs.service';
 import { NcpChannelService } from 'src/ncp-live-station/services/ncp-channel.service';
 import { AwsService } from 'src/aws/aws.service';
 import { RedisService } from 'src/redis/redis.service';
@@ -21,7 +20,6 @@ export class AccountDeletionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userRepository: UserRepository,
-    private readonly ivsService: IvsService,
     private readonly ncpChannelService: NcpChannelService,
     private readonly awsService: AwsService,
     private readonly redisService: RedisService,
@@ -38,7 +36,6 @@ export class AccountDeletionService {
    */
   async deleteAccount(user_idx: number, dto: DeleteAccountDto): Promise<void> {
     const user = await this.userRepository.getUserWithRelations(user_idx, {
-      ivs_channel: true,
       ncp_channel: true,
     });
     if (!user) {
@@ -48,7 +45,6 @@ export class AccountDeletionService {
     await this.verifyIdentity(user, dto);
 
     // 외부 자원 정리용 정보는 User 삭제 전에 확보
-    const ivsArn = user.ivs?.arn;
     const ncpChannelId = user.ncpChannel?.channel_id;
     const profileImg = user.profile_img;
 
@@ -63,7 +59,7 @@ export class AccountDeletionService {
       `회원 탈퇴 완료: user_idx=${user_idx}, user_id=${user.user_id}`,
     );
 
-    await this.cleanupExternal(user.user_id, ivsArn, ncpChannelId, profileImg);
+    await this.cleanupExternal(user.user_id, ncpChannelId, profileImg);
   }
 
   /**
@@ -144,22 +140,13 @@ export class AccountDeletionService {
 
   /**
    * 외부 자원 정리 (best-effort) — 실패해도 탈퇴는 이미 완료된 상태이므로 로그만 남긴다.
-   * IVS 삭제 실패분은 syncAndDeleteOrphanedChannels가 회수한다.
    * NCP 채널 삭제 실패분은 NCP의 30일 미사용 자동 회수로 정리된다.
    */
   private async cleanupExternal(
     user_id: string,
-    ivsArn?: string,
     ncpChannelId?: string,
     profileImg?: string,
   ) {
-    if (ivsArn) {
-      await this.ivsService
-        .deleteChannel(ivsArn)
-        .catch((e) =>
-          this.logger.error(`IVS 채널 삭제 실패 (arn=${ivsArn}): ${e}`),
-        );
-    }
     if (ncpChannelId) {
       await this.ncpChannelService
         .deleteChannel(ncpChannelId)
