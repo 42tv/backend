@@ -104,6 +104,49 @@ export class StreamRepository {
   }
 
   /**
+   * 관리자용 라이브 리스트 — 비공개(비밀번호/팬전용) 포함 전체,
+   * 미리보기용 playback_url과 방송 설정 전체를 함께 반환
+   */
+  async getAdminLiveList() {
+    return await this.prisma.stream.findMany({
+      select: {
+        idx: true,
+        stream_id: true,
+        thumbnail: true,
+        start_time: true,
+        play_cnt: true,
+        recommend_cnt: true,
+        broadcaster_idx: true,
+        broadcaster: {
+          select: {
+            idx: true,
+            user_id: true,
+            nickname: true,
+            profile_img: true,
+            broadcastSetting: {
+              select: {
+                is_adult: true,
+                is_fan: true,
+                is_pw: true,
+                title: true,
+                fan_level: true,
+                category: true,
+              },
+            },
+            ncpChannel: {
+              select: {
+                channel_id: true,
+                playback_url: true,
+                channel_status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * 방송자의 추천 수를 1 증가시킴
    * @param broadcaster_idx 방송자의 user_idx
    * @returns 업데이트된 Stream 객체

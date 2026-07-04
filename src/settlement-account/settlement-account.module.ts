@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { SettlementAccountController } from './settlement-account.controller';
+import { AdminSettlementAccountController } from './admin-settlement-account.controller';
+import { AdminAuditLogModule } from '../admin-audit-log/admin-audit-log.module';
 import { SettlementAccountService } from './settlement-account.service';
 import { SettlementAccountRepository } from './settlement-account.repository';
 import { SettlementAccountVerificationProvider } from './providers/account-verification-provider.interface';
@@ -16,8 +18,8 @@ const verificationProvider = {
 };
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [SettlementAccountController],
+  imports: [PrismaModule, AdminAuditLogModule],
+  controllers: [SettlementAccountController, AdminSettlementAccountController],
   providers: [
     SettlementAccountService,
     SettlementAccountRepository,

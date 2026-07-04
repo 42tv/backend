@@ -4,6 +4,7 @@ import { UserService } from 'src/user/user.service';
 import { RedisService } from 'src/redis/redis.service';
 import { FanService } from 'src/fan/fan.service';
 import { ManagerService } from 'src/manager/manager.service';
+import { BannedWordService } from 'src/banned-word/banned-word.service';
 import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { ViewerInfo } from 'src/redis/interfaces/room.message';
 import { ErrorMessages } from 'src/common/error-messages';
@@ -16,6 +17,7 @@ export class ChatService {
     private readonly redisService: RedisService,
     private readonly fanService: FanService,
     private readonly managerService: ManagerService,
+    private readonly bannedWordService: BannedWordService,
   ) {}
 
   async sendChattingMessage(
@@ -23,6 +25,18 @@ export class ChatService {
     broadcasterId: string,
     message: string,
   ) {
+    // 0. 채팅 금지(CHAT_BAN) 제재 확인 — Redis 키 검사 (DB 조회 없음, 멀티 서버 공유)
+    const isChatBanned = await this.redisService.hasSanctionKey(
+      'chat_ban',
+      userIdx,
+    );
+    if (isChatBanned) {
+      throw new BadRequestException('채팅이 금지된 사용자입니다.');
+    }
+
+    // 0-1. 금칙어 필터 적용 (BLOCK: 전송 거부, MASK: 치환)
+    const filteredMessage = await this.bannedWordService.applyFilter(message);
+
     // 1. 해당 사용자 정보 조회
     const user = await this.userService.findByUserIdx(userIdx);
     if (!user) {
@@ -55,7 +69,7 @@ export class ChatService {
         user.idx,
         user.user_id,
         user.nickname,
-        message,
+        filteredMessage,
         user.profile_img,
         parsedViewerInfo.role,
         parsedViewerInfo.grade,

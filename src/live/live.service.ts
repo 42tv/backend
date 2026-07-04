@@ -96,12 +96,12 @@ export class LiveService {
     if (!broadcaster) {
       throw new BadRequestException(ErrorMessages.BROADCASTER.NOT_FOUND);
     }
-    // 사용자가 방송자의 매니저인지 확인
+    // 사용자가 방송자의 매니저인지 확인 (관리자는 항상 허용)
     const isManager = await this.managerService.isManager(
       broadcaster.idx,
       userIdx,
     );
-    if (!isManager && user.idx !== broadcaster.idx) {
+    if (!isManager && user.idx !== broadcaster.idx && !user.is_admin) {
       throw new BadRequestException(
         ErrorMessages.BROADCASTER.VIEWER_LIST_NO_PERMISSION,
       );
@@ -130,13 +130,13 @@ export class LiveService {
       throw new BadRequestException(ErrorMessages.BROADCASTER.NOT_FOUND);
     }
 
-    // 권한 검증: 방송자 본인이거나 매니저여야 함
+    // 권한 검증: 방송자 본인이거나 매니저여야 함 (관리자는 항상 허용)
     const isManager = await this.managerService.isManager(
       broadcaster.idx,
       kickerIdx,
     );
 
-    if (!isManager && kicker.idx !== broadcaster.idx) {
+    if (!isManager && kicker.idx !== broadcaster.idx && !kicker.is_admin) {
       return '시청자를 kick할 권한이 없습니다.';
     }
 

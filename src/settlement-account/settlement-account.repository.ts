@@ -88,4 +88,41 @@ export class SettlementAccountRepository {
       },
     });
   }
+
+  findById(accountId: string) {
+    return this.prisma.settlementAccount.findUnique({
+      where: { id: accountId },
+      include: {
+        user: { select: { idx: true, user_id: true, nickname: true } },
+      },
+    });
+  }
+
+  /**
+   * 관리자용 계좌 목록 (검증 상태 필터 + 페이징, 삭제 계좌 제외)
+   */
+  async findAllAdmin(options: {
+    status?: SettlementAccountVerificationStatus;
+    limit: number;
+    offset: number;
+  }) {
+    const where = {
+      deleted_at: null,
+      ...(options.status && { verification_status: options.status }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.settlementAccount.findMany({
+        where,
+        include: {
+          user: { select: { idx: true, user_id: true, nickname: true } },
+        },
+        orderBy: { updated_at: 'desc' },
+        take: options.limit,
+        skip: options.offset,
+      }),
+      this.prisma.settlementAccount.count({ where }),
+    ]);
+    return { items, total };
+  }
 }

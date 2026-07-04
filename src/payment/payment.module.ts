@@ -4,6 +4,7 @@ import { PaymentTransactionRepository } from './payment-transaction.repository';
 import { BootpayTransactionRepository } from './bootpay-transaction.repository';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { PaymentTransactionController } from './payment-transaction.controller';
+import { AdminPaymentController } from './admin-payment.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CoinTopupModule } from '../coin-topup/coin-topup.module';
 import { ProductModule } from '../product/product.module';
@@ -25,7 +26,7 @@ import { IdentityVerifiedMemberGuard } from './guards/identity-verified-member.g
     UserModule,
     RealtimeRedisModule,
   ],
-  controllers: [PaymentTransactionController],
+  controllers: [PaymentTransactionController, AdminPaymentController],
   providers: [
     PaymentTransactionRepository,
     BootpayTransactionRepository,

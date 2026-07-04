@@ -58,6 +58,9 @@ model User {
   userDetail           UserDetail?
   UserTerms            UserTerms[]
   widgetTokens         WidgetToken[]
+  sanctions            Sanction[]           @relation("UserSanctions")
+  reportsMade          Report[]             @relation("ReportsMade")
+  reportsReceived      Report[]             @relation("ReportsReceived")
 
   @@map("users")
 }
@@ -789,4 +792,113 @@ enum BroadcastCategory {
   TALK_DAILY
   ADULT
   MUSIC
+}
+
+model Sanction {
+  id             Int            @id @default(autoincrement())
+  user_idx       Int
+  type           SanctionType
+  status         SanctionStatus @default(ACTIVE)
+  reason         String
+  expires_at     DateTime?
+  admin_idx      Int
+  released_at    DateTime?
+  released_by    Int?
+  release_reason String?
+  created_at     DateTime       @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at     DateTime       @updatedAt
+  user           User           @relation("UserSanctions", fields: [user_idx], references: [idx], onDelete: Cascade)
+
+  @@index([user_idx, type, status])
+  @@index([status, created_at])
+  @@map("sanctions")
+}
+
+enum SanctionType {
+  ACCOUNT_SUSPEND
+  CHAT_BAN
+  BROADCAST_BAN
+  WARNING
+}
+
+enum SanctionStatus {
+  ACTIVE
+  RELEASED
+}
+
+model Report {
+  id             Int                  @id @default(autoincrement())
+  reporter_idx   Int?
+  reported_idx   Int?
+  target_type    ReportTargetType
+  target_ref     String?
+  reason         String
+  evidence       Json?
+  status         ReportStatus         @default(PENDING)
+  resolve_action ReportResolveAction?
+  resolve_reason String?
+  resolved_by    Int?
+  resolved_at    DateTime?
+  created_at     DateTime             @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at     DateTime             @updatedAt
+  reporter       User?                @relation("ReportsMade", fields: [reporter_idx], references: [idx])
+  reported       User?                @relation("ReportsReceived", fields: [reported_idx], references: [idx])
+
+  @@index([status, created_at])
+  @@index([reported_idx, status])
+  @@map("reports")
+}
+
+enum ReportTargetType {
+  BROADCAST
+  CHAT
+  PROFILE
+  POST
+  ARTICLE
+}
+
+enum ReportStatus {
+  PENDING
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportResolveAction {
+  DISMISS
+  WARN
+  CHAT_BAN
+  END_BROADCAST
+  SUSPEND
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  admin_idx   Int
+  action      String
+  target_type String
+  target_id   String
+  reason      String?
+  detail      Json?
+  created_at  DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+
+  @@index([admin_idx, created_at])
+  @@index([target_type, target_id])
+  @@index([action, created_at])
+  @@map("admin_audit_logs")
+}
+
+model BannedWord {
+  id         Int              @id @default(autoincrement())
+  word       String           @unique
+  action     BannedWordAction @default(MASK)
+  created_by Int?
+  created_at DateTime         @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+
+  @@map("banned_words")
+}
+
+enum BannedWordAction {
+  MASK
+  BLOCK
 }

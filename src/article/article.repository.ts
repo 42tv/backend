@@ -192,6 +192,49 @@ export class ArticleRepository {
     });
   }
 
+  /**
+   * 관리자용 전체 게시글 조회 — 작성자 무관, is_active 여부 무관
+   */
+  async findAllAdmin(options: {
+    isActive?: boolean;
+    limit: number;
+    offset: number;
+  }) {
+    const where: Prisma.ArticleWhereInput = {
+      ...(options.isActive !== undefined && { is_active: options.isActive }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.article.findMany({
+        where,
+        include: {
+          author: {
+            select: { idx: true, user_id: true, nickname: true },
+          },
+          images: { orderBy: { image_order: 'asc' } },
+        },
+        orderBy: [{ is_pinned: 'desc' }, { created_at: 'desc' }],
+        take: options.limit,
+        skip: options.offset,
+      }),
+      this.prisma.article.count({ where }),
+    ]);
+    return { items, total };
+  }
+
+  /**
+   * 게시글 플래그 토글 (관리자 — 작성자 무관)
+   */
+  async updateFlags(
+    id: number,
+    data: { is_pinned?: boolean; is_active?: boolean },
+  ) {
+    return await this.prisma.article.update({
+      where: { id },
+      data,
+    });
+  }
+
   async getArticlesCount(
     userIdx: number,
     tx?: Prisma.TransactionClient,

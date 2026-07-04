@@ -15,6 +15,7 @@ export enum OpCode {
   DONATION = 'donation',
   FAN_LEVEL_UP = 'fan_level_up',
   STREAM_END = 'stream_end',
+  NOTICE = 'notice',
 }
 
 export enum RoleChangeType {
@@ -53,7 +54,14 @@ export interface ChatRoomMessage {
     | ViewerListPayload
     | DonationPayload
     | FanLevelUpPayload
-    | StreamEndPayload;
+    | StreamEndPayload
+    | NoticePayload;
+}
+
+// 관리자 전체 공지 타입
+export interface NoticePayload {
+  message: string;
+  sent_at: string;
 }
 
 export interface StreamEndPayload {

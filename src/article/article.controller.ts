@@ -16,7 +16,7 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
 import { ArticleService } from './article.service';
-import { MemberGuard } from 'src/auth/guard/jwt.member.guard';
+import { AdminGuard } from 'src/auth/guard/admin.guard';
 import { GetArticlesQueryDto } from './dto/get-articles-query.dto';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
@@ -26,7 +26,7 @@ export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
 
   @Post()
-  @UseGuards(MemberGuard)
+  @UseGuards(AdminGuard)
   @UseInterceptors(
     FilesInterceptor('images', 5, {
       storage: multer.memoryStorage(),
@@ -84,7 +84,7 @@ export class ArticleController {
   }
 
   @Put(':id')
-  @UseGuards(MemberGuard)
+  @UseGuards(AdminGuard)
   @UseInterceptors(
     FilesInterceptor('images', 5, {
       storage: multer.memoryStorage(),
@@ -130,7 +130,7 @@ export class ArticleController {
   }
 
   @Delete(':id')
-  @UseGuards(MemberGuard)
+  @UseGuards(AdminGuard)
   async deleteArticle(
     @Param('id') id: string,
     @Req() req: any,

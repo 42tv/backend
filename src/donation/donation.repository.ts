@@ -76,6 +76,50 @@ export class DonationRepository {
   }
 
   /**
+   * 관리자용 후원 내역 조회 (기간/후원자/수신 스트리머/금액 필터 + 페이징)
+   */
+  async findAllAdmin(options: {
+    donorIdx?: number;
+    streamerIdx?: number;
+    minAmount?: number;
+    startDate?: Date;
+    endDate?: Date;
+    limit: number;
+    offset: number;
+  }) {
+    const where: Prisma.DonationWhereInput = {
+      ...(options.donorIdx && { donor_idx: options.donorIdx }),
+      ...(options.streamerIdx && { streamer_idx: options.streamerIdx }),
+      ...(options.minAmount && { coin_amount: { gte: options.minAmount } }),
+      ...((options.startDate || options.endDate) && {
+        donated_at: {
+          ...(options.startDate && { gte: options.startDate }),
+          ...(options.endDate && { lte: options.endDate }),
+        },
+      }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.donation.findMany({
+        where,
+        include: {
+          donor: {
+            select: { idx: true, nickname: true, user_id: true },
+          },
+          streamer: {
+            select: { idx: true, nickname: true, user_id: true },
+          },
+        },
+        orderBy: { donated_at: 'desc' },
+        take: options.limit,
+        skip: options.offset,
+      }),
+      this.prisma.donation.count({ where }),
+    ]);
+    return { items, total };
+  }
+
+  /**
    * 스트리머가 받은 후원 목록 조회
    * @param streamerIdx 스트리머 인덱스
    * @param options 필터 옵션

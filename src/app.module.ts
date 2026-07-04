@@ -41,6 +41,13 @@ import { OverlayModule } from './overlay/overlay.module';
 import { WidgetModule } from './widget/widget.module';
 import { SettlementAccountModule } from './settlement-account/settlement-account.module';
 import { NcpLiveStationModule } from './ncp-live-station/ncp-live-station.module';
+import { AdminAuditLogModule } from './admin-audit-log/admin-audit-log.module';
+import { SanctionModule } from './sanction/sanction.module';
+import { ReportModule } from './report/report.module';
+import { BannedWordModule } from './banned-word/banned-word.module';
+import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
+import { AdminCoinModule } from './admin-coin/admin-coin.module';
+import { TermsModule } from './terms/terms.module';
 
 @Module({
   imports: [
@@ -83,6 +90,13 @@ import { NcpLiveStationModule } from './ncp-live-station/ncp-live-station.module
     WidgetModule,
     SettlementAccountModule,
     NcpLiveStationModule,
+    AdminAuditLogModule,
+    SanctionModule,
+    ReportModule,
+    BannedWordModule,
+    AdminDashboardModule,
+    AdminCoinModule,
+    TermsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

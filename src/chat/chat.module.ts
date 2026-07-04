@@ -8,6 +8,9 @@ import { RealtimeRedisModule } from 'src/redis/redis.module';
 import { StreamModule } from 'src/stream/stream.module';
 import { FanModule } from 'src/fan/fan.module';
 import { ManagerModule } from 'src/manager/manager.module';
+import { BannedWordModule } from 'src/banned-word/banned-word.module';
+import { AdminAuditLogModule } from 'src/admin-audit-log/admin-audit-log.module';
+import { AdminChatController } from './admin-chat.controller';
 
 @Module({
   imports: [
@@ -17,8 +20,10 @@ import { ManagerModule } from 'src/manager/manager.module';
     forwardRef(() => RealtimeRedisModule),
     FanModule,
     ManagerModule,
+    forwardRef(() => BannedWordModule),
+    AdminAuditLogModule,
   ],
-  controllers: [ChatController],
+  controllers: [ChatController, AdminChatController],
   providers: [ChatService, EventsGateway],
   exports: [EventsGateway],
 })

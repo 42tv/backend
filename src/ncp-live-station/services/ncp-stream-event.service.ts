@@ -93,6 +93,18 @@ export class NcpStreamEventService {
     ncp: NcpChannel,
     dto: NcpCallbackDto,
   ): Promise<void> {
+    // 방송 정지(BROADCAST_BAN) 제재 중이면 Stream을 생성하지 않는다 (라이브 목록 노출 차단)
+    const isBroadcastBanned = await this.redisService.hasSanctionKey(
+      'broadcast_ban',
+      ncp.user_idx,
+    );
+    if (isBroadcastBanned) {
+      this.logger.warn(
+        `방송 정지 제재 중인 유저의 송출 시도 차단: user_idx=${ncp.user_idx}`,
+      );
+      return;
+    }
+
     // 멱등: 콜백 중복 수신 대비, 이미 방송중이면 재생성하지 않는다
     const existing = await this.streamService.getStreamByUserIdx(ncp.user_idx);
     if (existing) return;

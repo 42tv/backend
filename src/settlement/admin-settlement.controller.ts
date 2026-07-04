@@ -167,6 +167,18 @@ export class AdminSettlementController {
     return ResponseWrapper.success(settlement, '정산을 승인했습니다.');
   }
 
+  @Post(':id/pay')
+  async paySettlement(
+    @Param('id') id: string,
+    @Req() req,
+  ): Promise<SuccessResponseDto<any>> {
+    const settlement = await this.settlementService.paySettlement(
+      id,
+      req.user.idx,
+    );
+    return ResponseWrapper.success(settlement, '정산을 지급 처리했습니다.');
+  }
+
   @Post(':id/reject')
   async rejectSettlement(
     @Param('id') id: string,

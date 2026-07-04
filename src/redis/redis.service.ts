@@ -17,6 +17,10 @@ import {
   ServerMessage,
   ServerOpCode,
   DuplicateConnectPayload,
+  AdminCommandMessage,
+  AdminOpCode,
+  ForceLogoutPayload,
+  GlobalNoticePayload,
 } from './interfaces/server.message';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { getUserRoleColor } from 'src/constants/chat-colors';
@@ -51,6 +55,9 @@ export class RedisService {
     // 서버 커맨드 채널 구독
     await this.subscribe(`server_command:${this.serverId}`);
 
+    // 전 서버 공통 관리자 커맨드 채널 구독 (세션 강제 종료, 전체 공지 등)
+    await this.subscribe('admin_command');
+
     // 메시지 핸들러 등록
     this.subscriber.on('message', this.handleMessage.bind(this));
   }
@@ -65,6 +72,8 @@ export class RedisService {
       const parsedMessage = JSON.parse(message);
       if (channel === `server_command:${this.serverId}`) {
         await this.handleServerMessage(parsedMessage);
+      } else if (channel === 'admin_command') {
+        await this.handleAdminCommand(parsedMessage);
       } else if (channel.startsWith('room:')) {
         await this.handleRoomMessage(parsedMessage);
       }
@@ -102,6 +111,102 @@ export class RedisService {
       payload.roomId,
       payload.disconnectId,
     );
+  }
+
+  /**
+   * 관리자 커맨드 처리 (전 서버 공통 admin_command 채널)
+   * @param message 관리자 커맨드 메시지
+   */
+  private async handleAdminCommand(message: AdminCommandMessage) {
+    switch (message.op) {
+      case AdminOpCode.FORCE_LOGOUT: {
+        const payload = message.payload as ForceLogoutPayload;
+        console.log(`[Admin Command] force_logout:`, payload);
+        await this.eventsGateway.forceDisconnectUser(
+          payload.user_id,
+          payload.reason,
+        );
+        break;
+      }
+      case AdminOpCode.GLOBAL_NOTICE: {
+        const payload = message.payload as GlobalNoticePayload;
+        console.log(`[Admin Command] global_notice:`, payload);
+        await this.eventsGateway.broadcastGlobalNotice(payload);
+        break;
+      }
+      default:
+        console.warn(`[Redis] Unknown admin command op:`, message);
+    }
+  }
+
+  /**
+   * 관리자 커맨드 발행 (모든 서버가 수신)
+   * @param message 관리자 커맨드 메시지
+   */
+  async publishAdminCommand(message: AdminCommandMessage): Promise<void> {
+    try {
+      await this.redis.publish('admin_command', JSON.stringify(message));
+    } catch (error) {
+      console.error(`Failed to publish admin command:`, error);
+    }
+  }
+
+  /**
+   * 제재 키 등록 (멀티 서버 공유, 채팅 금지 등 핫패스 검사용)
+   * @param type 제재 유형 (chat_ban 등)
+   * @param userIdx 대상 유저 idx
+   * @param ttlSeconds 만료 시간(초). null이면 영구
+   */
+  async setSanctionKey(
+    type: string,
+    userIdx: number,
+    ttlSeconds: number | null,
+  ): Promise<void> {
+    const key = `sanction:${type}:${userIdx}`;
+    if (ttlSeconds && ttlSeconds > 0) {
+      await this.redis.set(key, '1', 'EX', ttlSeconds);
+    } else {
+      await this.redis.set(key, '1');
+    }
+  }
+
+  /**
+   * 제재 키 삭제 (제재 해제 시)
+   */
+  async deleteSanctionKey(type: string, userIdx: number): Promise<void> {
+    await this.redis.del(`sanction:${type}:${userIdx}`);
+  }
+
+  /**
+   * 제재 키 존재 여부 확인
+   */
+  async hasSanctionKey(type: string, userIdx: number): Promise<boolean> {
+    return (await this.redis.exists(`sanction:${type}:${userIdx}`)) === 1;
+  }
+
+  /**
+   * 범용 캐시 저장 (금칙어 목록 등)
+   */
+  async setCache(key: string, value: string, ttlSeconds?: number) {
+    if (ttlSeconds && ttlSeconds > 0) {
+      await this.redis.set(key, value, 'EX', ttlSeconds);
+    } else {
+      await this.redis.set(key, value);
+    }
+  }
+
+  /**
+   * 범용 캐시 조회
+   */
+  async getCache(key: string): Promise<string | null> {
+    return await this.redis.get(key);
+  }
+
+  /**
+   * 범용 캐시 삭제
+   */
+  async deleteCache(key: string): Promise<void> {
+    await this.redis.del(key);
   }
 
   /**

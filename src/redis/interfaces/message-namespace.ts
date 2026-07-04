@@ -17,7 +17,11 @@ import {
   StreamEndPayload,
 } from './room.message';
 import {
+  AdminCommandMessage,
+  AdminOpCode,
   DuplicateConnectPayload,
+  ForceLogoutPayload,
+  GlobalNoticePayload,
   ServerMessage,
   ServerOpCode,
 } from './server.message';
@@ -225,6 +229,31 @@ export const RedisMessages = {
       op: OpCode.STREAM_END,
       broadcaster_id: broadcasterId,
       payload: { broadcaster_id: broadcasterId } as StreamEndPayload,
+    };
+  },
+
+  forceLogout(
+    userId: string,
+    userIdx: number,
+    reason: string,
+  ): AdminCommandMessage {
+    return {
+      op: AdminOpCode.FORCE_LOGOUT,
+      payload: {
+        user_id: userId,
+        user_idx: userIdx,
+        reason,
+      } as ForceLogoutPayload,
+    };
+  },
+
+  globalNotice(message: string): AdminCommandMessage {
+    return {
+      op: AdminOpCode.GLOBAL_NOTICE,
+      payload: {
+        message,
+        sent_at: new Date().toISOString(),
+      } as GlobalNoticePayload,
     };
   },
 
