@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { SanctionStatus, SanctionType } from '@prisma/client';
@@ -10,11 +11,15 @@ import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { StreamService } from 'src/stream/stream.service';
 import { UserService } from 'src/user/user.service';
 import { AdminAuditLogService } from 'src/admin-audit-log/admin-audit-log.service';
+import { NcpChannelService } from 'src/ncp-live-station/services/ncp-channel.service';
+import { NcpChannelRepository } from 'src/ncp-live-station/ncp-channel.repository';
 import { SanctionRepository } from './sanction.repository';
 import { CreateSanctionDto } from './dto/create-sanction.dto';
 
 @Injectable()
 export class SanctionService {
+  private readonly logger = new Logger(SanctionService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly repository: SanctionRepository,
@@ -22,6 +27,8 @@ export class SanctionService {
     private readonly streamService: StreamService,
     private readonly userService: UserService,
     private readonly auditLogService: AdminAuditLogService,
+    private readonly ncpChannelService: NcpChannelService,
+    private readonly ncpChannelRepository: NcpChannelRepository,
   ) {}
 
   /**
@@ -122,6 +129,10 @@ export class SanctionService {
       return updated;
     });
 
+    if (sanction.type === SanctionType.BROADCAST_BAN) {
+      await this.enableNcpChannel(sanction.user_idx);
+    }
+
     return released;
   }
 
@@ -168,6 +179,9 @@ export class SanctionService {
     }
 
     if (type === SanctionType.BROADCAST_BAN) {
+      // NCP 채널 정지(BLOCK) — 기존 스트림키로의 송출을 NCP 단에서 차단
+      await this.disableNcpChannel(user.idx);
+
       // 방송 중이면 강제 종료
       const stream = await this.streamService.getStreamByUserIdx(user.idx);
       if (stream) {
@@ -178,6 +192,42 @@ export class SanctionService {
           RedisMessages.streamEnd(user.user_id),
         );
       }
+    }
+  }
+
+  /**
+   * NCP 채널 정지 (best-effort).
+   * 실패해도 제재 등록은 유지 — PUBLISH_START 콜백의 제재 검사가 최종 방어선.
+   */
+  private async disableNcpChannel(userIdx: number) {
+    const channel = await this.ncpChannelRepository.findByUserIdx(userIdx);
+    if (!channel) return;
+    try {
+      await this.ncpChannelService.disableChannel(channel.channel_id);
+    } catch (e) {
+      this.logger.warn(
+        `NCP 채널 정지 실패(콜백 방어선으로 커버) channelId=${channel.channel_id}: ${
+          e instanceof Error ? e.message : e
+        }`,
+      );
+    }
+  }
+
+  /**
+   * NCP 채널 정지 해제 (best-effort).
+   * 30일 미사용 회수로 채널이 없을 수 있음 — 그 경우 ensureChannel이 재생성한다.
+   */
+  private async enableNcpChannel(userIdx: number) {
+    const channel = await this.ncpChannelRepository.findByUserIdx(userIdx);
+    if (!channel) return;
+    try {
+      await this.ncpChannelService.enableChannel(channel.channel_id);
+    } catch (e) {
+      this.logger.warn(
+        `NCP 채널 정지 해제 실패(회수된 채널은 ensureChannel이 재생성) channelId=${channel.channel_id}: ${
+          e instanceof Error ? e.message : e
+        }`,
+      );
     }
   }
 }

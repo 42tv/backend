@@ -8,7 +8,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SanctionType } from '@prisma/client';
 import { RedisService } from 'src/redis/redis.service';
+import { SanctionRepository } from 'src/sanction/sanction.repository';
 import { NcpChannelService } from './ncp-channel.service';
 import { NcpChannelRepository } from '../ncp-channel.repository';
 import { ChannelInfo, ChannelStatus } from '../ncp-live-station.types';
@@ -59,6 +61,7 @@ export class NcpChannelLifecycleService {
     private readonly channel: NcpChannelService,
     private readonly repo: NcpChannelRepository,
     private readonly redis: RedisService,
+    private readonly sanctionRepository: SanctionRepository,
   ) {
     this.cdn = {
       cdnType: this.config.get<string>('NCP_CDN_TYPE'),
@@ -76,6 +79,8 @@ export class NcpChannelLifecycleService {
    * 방송 준비/방송설정 조회 등 방송자 진입점에서만 호출한다(시청 경로 호출 금지).
    */
   async ensureChannel(userIdx: number): Promise<NcpBroadcastCredentials> {
+    await this.assertNotBroadcastBanned(userIdx);
+
     const lockKey = `ncp:ensure:${userIdx}`;
     const locked = await this.redis.acquireLock(lockKey, 30);
     if (!locked) {
@@ -132,6 +137,8 @@ export class NcpChannelLifecycleService {
    * 방송 중(PUBLISHING)에는 거부한다(송출 끊김 방지).
    */
   async reissueChannel(userIdx: number): Promise<NcpBroadcastCredentials> {
+    await this.assertNotBroadcastBanned(userIdx);
+
     const lockKey = `ncp:ensure:${userIdx}`;
     const locked = await this.redis.acquireLock(lockKey, 30);
     if (!locked) {
@@ -158,6 +165,23 @@ export class NcpChannelLifecycleService {
       return this.toCredentials(created);
     } finally {
       await this.redis.releaseLock(lockKey);
+    }
+  }
+
+  /**
+   * 방송 정지(BROADCAST_BAN) 제재 중이면 채널 접근 차단.
+   * 제재로 BLOCK 처리된 채널의 자동 해제, 회수된 채널의 재생성,
+   * 스트림키 재발급(새 키 발급 우회)을 모두 진입점에서 막는다.
+   */
+  private async assertNotBroadcastBanned(userIdx: number) {
+    const activeBans = await this.sanctionRepository.findActiveByUser(
+      userIdx,
+      SanctionType.BROADCAST_BAN,
+    );
+    if (activeBans.length > 0) {
+      throw new ForbiddenException(
+        '방송 정지 제재 중입니다. 관리자에게 문의해주세요.',
+      );
     }
   }
 

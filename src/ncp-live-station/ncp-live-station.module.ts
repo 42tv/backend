@@ -51,6 +51,7 @@ import { NcpStreamEventService } from './services/ncp-stream-event.service';
   ],
   exports: [
     NcpChannelService,
+    NcpChannelRepository,
     NcpChannelLifecycleService,
     NcpRecordingService,
     NcpShortClipService,

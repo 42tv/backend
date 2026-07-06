@@ -4,6 +4,7 @@ import { RealtimeRedisModule } from 'src/redis/redis.module';
 import { StreamModule } from 'src/stream/stream.module';
 import { UserModule } from 'src/user/user.module';
 import { AdminAuditLogModule } from 'src/admin-audit-log/admin-audit-log.module';
+import { NcpLiveStationModule } from 'src/ncp-live-station/ncp-live-station.module';
 import { SanctionRepository } from './sanction.repository';
 import { SanctionService } from './sanction.service';
 import { AdminSanctionController } from './admin-sanction.controller';
@@ -15,6 +16,7 @@ import { AdminSanctionController } from './admin-sanction.controller';
     StreamModule,
     UserModule,
     AdminAuditLogModule,
+    NcpLiveStationModule,
   ],
   controllers: [AdminSanctionController],
   providers: [SanctionService, SanctionRepository],
