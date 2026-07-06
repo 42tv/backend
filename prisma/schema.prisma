@@ -800,7 +800,6 @@ model Sanction {
   type           SanctionType
   status         SanctionStatus @default(ACTIVE)
   reason         String
-  expires_at     DateTime?
   admin_idx      Int
   released_at    DateTime?
   released_by    Int?
@@ -816,7 +815,6 @@ model Sanction {
 
 enum SanctionType {
   ACCOUNT_SUSPEND
-  CHAT_BAN
   BROADCAST_BAN
   WARNING
 }
@@ -867,7 +865,6 @@ enum ReportStatus {
 enum ReportResolveAction {
   DISMISS
   WARN
-  CHAT_BAN
   END_BROADCAST
   SUSPEND
 }

@@ -24,7 +24,6 @@ const ESCALATION_THRESHOLD = 10;
 const ACTION_SANCTION_TYPE: Partial<Record<ReportResolveAction, SanctionType>> =
   {
     [ReportResolveAction.WARN]: SanctionType.WARNING,
-    [ReportResolveAction.CHAT_BAN]: SanctionType.CHAT_BAN,
     [ReportResolveAction.SUSPEND]: SanctionType.ACCOUNT_SUSPEND,
   };
 
@@ -150,7 +149,6 @@ export class ReportService {
       await this.sanctionService.createSanction(adminIdx, {
         userIdx: report.reported_idx,
         type: sanctionType,
-        days: dto.days,
         reason: `[신고 #${reportId} 처리] ${dto.reason}`,
       });
     }
@@ -182,7 +180,6 @@ export class ReportService {
       detail: {
         resolve_action: dto.action,
         reported_idx: report.reported_idx,
-        ...(dto.days && { days: dto.days }),
       },
     });
 

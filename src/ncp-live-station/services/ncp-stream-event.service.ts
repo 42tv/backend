@@ -10,7 +10,8 @@ import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { StreamService } from 'src/stream/stream.service';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { timeFormatter } from 'src/utils/utils';
-import { NcpChannel } from '@prisma/client';
+import { NcpChannel, SanctionType } from '@prisma/client';
+import { SanctionRepository } from 'src/sanction/sanction.repository';
 import { NcpChannelRepository } from '../ncp-channel.repository';
 import { NcpEventService } from './ncp-event.service';
 import { NcpCallbackDto } from '../dto/ncp-callback.dto';
@@ -31,6 +32,7 @@ export class NcpStreamEventService {
     private readonly streamService: StreamService,
     private readonly broadcastSettingService: BroadcastSettingService,
     private readonly redisService: RedisService,
+    private readonly sanctionRepository: SanctionRepository,
   ) {}
 
   /**
@@ -94,11 +96,11 @@ export class NcpStreamEventService {
     dto: NcpCallbackDto,
   ): Promise<void> {
     // 방송 정지(BROADCAST_BAN) 제재 중이면 Stream을 생성하지 않는다 (라이브 목록 노출 차단)
-    const isBroadcastBanned = await this.redisService.hasSanctionKey(
-      'broadcast_ban',
+    const activeBans = await this.sanctionRepository.findActiveByUser(
       ncp.user_idx,
+      SanctionType.BROADCAST_BAN,
     );
-    if (isBroadcastBanned) {
+    if (activeBans.length > 0) {
       this.logger.warn(
         `방송 정지 제재 중인 유저의 송출 시도 차단: user_idx=${ncp.user_idx}`,
       );

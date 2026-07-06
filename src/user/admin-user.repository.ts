@@ -2,18 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, SanctionStatus, SanctionType } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-export type AdminUserStatusFilter =
-  | 'ACTIVE'
-  | 'SUSPENDED'
-  | 'CHAT_BANNED'
-  | 'BROADCAST_BANNED';
+export type AdminUserStatusFilter = 'ACTIVE' | 'SUSPENDED' | 'BROADCAST_BANNED';
 
 const STATUS_SANCTION_TYPE: Record<
   Exclude<AdminUserStatusFilter, 'ACTIVE'>,
   SanctionType
 > = {
   SUSPENDED: SanctionType.ACCOUNT_SUSPEND,
-  CHAT_BANNED: SanctionType.CHAT_BAN,
   BROADCAST_BANNED: SanctionType.BROADCAST_BAN,
 };
 
@@ -21,7 +16,6 @@ function activeSanctionWhere(type?: SanctionType): Prisma.SanctionWhereInput {
   return {
     ...(type && { type }),
     status: SanctionStatus.ACTIVE,
-    OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
   };
 }
 
@@ -94,7 +88,7 @@ export class AdminUserRepository {
           coinBalance: { select: { coin_balance: true } },
           sanctions: {
             where: activeSanctionWhere(),
-            select: { id: true, type: true, expires_at: true },
+            select: { id: true, type: true },
           },
         },
         orderBy: { created_at: 'desc' },

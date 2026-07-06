@@ -76,7 +76,6 @@ export class AdminUserService {
     const { user, fanCount, followingCount, bookmarkedByCount } = detail;
     const { password, userDetail, ...rest } = user as any; // eslint-disable-line @typescript-eslint/no-unused-vars
 
-    const now = new Date();
     return {
       ...rest,
       userDetail: userDetail
@@ -97,9 +96,7 @@ export class AdminUserService {
       },
       sanctions: user.sanctions.map((sanction) => ({
         ...sanction,
-        is_active:
-          sanction.status === SanctionStatus.ACTIVE &&
-          (!sanction.expires_at || sanction.expires_at > now),
+        is_active: sanction.status === SanctionStatus.ACTIVE,
       })),
     };
   }

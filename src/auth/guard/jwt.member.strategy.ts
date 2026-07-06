@@ -41,7 +41,6 @@ export class MemberStrategy extends PassportStrategy(Strategy, 'jwt') {
         user_idx: user.idx,
         type: SanctionType.ACCOUNT_SUSPEND,
         status: SanctionStatus.ACTIVE,
-        OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
       },
     });
     if (suspension) {

@@ -56,12 +56,7 @@ export class AdminUserController {
       adultVerified: parseBoolean(adultVerified),
       isAdmin: parseBoolean(isAdmin),
       businessType,
-      status: [
-        'ACTIVE',
-        'SUSPENDED',
-        'CHAT_BANNED',
-        'BROADCAST_BANNED',
-      ].includes(status)
+      status: ['ACTIVE', 'SUSPENDED', 'BROADCAST_BANNED'].includes(status)
         ? (status as AdminUserStatusFilter)
         : undefined,
       limit: take,

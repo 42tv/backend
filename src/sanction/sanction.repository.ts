@@ -11,7 +11,6 @@ export class SanctionRepository {
       user_idx: number;
       type: SanctionType;
       reason: string;
-      expires_at: Date | null;
       admin_idx: number;
     },
     tx?: Prisma.TransactionClient,
@@ -32,7 +31,7 @@ export class SanctionRepository {
   }
 
   /**
-   * 특정 유저의 활성 제재 조회 (만료 시각 지난 건 제외)
+   * 특정 유저의 활성 제재 조회
    */
   async findActiveByUser(
     userIdx: number,
@@ -45,7 +44,6 @@ export class SanctionRepository {
         user_idx: userIdx,
         status: SanctionStatus.ACTIVE,
         ...(type && { type }),
-        OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
       },
       orderBy: { created_at: 'desc' },
     });

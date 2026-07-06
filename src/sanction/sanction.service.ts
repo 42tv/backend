@@ -13,13 +13,6 @@ import { AdminAuditLogService } from 'src/admin-audit-log/admin-audit-log.servic
 import { SanctionRepository } from './sanction.repository';
 import { CreateSanctionDto } from './dto/create-sanction.dto';
 
-/** Redis 제재 키 타입 매핑 (핫패스 검사용, 멀티 서버 공유) */
-const SANCTION_REDIS_TYPE: Partial<Record<SanctionType, string>> = {
-  [SanctionType.ACCOUNT_SUSPEND]: 'account_suspend',
-  [SanctionType.CHAT_BAN]: 'chat_ban',
-  [SanctionType.BROADCAST_BAN]: 'broadcast_ban',
-};
-
 @Injectable()
 export class SanctionService {
   constructor(
@@ -35,7 +28,7 @@ export class SanctionService {
    * 제재 등록.
    * - 동일 유형의 활성 제재가 있으면 거부 (중복 실행 부작용 방지)
    * - idempotencyKey가 오면 기존 처리 결과를 재사용 (멱등성)
-   * - 등록 후 Redis 전파: 세션 강제 종료(정지), 제재 키 등록(채팅/방송)
+   * - 등록 후 실시간 전파: 세션 강제 종료(정지), 방송 강제 종료(방송 정지)
    */
   async createSanction(adminIdx: number, dto: CreateSanctionDto) {
     if (dto.idempotencyKey) {
@@ -63,17 +56,12 @@ export class SanctionService {
       );
     }
 
-    const expiresAt = dto.days
-      ? new Date(Date.now() + dto.days * 24 * 60 * 60 * 1000)
-      : null;
-
     const sanction = await this.prisma.$transaction(async (tx) => {
       const created = await this.repository.create(
         {
           user_idx: dto.userIdx,
           type: dto.type,
           reason: dto.reason,
-          expires_at: expiresAt,
           admin_idx: adminIdx,
         },
         tx,
@@ -88,7 +76,6 @@ export class SanctionService {
           detail: {
             user_idx: dto.userIdx,
             type: dto.type,
-            days: dto.days ?? null,
             ...(dto.idempotencyKey && { idempotency_key: dto.idempotencyKey }),
           },
         },
@@ -97,7 +84,7 @@ export class SanctionService {
       return created;
     });
 
-    await this.propagateSanction(user, dto.type, expiresAt, dto.reason);
+    await this.propagateSanction(user, dto.type, dto.reason);
 
     return sanction;
   }
@@ -135,16 +122,11 @@ export class SanctionService {
       return updated;
     });
 
-    const redisType = SANCTION_REDIS_TYPE[sanction.type];
-    if (redisType) {
-      await this.redisService.deleteSanctionKey(redisType, sanction.user_idx);
-    }
-
     return released;
   }
 
   /**
-   * 제재 목록 조회 (활성 여부 계산 포함)
+   * 제재 목록 조회
    */
   async findAll(options: {
     userIdx?: number;
@@ -154,13 +136,10 @@ export class SanctionService {
     offset: number;
   }) {
     const { items, total } = await this.repository.findAll(options);
-    const now = new Date();
     return {
       items: items.map((sanction) => ({
         ...sanction,
-        is_active:
-          sanction.status === SanctionStatus.ACTIVE &&
-          (!sanction.expires_at || sanction.expires_at > now),
+        is_active: sanction.status === SanctionStatus.ACTIVE,
       })),
       total,
     };
@@ -174,23 +153,13 @@ export class SanctionService {
   }
 
   /**
-   * 제재 등록 후 실시간 전파 처리 (Redis 경유, 전 서버 대상)
+   * 제재 등록 후 실시간 전파 처리 (Redis Pub/Sub 경유, 전 서버 대상)
    */
   private async propagateSanction(
     user: { idx: number; user_id: string },
     type: SanctionType,
-    expiresAt: Date | null,
     reason: string,
   ) {
-    const ttlSeconds = expiresAt
-      ? Math.ceil((expiresAt.getTime() - Date.now()) / 1000)
-      : null;
-
-    const redisType = SANCTION_REDIS_TYPE[type];
-    if (redisType) {
-      await this.redisService.setSanctionKey(redisType, user.idx, ttlSeconds);
-    }
-
     if (type === SanctionType.ACCOUNT_SUSPEND) {
       // 활성 소켓 강제 종료 — 전 서버 전파
       await this.redisService.publishAdminCommand(

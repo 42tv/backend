@@ -152,39 +152,6 @@ export class RedisService {
   }
 
   /**
-   * 제재 키 등록 (멀티 서버 공유, 채팅 금지 등 핫패스 검사용)
-   * @param type 제재 유형 (chat_ban 등)
-   * @param userIdx 대상 유저 idx
-   * @param ttlSeconds 만료 시간(초). null이면 영구
-   */
-  async setSanctionKey(
-    type: string,
-    userIdx: number,
-    ttlSeconds: number | null,
-  ): Promise<void> {
-    const key = `sanction:${type}:${userIdx}`;
-    if (ttlSeconds && ttlSeconds > 0) {
-      await this.redis.set(key, '1', 'EX', ttlSeconds);
-    } else {
-      await this.redis.set(key, '1');
-    }
-  }
-
-  /**
-   * 제재 키 삭제 (제재 해제 시)
-   */
-  async deleteSanctionKey(type: string, userIdx: number): Promise<void> {
-    await this.redis.del(`sanction:${type}:${userIdx}`);
-  }
-
-  /**
-   * 제재 키 존재 여부 확인
-   */
-  async hasSanctionKey(type: string, userIdx: number): Promise<boolean> {
-    return (await this.redis.exists(`sanction:${type}:${userIdx}`)) === 1;
-  }
-
-  /**
    * 범용 캐시 저장 (금칙어 목록 등)
    */
   async setCache(key: string, value: string, ttlSeconds?: number) {
