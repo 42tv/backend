@@ -4,6 +4,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { RealtimeRedisModule } from 'src/redis/redis.module';
 import { StreamModule } from 'src/stream/stream.module';
 import { BroadcastSettingModule } from 'src/broadcast-setting/broadcast-setting.module';
+import { SanctionRepository } from 'src/sanction/sanction.repository';
 import { NcpApiClient } from './ncp-api.client';
 import { NcpChannelRepository } from './ncp-channel.repository';
 import { NcpLiveStationController } from './ncp-live-station.controller';
@@ -35,6 +36,8 @@ import { NcpStreamEventService } from './services/ncp-stream-event.service';
   providers: [
     NcpApiClient,
     NcpChannelRepository,
+    // SanctionModule import 시 UserModule 경유 순환 의존 발생 → repository만 직접 등록
+    SanctionRepository,
     NcpChannelService,
     NcpChannelLifecycleService,
     NcpRecordingService,
@@ -48,6 +51,7 @@ import { NcpStreamEventService } from './services/ncp-stream-event.service';
   ],
   exports: [
     NcpChannelService,
+    NcpChannelRepository,
     NcpChannelLifecycleService,
     NcpRecordingService,
     NcpShortClipService,

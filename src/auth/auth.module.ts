@@ -9,10 +9,12 @@ import { jwtConstants } from './constants';
 import { MemberStrategy } from './guard/jwt.member.strategy';
 import { RefreshStrategy } from './guard/refresh.strategy';
 import { GuestGuardStrategy } from './guard/jwt.guest.strategy';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
     forwardRef(() => UserModule),
+    PrismaModule,
     PassportModule,
     JwtModule.register({
       secret: jwtConstants.access_secret,

@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { DonationService } from './donation.service';
 import { DonationRepository } from './donation.repository';
 import { DonationController } from './donation.controller';
+import { AdminDonationController } from './admin-donation.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CoinUsageModule } from '../coin-usage/coin-usage.module';
 import { CoinBalanceModule } from '../coin-balance/coin-balance.module';
@@ -20,7 +21,7 @@ import { RealtimeRedisModule } from '../redis/redis.module';
     FanModule,
     forwardRef(() => RealtimeRedisModule),
   ],
-  controllers: [DonationController],
+  controllers: [DonationController, AdminDonationController],
   providers: [DonationService, DonationRepository],
   exports: [DonationService, DonationRepository],
 })

@@ -339,6 +339,73 @@ export class SettlementService {
   }
 
   /**
+   * 정산 지급 완료 처리 (관리자) — APPROVED → PAID.
+   * approveSettlement 중 PG 지급 이후 단계에서 중단된 건(APPROVED 잔류)의 복구용.
+   * 실패 시 상태는 APPROVED로 유지되고 감사 로그(PAY_FAILED)만 기록된다.
+   */
+  async paySettlement(settlementId: string, adminIdx: number) {
+    const settlement = await this.settlementRepository.findById(settlementId);
+
+    if (!settlement) {
+      throw new NotFoundException('Settlement not found');
+    }
+
+    if (settlement.status !== SettlementStatus.APPROVED) {
+      throw new BadRequestException(
+        `Cannot pay settlement with status: ${settlement.status}`,
+      );
+    }
+
+    try {
+      const payoutResult = await this.pgPayoutService.requestPayout({
+        settlementId,
+        amount: settlement.payout_amount,
+      });
+
+      if (!payoutResult.success) {
+        throw new Error(payoutResult.error ?? 'PG payout failed');
+      }
+
+      return await this.prisma.$transaction(async (tx) => {
+        const payoutCoinIds = settlement.payoutCoins.map((coin) => coin.id);
+        await this.payoutCoinRepository.updateStatusBatch(
+          payoutCoinIds,
+          PayoutStatus.COMPLETED,
+          tx,
+        );
+        const paid = await this.settlementRepository.markAsPaid(
+          settlementId,
+          tx,
+        );
+        await this.createAuditLog(tx, {
+          settlementId,
+          adminIdx,
+          action: 'PAY',
+          beforeStatus: SettlementStatus.APPROVED,
+          afterStatus: SettlementStatus.PAID,
+        });
+        return paid;
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `PG payout failed for settlement ${settlementId}: ${message}`,
+      );
+      await this.prisma.$transaction(async (tx) => {
+        await this.createAuditLog(tx, {
+          settlementId,
+          adminIdx,
+          action: 'PAY_FAILED',
+          beforeStatus: SettlementStatus.APPROVED,
+          afterStatus: SettlementStatus.APPROVED,
+          reason: message,
+        });
+      });
+      throw new InternalServerErrorException(`정산 지급 처리 실패: ${message}`);
+    }
+  }
+
+  /**
    * 정산 거절 (관리자)
    * @param settlementId Settlement ID
    * @param reason 거절 사유

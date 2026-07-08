@@ -274,6 +274,36 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
+   * - 제재(계정 정지 등)로 인한 유저 소켓 강제 종료
+   * - 이 서버의 모든 chatRoom에서 해당 유저를 찾아 연결을 끊는다
+   *   (전 서버 전파는 Redis admin_command 채널 경유)
+   * @param userId - 대상 사용자의 user_id
+   * @param reason - 강제 종료 사유
+   */
+  async forceDisconnectUser(userId: string, reason: string) {
+    for (const [broadcasterId, roomMap] of this.chatRooms.entries()) {
+      const client = roomMap.get(userId);
+      if (client) {
+        console.log(
+          `[Force Logout] room: ${broadcasterId}, user: ${userId}, reason: ${reason}`,
+        );
+        client.emit('force_logout', { reason });
+        client.leave(broadcasterId);
+        client.disconnect(true); // handleDisconnect에서 Redis 정리까지 수행
+      }
+    }
+  }
+
+  /**
+   * - 관리자 전체 공지: 이 서버에 연결된 모든 채팅 소켓에 공지 전송
+   * @param payload - 공지 payload (message, sent_at)
+   */
+  async broadcastGlobalNotice(payload: { message: string; sent_at: string }) {
+    this.server.emit(OpCode.NOTICE, payload);
+    console.log(`[Global Notice] broadcasted:`, payload);
+  }
+
+  /**
    * - 중복 접속으로 인한 연결 해제 처리
    * @param broadcasterId - 방송자 ID
    * @param userId - 사용자 ID

@@ -64,6 +64,14 @@ export class StreamService {
   }
 
   /**
+   * 관리자용 라이브 리스트 조회 (비공개 방송 포함, playback_url 포함)
+   * @returns
+   */
+  async getAdminLiveList() {
+    return await this.streamRepository.getAdminLiveList();
+  }
+
+  /**
    * 방송자의 추천 수를 1 증가시킴
    * @param broadcaster_idx 방송자의 user_idx
    * @returns 업데이트된 Stream 객체

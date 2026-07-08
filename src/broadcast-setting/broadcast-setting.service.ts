@@ -71,6 +71,18 @@ export class BroadcastSettingService {
   }
 
   /**
+   * 카테고리만 변경 (관리자 강제 변경용)
+   * @param user_idx
+   * @param category
+   */
+  async updateCategory(user_idx: number, category: BroadcastCategory) {
+    return await this.prisma.broadcastSetting.update({
+      where: { user_idx },
+      data: { category },
+    });
+  }
+
+  /**
    * user_idx의 broadcastSetting 가져오기
    * @param user_idx
    * @param tx

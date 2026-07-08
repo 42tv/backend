@@ -100,6 +100,98 @@ export class PaymentTransactionRepository {
   }
 
   /**
+   * 관리자용 결제 거래 목록 조회 (필터 + 페이징)
+   */
+  async findAllAdmin(options: {
+    status?: PaymentTransactionStatus;
+    method?: string;
+    userIdx?: number;
+    search?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit: number;
+    offset: number;
+  }) {
+    const where: Prisma.PaymentTransactionWhereInput = {
+      ...(options.status && { status: options.status }),
+      ...(options.method && { payment_method: options.method }),
+      ...(options.userIdx && { user_idx: options.userIdx }),
+      ...(options.search && {
+        user: {
+          OR: [
+            { user_id: { contains: options.search, mode: 'insensitive' } },
+            { nickname: { contains: options.search, mode: 'insensitive' } },
+          ],
+        },
+      }),
+      ...((options.startDate || options.endDate) && {
+        requested_at: {
+          ...(options.startDate && { gte: options.startDate }),
+          ...(options.endDate && { lte: options.endDate }),
+        },
+      }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.paymentTransaction.findMany({
+        where,
+        include: {
+          user: {
+            select: { idx: true, user_id: true, nickname: true },
+          },
+          topups: {
+            select: {
+              id: true,
+              product_name: true,
+              status: true,
+              total_coins: true,
+              bootpayTransaction: {
+                select: {
+                  receipt_id: true,
+                  receipt_url: true,
+                  pg: true,
+                  method: true,
+                  method_symbol: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { requested_at: 'desc' },
+        take: options.limit,
+        skip: options.offset,
+      }),
+      this.prisma.paymentTransaction.count({ where }),
+    ]);
+    return { items, total };
+  }
+
+  /**
+   * 관리자용 결제 거래 상세 조회 (Bootpay 결제수단별 상세 포함)
+   */
+  async findDetailAdmin(id: string) {
+    return await this.prisma.paymentTransaction.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: { idx: true, user_id: true, nickname: true },
+        },
+        topups: {
+          include: {
+            bootpayTransaction: {
+              include: {
+                cardData: true,
+                vbankData: true,
+                easyData: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * 결제 상태 업데이트
    * @param id 결제 거래 ID
    * @param status 새로운 상태

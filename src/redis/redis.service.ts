@@ -17,6 +17,10 @@ import {
   ServerMessage,
   ServerOpCode,
   DuplicateConnectPayload,
+  AdminCommandMessage,
+  AdminOpCode,
+  ForceLogoutPayload,
+  GlobalNoticePayload,
 } from './interfaces/server.message';
 import { WebsocketJwt } from 'src/play/interfaces/websocket';
 import { getUserRoleColor } from 'src/constants/chat-colors';
@@ -51,6 +55,9 @@ export class RedisService {
     // 서버 커맨드 채널 구독
     await this.subscribe(`server_command:${this.serverId}`);
 
+    // 전 서버 공통 관리자 커맨드 채널 구독 (세션 강제 종료, 전체 공지 등)
+    await this.subscribe('admin_command');
+
     // 메시지 핸들러 등록
     this.subscriber.on('message', this.handleMessage.bind(this));
   }
@@ -65,6 +72,8 @@ export class RedisService {
       const parsedMessage = JSON.parse(message);
       if (channel === `server_command:${this.serverId}`) {
         await this.handleServerMessage(parsedMessage);
+      } else if (channel === 'admin_command') {
+        await this.handleAdminCommand(parsedMessage);
       } else if (channel.startsWith('room:')) {
         await this.handleRoomMessage(parsedMessage);
       }
@@ -105,6 +114,69 @@ export class RedisService {
   }
 
   /**
+   * 관리자 커맨드 처리 (전 서버 공통 admin_command 채널)
+   * @param message 관리자 커맨드 메시지
+   */
+  private async handleAdminCommand(message: AdminCommandMessage) {
+    switch (message.op) {
+      case AdminOpCode.FORCE_LOGOUT: {
+        const payload = message.payload as ForceLogoutPayload;
+        console.log(`[Admin Command] force_logout:`, payload);
+        await this.eventsGateway.forceDisconnectUser(
+          payload.user_id,
+          payload.reason,
+        );
+        break;
+      }
+      case AdminOpCode.GLOBAL_NOTICE: {
+        const payload = message.payload as GlobalNoticePayload;
+        console.log(`[Admin Command] global_notice:`, payload);
+        await this.eventsGateway.broadcastGlobalNotice(payload);
+        break;
+      }
+      default:
+        console.warn(`[Redis] Unknown admin command op:`, message);
+    }
+  }
+
+  /**
+   * 관리자 커맨드 발행 (모든 서버가 수신)
+   * @param message 관리자 커맨드 메시지
+   */
+  async publishAdminCommand(message: AdminCommandMessage): Promise<void> {
+    try {
+      await this.redis.publish('admin_command', JSON.stringify(message));
+    } catch (error) {
+      console.error(`Failed to publish admin command:`, error);
+    }
+  }
+
+  /**
+   * 범용 캐시 저장 (금칙어 목록 등)
+   */
+  async setCache(key: string, value: string, ttlSeconds?: number) {
+    if (ttlSeconds && ttlSeconds > 0) {
+      await this.redis.set(key, value, 'EX', ttlSeconds);
+    } else {
+      await this.redis.set(key, value);
+    }
+  }
+
+  /**
+   * 범용 캐시 조회
+   */
+  async getCache(key: string): Promise<string | null> {
+    return await this.redis.get(key);
+  }
+
+  /**
+   * 범용 캐시 삭제
+   */
+  async deleteCache(key: string): Promise<void> {
+    await this.redis.del(key);
+  }
+
+  /**
    * 룸 메시지 처리 (chat, recommend, viewer_count 등)
    * @param message 룸 메시지
    */
@@ -142,6 +214,9 @@ export class RedisService {
       case OpCode.STREAM_END:
         await this.handleStreamEndMessage(message);
         break;
+      case OpCode.NOTICE:
+        await this.handleRoomNoticeMessage(message);
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
     }
@@ -152,6 +227,19 @@ export class RedisService {
    * @param message 시청자 수 업데이트 메시지
    */
   private async handleViewerCountMessage(message: ChatRoomMessage) {
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
+    );
+  }
+
+  /**
+   * 방송별 관리자 공지 처리 — 해당 룸 시청자에게만 공지 전파
+   * (전체 공지는 admin_command 채널, 방별 공지는 room 채널 경유)
+   * @param message 공지 메시지
+   */
+  private async handleRoomNoticeMessage(message: ChatRoomMessage) {
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,

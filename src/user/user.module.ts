@@ -14,6 +14,10 @@ import { BlacklistModule } from 'src/blacklist/blacklist.module';
 import { RealtimeRedisModule } from 'src/redis/redis.module';
 import { CoinBalanceModule } from 'src/coin-balance/coin-balance.module';
 import { NcpLiveStationModule } from 'src/ncp-live-station/ncp-live-station.module';
+import { AdminAuditLogModule } from 'src/admin-audit-log/admin-audit-log.module';
+import { AdminUserController } from './admin-user.controller';
+import { AdminUserService } from './admin-user.service';
+import { AdminUserRepository } from './admin-user.repository';
 
 @Module({
   imports: [
@@ -28,9 +32,16 @@ import { NcpLiveStationModule } from 'src/ncp-live-station/ncp-live-station.modu
     CoinBalanceModule,
     NcpLiveStationModule,
     forwardRef(() => RealtimeRedisModule),
+    AdminAuditLogModule,
   ],
-  controllers: [UserController],
-  providers: [UserService, UserRepository, AccountDeletionService],
+  controllers: [UserController, AdminUserController],
+  providers: [
+    UserService,
+    UserRepository,
+    AccountDeletionService,
+    AdminUserService,
+    AdminUserRepository,
+  ],
   exports: [UserService],
 })
 export class UserModule {}

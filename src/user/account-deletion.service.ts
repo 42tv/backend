@@ -43,7 +43,31 @@ export class AccountDeletionService {
     }
 
     await this.verifyIdentity(user, dto);
+    await this.performDeletion(user_idx, user);
+  }
 
+  /**
+   * 관리자 강제 탈퇴 — 본인 재확인 없이 삭제 플로우 실행.
+   * 차단 조건(잔여 코인, 미정산 수익 등)은 일반 탈퇴와 동일하게 적용된다.
+   * @param user_idx 강제 탈퇴할 사용자 idx
+   */
+  async forceDeleteAccount(user_idx: number): Promise<void> {
+    const user = await this.userRepository.getUserWithRelations(user_idx, {
+      ncp_channel: true,
+    });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+    await this.performDeletion(user_idx, user);
+  }
+
+  /**
+   * 공통 삭제 플로우 — 차단 조건 검사 → User 삭제 → 외부 자원 정리
+   */
+  private async performDeletion(
+    user_idx: number,
+    user: User & { ncpChannel?: { channel_id: string } | null },
+  ): Promise<void> {
     // 외부 자원 정리용 정보는 User 삭제 전에 확보
     const ncpChannelId = user.ncpChannel?.channel_id;
     const profileImg = user.profile_img;
