@@ -214,6 +214,9 @@ export class RedisService {
       case OpCode.STREAM_END:
         await this.handleStreamEndMessage(message);
         break;
+      case OpCode.NOTICE:
+        await this.handleRoomNoticeMessage(message);
+        break;
       default:
         console.warn(`[Redis] Unknown room message type: ${opCode}`);
     }
@@ -224,6 +227,19 @@ export class RedisService {
    * @param message 시청자 수 업데이트 메시지
    */
   private async handleViewerCountMessage(message: ChatRoomMessage) {
+    await this.eventsGateway.sendToRoom(
+      message.broadcaster_id,
+      message.op,
+      message.payload,
+    );
+  }
+
+  /**
+   * 방송별 관리자 공지 처리 — 해당 룸 시청자에게만 공지 전파
+   * (전체 공지는 admin_command 채널, 방별 공지는 room 채널 경유)
+   * @param message 공지 메시지
+   */
+  private async handleRoomNoticeMessage(message: ChatRoomMessage) {
     await this.eventsGateway.sendToRoom(
       message.broadcaster_id,
       message.op,

@@ -15,7 +15,11 @@ import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
 import { SuccessResponseDto } from 'src/common/dto/success-response.dto';
 import { AdminLiveService } from './admin-live.service';
 import { KickViewerDto } from './dto/kick-viewer.dto';
-import { AdminForceEndDto, AdminUpdateCategoryDto } from './dto/admin-live.dto';
+import {
+  AdminForceEndDto,
+  AdminRoomNoticeDto,
+  AdminUpdateCategoryDto,
+} from './dto/admin-live.dto';
 
 @Controller('admin/live')
 @UseGuards(AdminGuard)
@@ -67,6 +71,43 @@ export class AdminLiveController {
       kickViewerDto,
     );
     return ResponseWrapper.success(null, message);
+  }
+
+  @Post(':broadcasterIdx/notice')
+  async sendRoomNotice(
+    @Req() req,
+    @Param('broadcasterIdx', ParseIntPipe) broadcasterIdx: number,
+    @Body() dto: AdminRoomNoticeDto,
+  ): Promise<SuccessResponseDto<null>> {
+    await this.adminLiveService.sendRoomNotice(
+      req.user.idx,
+      broadcasterIdx,
+      dto.message,
+    );
+    return ResponseWrapper.success(null, '관리자 공지를 전송했습니다.');
+  }
+
+  @Post(':broadcasterIdx/curtain/start')
+  async startCurtain(
+    @Req() req,
+    @Param('broadcasterIdx', ParseIntPipe) broadcasterIdx: number,
+    @Body() dto: AdminForceEndDto,
+  ): Promise<SuccessResponseDto<null>> {
+    await this.adminLiveService.startCurtain(
+      req.user.idx,
+      broadcasterIdx,
+      dto?.reason,
+    );
+    return ResponseWrapper.success(null, '방송을 블라인드 처리했습니다.');
+  }
+
+  @Post(':broadcasterIdx/curtain/stop')
+  async stopCurtain(
+    @Req() req,
+    @Param('broadcasterIdx', ParseIntPipe) broadcasterIdx: number,
+  ): Promise<SuccessResponseDto<null>> {
+    await this.adminLiveService.stopCurtain(req.user.idx, broadcasterIdx);
+    return ResponseWrapper.success(null, '블라인드를 해제했습니다.');
   }
 
   @Patch(':broadcasterIdx/category')

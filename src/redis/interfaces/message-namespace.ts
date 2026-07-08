@@ -15,6 +15,7 @@ import {
   DonationPayload,
   FanLevelUpPayload,
   StreamEndPayload,
+  NoticePayload,
 } from './room.message';
 import {
   AdminCommandMessage,
@@ -221,6 +222,17 @@ export const RedisMessages = {
         nickname,
         banned_by: bannedBy,
       } as BanPayload,
+    };
+  },
+
+  roomNotice(broadcasterId: string, message: string): ChatRoomMessage {
+    return {
+      op: OpCode.NOTICE,
+      broadcaster_id: broadcasterId,
+      payload: {
+        message,
+        sent_at: new Date().toISOString(),
+      } as NoticePayload,
     };
   },
 
