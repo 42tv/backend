@@ -195,15 +195,15 @@ export class AdminLiveService {
       return Number(fromEnv);
     }
     const res = await this.curtainService.listContents<{
-      content?: { contentId: number }[];
+      content?: { id: number; status: string }[];
     }>();
-    const first = res.content?.[0];
-    if (!first) {
+    const ready = res.content?.find((c) => c.status === 'READY');
+    if (!ready) {
       throw new BadRequestException(
-        '등록된 커튼 콘텐츠가 없습니다. NCP 콘솔에서 커튼 콘텐츠를 등록하거나 NCP_CURTAIN_CONTENT_ID를 설정해주세요.',
+        '사용 가능한(READY) 커튼 콘텐츠가 없습니다. NCP 콘솔에서 커튼 콘텐츠를 등록하거나 NCP_CURTAIN_CONTENT_ID를 설정해주세요.',
       );
     }
-    return first.contentId;
+    return ready.id;
   }
 
   /** 방송 중인 방송자 조회 (없으면 404/400) */
