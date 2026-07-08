@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -12,6 +13,7 @@ import { UserService } from 'src/user/user.service';
 import { BroadcastSettingService } from 'src/broadcast-setting/broadcast-setting.service';
 import { AdminAuditLogService } from 'src/admin-audit-log/admin-audit-log.service';
 import { NcpCurtainService } from 'src/ncp-live-station/services/ncp-curtain.service';
+import { NcpChannelService } from 'src/ncp-live-station/services/ncp-channel.service';
 import { NcpChannelRepository } from 'src/ncp-live-station/ncp-channel.repository';
 import { LiveService } from './live.service';
 import { KickViewerDto } from './dto/kick-viewer.dto';
@@ -19,8 +21,14 @@ import { KickViewerDto } from './dto/kick-viewer.dto';
 // NCP 라이브 커튼 최대 유지 시간(분) — 1~10 범위 제약, 관리자 블라인드는 최대치 사용
 const CURTAIN_INSERT_TIME_MIN = 10;
 
+// 강제 종료 시 NCP 채널 재활성화까지의 지연(ms)
+// — RTMP 세션이 완전히 끊길 시간을 확보한 뒤 채널을 원상 복구한다 (1회성 종료, 제재 아님)
+const FORCE_END_CHANNEL_REOPEN_DELAY_MS = 10_000;
+
 @Injectable()
 export class AdminLiveService {
+  private readonly logger = new Logger(AdminLiveService.name);
+
   constructor(
     private readonly streamService: StreamService,
     private readonly redisService: RedisService,
@@ -29,6 +37,7 @@ export class AdminLiveService {
     private readonly auditLogService: AdminAuditLogService,
     private readonly liveService: LiveService,
     private readonly curtainService: NcpCurtainService,
+    private readonly ncpChannelService: NcpChannelService,
     private readonly ncpChannelRepository: NcpChannelRepository,
     private readonly config: ConfigService,
   ) {}
@@ -49,8 +58,10 @@ export class AdminLiveService {
   }
 
   /**
-   * 방송 강제 종료 — NCP 종료 콜백과 동일한 정리 플로우를 관리자가 직접 트리거.
-   * 시청자 키 정리 → Stream 삭제 → 전 서버에 종료 이벤트 전파
+   * 방송 강제 종료 — NCP 채널 정지로 실제 ingest 를 끊고 정리 플로우를 트리거.
+   * NCP 채널 정지(BLOCK) → 시청자 키 정리 → Stream 삭제 → 전 서버에 종료 이벤트 전파
+   * 1회성 종료(제재 아님): 세션 절단 후 수초 뒤 채널을 자동 재활성화해
+   * 방송자가 즉시 재송출할 수 있게 한다 (BROADCAST_BAN 과의 차이).
    */
   async forceEndBroadcast(
     adminIdx: number,
@@ -65,6 +76,23 @@ export class AdminLiveService {
     const stream = await this.streamService.getStreamByUserIdx(broadcasterIdx);
     if (!stream) {
       throw new BadRequestException('현재 방송 중이 아닙니다.');
+    }
+
+    // NCP 채널 정지 (best-effort) — 송출 중인 RTMP 세션을 NCP 단에서 끊는다.
+    // 실패해도 플랫폼 측 종료 처리는 계속 진행한다.
+    const channel =
+      await this.ncpChannelRepository.findByUserIdx(broadcasterIdx);
+    if (channel) {
+      try {
+        await this.ncpChannelService.disableChannel(channel.channel_id);
+        this.scheduleChannelReopen(channel.channel_id);
+      } catch (e) {
+        this.logger.warn(
+          `강제 종료 시 NCP 채널 정지 실패 channelId=${channel.channel_id}: ${
+            e instanceof Error ? e.message : e
+          }`,
+        );
+      }
     }
 
     await this.redisService.removeViewerKey(broadcaster.user_id);
@@ -82,6 +110,22 @@ export class AdminLiveService {
       reason,
       detail: { stream_id: stream.stream_id },
     });
+  }
+
+  /**
+   * 강제 종료로 정지한 채널을 지연 후 재활성화 (best-effort).
+   * 실패/서버 재시작으로 누락되면 방송 설정 조회 시 ensureChannel 이 해제한다.
+   */
+  private scheduleChannelReopen(channelId: string) {
+    setTimeout(() => {
+      void this.ncpChannelService.enableChannel(channelId).catch((e) => {
+        this.logger.warn(
+          `강제 종료 후 NCP 채널 재활성화 실패(ensureChannel이 복구) channelId=${channelId}: ${
+            e instanceof Error ? e.message : e
+          }`,
+        );
+      });
+    }, FORCE_END_CHANNEL_REOPEN_DELAY_MS);
   }
 
   /**
