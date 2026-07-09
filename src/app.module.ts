@@ -48,6 +48,7 @@ import { BannedWordModule } from './banned-word/banned-word.module';
 import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 import { AdminCoinModule } from './admin-coin/admin-coin.module';
 import { TermsModule } from './terms/terms.module';
+import { InquiryModule } from './inquiry/inquiry.module';
 
 @Module({
   imports: [
@@ -97,6 +98,7 @@ import { TermsModule } from './terms/terms.module';
     AdminDashboardModule,
     AdminCoinModule,
     TermsModule,
+    InquiryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

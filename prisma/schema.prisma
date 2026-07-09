@@ -61,6 +61,8 @@ model User {
   sanctions            Sanction[]           @relation("UserSanctions")
   reportsMade          Report[]             @relation("ReportsMade")
   reportsReceived      Report[]             @relation("ReportsReceived")
+  inquiries_made       Inquiry[]            @relation("InquiriesMade")
+  inquiries_answered   Inquiry[]            @relation("InquiriesAnswered")
 
   @@map("users")
 }
@@ -867,6 +869,52 @@ enum ReportResolveAction {
   WARN
   END_BROADCAST
   SUSPEND
+}
+
+model Inquiry {
+  id             Int            @id @default(autoincrement())
+  user_idx       Int
+  type           InquiryType
+  title          String
+  content        String
+  status         InquiryStatus  @default(PENDING)
+  answer         String?
+  answered_by    Int?
+  answered_at    DateTime?
+  is_answer_read Boolean        @default(false)
+  created_at     DateTime       @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  updated_at     DateTime       @updatedAt
+  images         InquiryImage[]
+  user           User           @relation("InquiriesMade", fields: [user_idx], references: [idx], onDelete: Cascade)
+  answerer       User?          @relation("InquiriesAnswered", fields: [answered_by], references: [idx])
+
+  @@index([user_idx, created_at])
+  @@index([status, created_at])
+  @@index([user_idx, status, is_answer_read])
+  @@map("inquiries")
+}
+
+model InquiryImage {
+  id          Int      @id @default(autoincrement())
+  image_url   String
+  image_order Int      @default(0)
+  created_at  DateTime @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  inquiry_id  Int
+  inquiry     Inquiry  @relation(fields: [inquiry_id], references: [id], onDelete: Cascade)
+
+  @@map("inquiry_images")
+}
+
+enum InquiryType {
+  GENERAL
+  ACCOUNT
+  PAYMENT
+  OTHER
+}
+
+enum InquiryStatus {
+  PENDING
+  ANSWERED
 }
 
 model AdminAuditLog {
