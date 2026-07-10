@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PaymentTransactionStatus, ReportStatus } from '@prisma/client';
+import {
+  InquiryStatus,
+  PaymentTransactionStatus,
+  ReportStatus,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 /** KST 기준 오늘 0시 */
@@ -33,7 +37,7 @@ export class AdminDashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * 대시보드 요약 집계 — 매출/후원/가입/신고 대기.
+   * 대시보드 요약 집계 — 매출/후원/가입/신고 대기/문의 대기.
    * 라이브 수·동시 시청자는 GET live + Redis viewerCount로 프론트가 계산한다.
    */
   async getSummary() {
@@ -50,6 +54,7 @@ export class AdminDashboardService {
       donationsWeek,
       todaySignups,
       pendingReports,
+      pendingInquiries,
     ] = await Promise.all([
       this.sumSales(todayStart),
       this.sumSales(weekStart),
@@ -65,6 +70,7 @@ export class AdminDashboardService {
       this.sumDonations(weekStart),
       this.prisma.user.count({ where: { created_at: { gte: todayStart } } }),
       this.prisma.report.count({ where: { status: ReportStatus.PENDING } }),
+      this.prisma.inquiry.count({ where: { status: InquiryStatus.PENDING } }),
     ]);
 
     return {
@@ -85,6 +91,9 @@ export class AdminDashboardService {
       },
       reports: {
         pending: pendingReports,
+      },
+      inquiries: {
+        pending: pendingInquiries,
       },
     };
   }

@@ -80,17 +80,6 @@ export class InquiryController {
     );
   }
 
-  @Get('me/unread-count')
-  async getUnreadCount(
-    @Req() req: any,
-  ): Promise<SuccessResponseDto<{ count: number }>> {
-    const count = await this.inquiryService.getUnreadCount(req.user.idx);
-    return ResponseWrapper.success(
-      { count },
-      '미읽음 답변 개수를 조회했습니다.',
-    );
-  }
-
   @Get(':id')
   async getMyInquiry(
     @Req() req: any,
