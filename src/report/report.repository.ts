@@ -101,4 +101,8 @@ export class ReportRepository {
       data: { ...data, resolved_at: new Date() },
     });
   }
+
+  async delete(id: number) {
+    return await this.prisma.report.delete({ where: { id } });
+  }
 }

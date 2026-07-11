@@ -236,4 +236,66 @@ export class ReportService {
 
     return resolved;
   }
+
+  /**
+   * 신고 삭제 (관리자).
+   * 처리 여부와 무관하게 삭제 가능하며,
+   * 증거로 보관된 S3 썸네일 스냅샷이 있으면 함께 정리한다.
+   */
+  async deleteReport(reportId: number, adminIdx: number) {
+    const report = await this.repository.findById(reportId);
+    if (!report) {
+      throw new NotFoundException('신고 내역을 찾을 수 없습니다.');
+    }
+
+    await this.repository.delete(reportId);
+
+    // 보관된 썸네일 스냅샷 정리 (best-effort, 삭제 자체는 항상 성공)
+    await this.deleteBroadcastSnapshot(report.evidence);
+
+    await this.auditLogService.record({
+      adminIdx,
+      action: 'REPORT_DELETE',
+      targetType: 'REPORT',
+      targetId: reportId,
+      detail: {
+        reported_idx: report.reported_idx,
+        status: report.status,
+      },
+    });
+
+    return { id: reportId };
+  }
+
+  /**
+   * evidence에 보관된 신고 썸네일 스냅샷(reports/ 경로)을 S3에서 삭제한다.
+   * 우리가 업로드한 스냅샷(CDN_URL + reports/ prefix)만 대상으로 하며,
+   * 스냅샷이 없거나 삭제 실패 시 무시한다 (best-effort).
+   */
+  private async deleteBroadcastSnapshot(evidence: unknown): Promise<void> {
+    const thumbnailUrl = (evidence as { thumbnail_url?: unknown } | null)
+      ?.thumbnail_url;
+    if (typeof thumbnailUrl !== 'string') {
+      return;
+    }
+
+    const cdnPrefix = `${process.env.CDN_URL}/`;
+    if (!thumbnailUrl.startsWith(cdnPrefix)) {
+      return;
+    }
+    const s3Key = thumbnailUrl.slice(cdnPrefix.length);
+    if (!s3Key.startsWith('reports/')) {
+      return;
+    }
+
+    try {
+      await this.awsService.deleteFromS3(s3Key);
+    } catch (error) {
+      this.logger.warn(
+        `신고 썸네일 스냅샷 삭제 실패 (key=${s3Key}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
 }
