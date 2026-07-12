@@ -503,6 +503,8 @@ model CoinTopup {
   bonus_coins            Int                 @default(0)
   total_coins            Int
   remaining_coins        Int
+  refunded_coins         Int                 @default(0)
+  refunded_amount        Int                 @default(0)
   paid_amount            Int
   coin_unit_price        Float
   status                 TopupStatus         @default(PENDING)

@@ -136,6 +136,113 @@ export class CoinTopupRepository {
   }
 
   /**
+   * 관리자용 충전 내역 목록 조회 (검색/상태 필터 + 페이지네이션)
+   * @param options 조회 옵션
+   * @returns 충전 내역 목록과 전체 개수
+   */
+  async findAllForAdmin(options: {
+    status?: TopupStatus;
+    search?: string;
+    limit: number;
+    offset: number;
+  }) {
+    const where: Prisma.CoinTopupWhereInput = {
+      ...(options.status && { status: options.status }),
+      ...(options.search && {
+        user: {
+          OR: [
+            {
+              user_id: {
+                contains: options.search,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              nickname: {
+                contains: options.search,
+                mode: 'insensitive' as const,
+              },
+            },
+          ],
+        },
+      }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.coinTopup.findMany({
+        where,
+        include: {
+          user: { select: { idx: true, user_id: true, nickname: true } },
+        },
+        orderBy: { topped_up_at: 'desc' },
+        take: options.limit,
+        skip: options.offset,
+      }),
+      this.prisma.coinTopup.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
+  /**
+   * 관리자 결제/정산 통계용 상태별 집계 조회
+   * @returns CoinTopup/PayoutCoin/Settlement 상태별 groupBy 결과
+   */
+  async getAdminStats() {
+    const [topupGroups, payoutGroups, settlementGroups] = await Promise.all([
+      this.prisma.coinTopup.groupBy({
+        by: ['status'],
+        _sum: {
+          paid_amount: true,
+          total_coins: true,
+          remaining_coins: true,
+          refunded_coins: true,
+          refunded_amount: true,
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.payoutCoin.groupBy({
+        by: ['status'],
+        _sum: { coin_amount: true },
+      }),
+      this.prisma.settlement.groupBy({
+        by: ['status'],
+        _sum: { payout_amount: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    return { topupGroups, payoutGroups, settlementGroups };
+  }
+
+  /**
+   * 환불 처리 (잔여 코인을 refunded_coins로 이관 + REFUNDED 상태 전환)
+   * @param id 충전 내역 ID
+   * @param refundedCoins 환불된 코인 수
+   * @param refundedAmount 실제 환불 금액 (원)
+   * @param tx 트랜잭션 클라이언트 (선택사항)
+   * @returns 업데이트된 충전 내역
+   */
+  async markRefunded(
+    id: string,
+    refundedCoins: number,
+    refundedAmount: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx ?? this.prisma;
+
+    return await prismaClient.coinTopup.update({
+      where: { id },
+      data: {
+        remaining_coins: 0,
+        refunded_coins: refundedCoins,
+        refunded_amount: refundedAmount,
+        status: TopupStatus.REFUNDED,
+      },
+    });
+  }
+
+  /**
    * 충전 상태 업데이트
    * @param id 충전 내역 ID
    * @param status 새로운 상태

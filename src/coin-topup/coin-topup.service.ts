@@ -10,10 +10,16 @@ import { ProcessTopupDto } from './dto/create-coin-topup.dto';
 import { ProductService } from '../product/product.service';
 import { PaymentTransactionService } from '../payment/payment-transaction.service';
 import { CoinBalanceService } from '../coin-balance/coin-balance.service';
-import { CoinUsageService } from '../coin-usage/coin-usage.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { TopupStatus, PaymentTransactionStatus } from '@prisma/client';
+import {
+  TopupStatus,
+  PaymentTransactionStatus,
+  PayoutStatus,
+  SettlementStatus,
+} from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { BootpayService } from '../bootpay/bootpay.service';
+import { AdminAuditLogService } from '../admin-audit-log/admin-audit-log.service';
 import { PayoutCoinService } from '../payout-coin/payout-coin.service';
 import { UserSnapshot } from '../common/utils/retention.util';
 
@@ -25,8 +31,9 @@ export class CoinTopupService {
     @Inject(forwardRef(() => PaymentTransactionService))
     private readonly paymentTransactionService: PaymentTransactionService,
     private readonly coinBalanceService: CoinBalanceService,
-    private readonly coinUsageService: CoinUsageService,
     private readonly prismaService: PrismaService,
+    private readonly bootpayService: BootpayService,
+    private readonly auditLogService: AdminAuditLogService,
     @Inject(forwardRef(() => PayoutCoinService))
     private readonly payoutCoinService: PayoutCoinService,
   ) {}
@@ -213,44 +220,179 @@ export class CoinTopupService {
   }
 
   /**
-   * 환불 처리
-   * @param topup_id 충전 내역 ID
-   * @returns 환불 처리된 충전 내역
+   * 관리자용 충전 내역 목록 조회
+   * @param options 조회 옵션 (상태/검색어 필터 + 페이지네이션)
+   * @returns 충전 내역 목록과 전체 개수
    */
-  async processRefund(topup_id: string) {
-    return await this.prismaService.$transaction(async (tx) => {
-      const topup = await this.findById(topup_id);
+  async findAllForAdmin(options: {
+    status?: TopupStatus;
+    search?: string;
+    limit: number;
+    offset: number;
+  }) {
+    return await this.coinTopupRepository.findAllForAdmin(options);
+  }
 
-      if (topup.status !== TopupStatus.COMPLETED) {
-        throw new BadRequestException('완료된 충전만 환불할 수 있습니다.');
-      }
+  /**
+   * 관리자 결제/정산 통계 조회
+   * @returns 결제/코인/정산 대기 코인/정산 통계
+   */
+  async getAdminPaymentStats() {
+    const { topupGroups, payoutGroups, settlementGroups } =
+      await this.coinTopupRepository.getAdminStats();
 
-      // 사용된 코인이 있는지 확인 (CoinUsage 테이블 체크)
-      const usedCoins =
-        await this.coinUsageService.getUsedCoinsFromTopup(topup_id);
+    const completed = topupGroups.find(
+      (g) => g.status === TopupStatus.COMPLETED,
+    );
+    const refunded = topupGroups.find((g) => g.status === TopupStatus.REFUNDED);
 
-      if (usedCoins > 0) {
+    // 환불된 충전 건도 충전/사용 통계에 포함 (사용분 = 충전 - 잔여 - 환불)
+    const totalChargedCoins =
+      (completed?._sum.total_coins ?? 0) + (refunded?._sum.total_coins ?? 0);
+    const totalRemainingCoins =
+      (completed?._sum.remaining_coins ?? 0) +
+      (refunded?._sum.remaining_coins ?? 0);
+    const totalRefundedCoins =
+      (completed?._sum.refunded_coins ?? 0) +
+      (refunded?._sum.refunded_coins ?? 0);
+
+    const payoutCoinsByStatus = (status: PayoutStatus) =>
+      payoutGroups.find((g) => g.status === status)?._sum.coin_amount ?? 0;
+
+    const pendingSettlement = settlementGroups.find(
+      (g) => g.status === SettlementStatus.PENDING,
+    );
+    const paidSettlement = settlementGroups.find(
+      (g) => g.status === SettlementStatus.PAID,
+    );
+
+    return {
+      payments: {
+        total_paid_amount:
+          (completed?._sum.paid_amount ?? 0) +
+          (refunded?._sum.paid_amount ?? 0),
+        total_paid_count:
+          (completed?._count._all ?? 0) + (refunded?._count._all ?? 0),
+        refunded_amount: refunded?._sum.refunded_amount ?? 0,
+        refunded_count: refunded?._count._all ?? 0,
+      },
+      coins: {
+        total_charged_coins: totalChargedCoins,
+        total_used_coins:
+          totalChargedCoins - totalRemainingCoins - totalRefundedCoins,
+        total_remaining_coins: totalRemainingCoins,
+        total_refunded_coins: totalRefundedCoins,
+      },
+      payout: {
+        waiting_coins: payoutCoinsByStatus(PayoutStatus.WAITING),
+        available_coins: payoutCoinsByStatus(PayoutStatus.AVAILABLE),
+        blocked_coins: payoutCoinsByStatus(PayoutStatus.BLOCKED),
+        in_settlement_coins: payoutCoinsByStatus(PayoutStatus.IN_SETTLEMENT),
+        completed_coins: payoutCoinsByStatus(PayoutStatus.COMPLETED),
+      },
+      settlements: {
+        pending_count: pendingSettlement?._count._all ?? 0,
+        pending_amount: pendingSettlement?._sum.payout_amount ?? 0,
+        paid_count: paidSettlement?._count._all ?? 0,
+        paid_amount: paidSettlement?._sum.payout_amount ?? 0,
+      },
+    };
+  }
+
+  /**
+   * 환불 처리 (부분 환불)
+   * 사용하고 남은 remaining_coins만큼 환불한다.
+   * 환불 금액은 잔여 코인 × 단가이되, 보너스 코인은 무상 지급분이므로
+   * 실결제액(paid_amount)을 초과하지 않도록 보정한다.
+   * @param topup_id 충전 내역 ID
+   * @param adminIdx 처리 관리자 ID
+   * @param reason 환불 사유 (감사 로그 기록용)
+   * @returns 환불 결과
+   */
+  async processRefund(topup_id: string, adminIdx: number, reason: string) {
+    const topup = await this.findById(topup_id);
+
+    // 중복 요청 방지 (이미 환불된 건은 거부)
+    if (topup.status === TopupStatus.REFUNDED) {
+      throw new BadRequestException('이미 환불 처리된 충전입니다.');
+    }
+
+    if (topup.status !== TopupStatus.COMPLETED) {
+      throw new BadRequestException('완료된 충전만 환불할 수 있습니다.');
+    }
+
+    if (topup.remaining_coins <= 0) {
+      throw new BadRequestException('모든 코인이 사용되어 환불할 수 없습니다.');
+    }
+
+    const refundedCoins = topup.remaining_coins;
+    const refundedAmount = Math.min(
+      Math.floor(refundedCoins * topup.coin_unit_price),
+      topup.paid_amount,
+    );
+
+    // Bootpay 결제 취소 (PG 결제 건인 경우)
+    // cancel_id를 topup 기준으로 고정해 PG 측 중복 취소를 방지한다 (멱등성)
+    const receiptId = topup.transaction?.bootpay_receipt_id;
+    if (receiptId && refundedAmount > 0) {
+      const isFullRefund = refundedCoins === topup.total_coins;
+      const cancelResult = await this.bootpayService.cancelPayment(
+        receiptId,
+        isFullRefund ? undefined : refundedAmount, // 전액 잔여면 전체 취소
+        'Admin',
+        reason,
+        `refund_${topup.id}`,
+      );
+
+      if (!cancelResult.success) {
         throw new BadRequestException(
-          `이미 ${usedCoins}개의 코인이 사용되어 환불할 수 없습니다.`,
+          `PG 환불 처리에 실패했습니다: ${cancelResult.error}`,
+        );
+      }
+    }
+
+    await this.prismaService.$transaction(async (tx) => {
+      // 잔여 코인을 refunded_coins로 이관 + REFUNDED 상태 전환
+      await this.coinTopupRepository.markRefunded(
+        topup_id,
+        refundedCoins,
+        refundedAmount,
+        tx,
+      );
+
+      // CoinBalance에서 환불된 코인 차감 (탈퇴 유저는 잔액 정보가 없음)
+      if (topup.user_idx !== null) {
+        await this.coinBalanceService.refundCoins(
+          topup.user_idx,
+          refundedCoins,
+          tx,
         );
       }
 
-      // 환불 상태로 업데이트
-      await this.coinTopupRepository.updateStatus(
-        topup_id,
-        TopupStatus.REFUNDED,
+      await this.auditLogService.record(
+        {
+          adminIdx,
+          action: 'TOPUP_REFUND',
+          targetType: 'COIN_TOPUP',
+          targetId: topup_id,
+          reason,
+          detail: {
+            refunded_coins: refundedCoins,
+            refunded_amount: refundedAmount,
+            paid_amount: topup.paid_amount,
+            total_coins: topup.total_coins,
+          },
+        },
         tx,
       );
-
-      // CoinBalance에서 코인 차감 처리
-      await this.coinBalanceService.refundCoins(
-        topup.user_idx,
-        topup.total_coins,
-        tx,
-      );
-
-      return topup;
     });
+
+    return {
+      topup_id,
+      refunded_coins: refundedCoins,
+      refunded_amount: refundedAmount,
+      status: TopupStatus.REFUNDED,
+    };
   }
 
   /**
