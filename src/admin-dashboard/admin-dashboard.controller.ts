@@ -15,4 +15,11 @@ export class AdminDashboardController {
     const summary = await this.dashboardService.getSummary();
     return ResponseWrapper.success(summary, '대시보드 집계를 조회했습니다.');
   }
+
+  @Get('pending-counts')
+  @Header('Cache-Control', 'no-store')
+  async getPendingCounts(): Promise<SuccessResponseDto<any>> {
+    const counts = await this.dashboardService.getPendingCounts();
+    return ResponseWrapper.success(counts, '미처리 건수를 조회했습니다.');
+  }
 }

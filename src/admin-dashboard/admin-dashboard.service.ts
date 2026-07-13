@@ -5,6 +5,7 @@ import {
   ReportStatus,
 } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { AdminLiveService } from 'src/live/admin-live.service';
 
 /** KST 기준 오늘 0시 */
 function kstStartOfToday(): Date {
@@ -34,11 +35,13 @@ function kstStartOfMonth(): Date {
 
 @Injectable()
 export class AdminDashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly adminLiveService: AdminLiveService,
+  ) {}
 
   /**
-   * 대시보드 요약 집계 — 매출/후원/가입/신고 대기/문의 대기.
-   * 라이브 수·동시 시청자는 GET live + Redis viewerCount로 프론트가 계산한다.
+   * 대시보드 요약 집계 — 매출/후원/가입/신고 대기/문의 대기/라이브(비공개 포함).
    */
   async getSummary() {
     const todayStart = kstStartOfToday();
@@ -55,6 +58,7 @@ export class AdminDashboardService {
       todaySignups,
       pendingReports,
       pendingInquiries,
+      liveSummary,
     ] = await Promise.all([
       this.sumSales(todayStart),
       this.sumSales(weekStart),
@@ -69,8 +73,9 @@ export class AdminDashboardService {
       this.sumDonations(todayStart),
       this.sumDonations(weekStart),
       this.prisma.user.count({ where: { created_at: { gte: todayStart } } }),
-      this.prisma.report.count({ where: { status: ReportStatus.PENDING } }),
-      this.prisma.inquiry.count({ where: { status: InquiryStatus.PENDING } }),
+      this.countPendingReports(),
+      this.countPendingInquiries(),
+      this.adminLiveService.getLiveSummary(),
     ]);
 
     return {
@@ -95,7 +100,33 @@ export class AdminDashboardService {
       inquiries: {
         pending: pendingInquiries,
       },
+      live: liveSummary,
     };
+  }
+
+  /** 사이드바 뱃지용 미처리 건수 — 매출/후원/가입 집계 없이 대기 건수만 조회 */
+  async getPendingCounts() {
+    const [pendingReports, pendingInquiries] = await Promise.all([
+      this.countPendingReports(),
+      this.countPendingInquiries(),
+    ]);
+
+    return {
+      reports: { pending: pendingReports },
+      inquiries: { pending: pendingInquiries },
+    };
+  }
+
+  private countPendingReports(): Promise<number> {
+    return this.prisma.report.count({
+      where: { status: ReportStatus.PENDING },
+    });
+  }
+
+  private countPendingInquiries(): Promise<number> {
+    return this.prisma.inquiry.count({
+      where: { status: InquiryStatus.PENDING },
+    });
   }
 
   private async sumSales(since: Date): Promise<number> {
