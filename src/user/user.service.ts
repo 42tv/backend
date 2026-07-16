@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -9,7 +10,7 @@ import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChannelService } from 'src/channel/channel.service';
-import { Prisma, User } from '@prisma/client';
+import { BroadcastCategory, Prisma, User } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FanLevelService } from 'src/fan-level/fan-level.service';
@@ -25,6 +26,9 @@ import { RedisMessages } from 'src/redis/interfaces/message-namespace';
 import { ErrorMessages } from 'src/common/error-messages';
 import { CoinBalanceService } from 'src/coin-balance/coin-balance.service';
 import { NcpChannelLifecycleService } from 'src/ncp-live-station/services/ncp-channel-lifecycle.service';
+
+/** 가입 시 동의가 필수인 정책 페이지 (Policy.page 기준) */
+const REQUIRED_POLICY_PAGES = ['terms', 'privacy'];
 
 @Injectable()
 export class UserService {
@@ -206,6 +210,7 @@ export class UserService {
       profile_img: user.profile_img,
       nickname: user.nickname,
       identity_verified: user.is_identity_verified,
+      adult_verified: user.is_adult_verified,
       coin: {
         balance: coinBalance.coin_balance,
         charged: coinBalance.total_charged,
@@ -224,6 +229,7 @@ export class UserService {
    */
   async createUser(
     createUserDto: CreateUserDto,
+    ipAddress?: string,
     tx?: Prisma.TransactionClient,
   ) {
     const user = await this.userRepository.findByUserId(createUserDto.id, tx);
@@ -275,6 +281,20 @@ export class UserService {
         });
         //지갑 생성
         await this.coinBalanceService.createCoinBalance(createdUser.idx, tx);
+        //필수 약관 동의 기록 (이용약관·개인정보처리방침 — 동의 시각/버전/IP 증적)
+        const requiredPolicies = await tx.policy.findMany({
+          where: { page: { in: REQUIRED_POLICY_PAGES }, is_active: true },
+        });
+        if (requiredPolicies.length > 0) {
+          await tx.policyAgreement.createMany({
+            data: requiredPolicies.map((policy) => ({
+              user_idx: createdUser.idx,
+              policy_id: policy.id,
+              policy_version: policy.version,
+              ip_address: ipAddress ?? null,
+            })),
+          });
+        }
         const sanitizedUser = { ...createdUser };
         delete sanitizedUser.password;
         return sanitizedUser;
@@ -426,6 +446,23 @@ export class UserService {
     const user = await this.userRepository.getUserWithRelations(user_idx, {
       broadcast_setting: true,
     });
+
+    // ADULT 카테고리인데 is_adult가 꺼져 있으면 시청 성인인증 게이트가 우회됨
+    if (
+      settingDto.category === BroadcastCategory.ADULT &&
+      !settingDto.isAdult
+    ) {
+      throw new BadRequestException(
+        'ADULT 카테고리는 성인 방송 설정과 함께만 사용할 수 있습니다.',
+      );
+    }
+
+    // 청소년보호법 — 성인 방송 설정은 성인인증된 스트리머만 가능
+    if (settingDto.isAdult && !user.is_adult_verified) {
+      throw new ForbiddenException(
+        '성인 방송 설정은 성인인증 완료 후 가능합니다.',
+      );
+    }
 
     try {
       await this.broadcastSettingService.updateBroadcastSetting(

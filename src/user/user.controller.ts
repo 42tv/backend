@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Ip,
   Param,
   Patch,
   Post,
@@ -231,7 +232,10 @@ export class UserController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBody({ description: 'Body 데이터', type: CreateUserDto, required: true })
-  async createUser(@Body() createUserDto: CreateUserDto): Promise<
+  async createUser(
+    @Body() createUserDto: CreateUserDto,
+    @Ip() ip: string,
+  ): Promise<
     SuccessResponseDto<{
       user: {
         idx: number;
@@ -242,7 +246,7 @@ export class UserController {
       };
     }>
   > {
-    const newUser = await this.userService.createUser(createUserDto);
+    const newUser = await this.userService.createUser(createUserDto, ip);
     return ResponseWrapper.success(
       {
         user: {
