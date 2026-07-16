@@ -22,24 +22,21 @@ export class CoinUsageController {
   @Post('use')
   @UseGuards(MemberGuard)
   async useCoins(
-    @GetUser() user: { user_idx: number },
+    @GetUser() user: { idx: number },
     @Body() useCoinDto: UseCoinDto,
   ): Promise<SuccessResponseDto<any>> {
-    const result = await this.coinUsageService.useCoins(
-      user.user_idx,
-      useCoinDto,
-    );
+    const result = await this.coinUsageService.useCoins(user.idx, useCoinDto);
     return ResponseWrapper.success(result, '코인을 사용했습니다.');
   }
 
   @Get('me/history')
   @UseGuards(MemberGuard)
   async getMyUsageHistory(
-    @GetUser() user: { user_idx: number },
+    @GetUser() user: { idx: number },
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ): Promise<SuccessResponseDto<any>> {
     const history = await this.coinUsageService.getMyUsageHistory(
-      user.user_idx,
+      user.idx,
       limit,
     );
     return ResponseWrapper.success(history, '코인 사용 내역을 조회했습니다.');
@@ -48,9 +45,9 @@ export class CoinUsageController {
   @Get('me/stats')
   @UseGuards(MemberGuard)
   async getMyUsageStats(
-    @GetUser() user: { user_idx: number },
+    @GetUser() user: { idx: number },
   ): Promise<SuccessResponseDto<any>> {
-    const stats = await this.coinUsageService.getMyUsageStats(user.user_idx);
+    const stats = await this.coinUsageService.getMyUsageStats(user.idx);
     return ResponseWrapper.success(stats, '코인 사용 통계를 조회했습니다.');
   }
 }
