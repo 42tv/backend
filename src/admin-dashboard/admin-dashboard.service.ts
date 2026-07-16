@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   InquiryStatus,
   PaymentTransactionStatus,
+  RefundRequestStatus,
   ReportStatus,
 } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -58,6 +59,7 @@ export class AdminDashboardService {
       todaySignups,
       pendingReports,
       pendingInquiries,
+      pendingRefundRequests,
       liveSummary,
     ] = await Promise.all([
       this.sumSales(todayStart),
@@ -75,6 +77,7 @@ export class AdminDashboardService {
       this.prisma.user.count({ where: { created_at: { gte: todayStart } } }),
       this.countPendingReports(),
       this.countPendingInquiries(),
+      this.countPendingRefundRequests(),
       this.adminLiveService.getLiveSummary(),
     ]);
 
@@ -100,20 +103,26 @@ export class AdminDashboardService {
       inquiries: {
         pending: pendingInquiries,
       },
+      refundRequests: {
+        pending: pendingRefundRequests,
+      },
       live: liveSummary,
     };
   }
 
   /** 사이드바 뱃지용 미처리 건수 — 매출/후원/가입 집계 없이 대기 건수만 조회 */
   async getPendingCounts() {
-    const [pendingReports, pendingInquiries] = await Promise.all([
-      this.countPendingReports(),
-      this.countPendingInquiries(),
-    ]);
+    const [pendingReports, pendingInquiries, pendingRefundRequests] =
+      await Promise.all([
+        this.countPendingReports(),
+        this.countPendingInquiries(),
+        this.countPendingRefundRequests(),
+      ]);
 
     return {
       reports: { pending: pendingReports },
       inquiries: { pending: pendingInquiries },
+      refundRequests: { pending: pendingRefundRequests },
     };
   }
 
@@ -126,6 +135,13 @@ export class AdminDashboardService {
   private countPendingInquiries(): Promise<number> {
     return this.prisma.inquiry.count({
       where: { status: InquiryStatus.PENDING },
+    });
+  }
+
+  /** 환불 승인 대기 건수 — 전자상거래법 §18 환급 기한(3영업일) 준수 모니터링용 */
+  private countPendingRefundRequests(): Promise<number> {
+    return this.prisma.coinRefundRequest.count({
+      where: { status: RefundRequestStatus.PENDING },
     });
   }
 

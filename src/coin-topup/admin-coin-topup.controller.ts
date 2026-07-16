@@ -8,7 +8,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { TopupStatus } from '@prisma/client';
+import { RefundRequestStatus, TopupStatus } from '@prisma/client';
 import { CoinTopupService } from './coin-topup.service';
 import { AdminGuard } from '../auth/guard/admin.guard';
 import { ResponseWrapper } from 'src/common/utils/response-wrapper.util';
@@ -57,6 +57,66 @@ export class AdminCoinTopupController {
   async getStats(): Promise<SuccessResponseDto<any>> {
     const stats = await this.coinTopupService.getAdminPaymentStats();
     return ResponseWrapper.success(stats, '결제/정산 통계를 조회했습니다.');
+  }
+
+  @Get('refund-requests')
+  async getRefundRequests(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ): Promise<SuccessResponseDto<{ requests: any[] }>> {
+    const take = limit ? parseInt(limit, 10) : 20;
+    const currentPage = page ? parseInt(page, 10) : 1;
+
+    const { items, total } =
+      await this.coinTopupService.findRefundRequestsForAdmin({
+        status:
+          status &&
+          Object.values(RefundRequestStatus).includes(
+            status as RefundRequestStatus,
+          )
+            ? (status as RefundRequestStatus)
+            : undefined,
+        limit: take,
+        offset: (currentPage - 1) * take,
+      });
+
+    return ResponseWrapper.success(
+      { requests: items },
+      '환불 요청 목록을 조회했습니다.',
+      {
+        page: currentPage,
+        limit: take,
+        total,
+        totalPages: Math.ceil(total / take) || 1,
+      },
+    );
+  }
+
+  @Post('refund-requests/:request_id/approve')
+  async approveRefundRequest(
+    @Req() req,
+    @Param('request_id') request_id: string,
+  ): Promise<SuccessResponseDto<any>> {
+    const result = await this.coinTopupService.approveRefundRequest(
+      request_id,
+      req.user.idx,
+    );
+    return ResponseWrapper.success(result, '환불 요청을 승인했습니다.');
+  }
+
+  @Post('refund-requests/:request_id/reject')
+  async rejectRefundRequest(
+    @Req() req,
+    @Param('request_id') request_id: string,
+    @Body() dto: RefundTopupDto,
+  ): Promise<SuccessResponseDto<any>> {
+    const result = await this.coinTopupService.rejectRefundRequest(
+      request_id,
+      req.user.idx,
+      dto.reason,
+    );
+    return ResponseWrapper.success(result, '환불 요청을 거절했습니다.');
   }
 
   @Post(':transaction_id/fail')

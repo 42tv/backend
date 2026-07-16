@@ -35,6 +35,7 @@ model User {
   channel              Channel?
   coinBalance          CoinBalance?
   coinTopups           CoinTopup[]
+  coinRefundRequests   CoinRefundRequest[]
   sentDonations        Donation[]           @relation("SentDonations")
   receivedDonations    Donation[]           @relation("ReceivedDonations")
   fanLevel             FanLevel[]           @relation("CreatorRankTiers")
@@ -517,9 +518,30 @@ model CoinTopup {
   user                   User?               @relation(fields: [user_idx], references: [idx])
   usages                 CoinUsage[]
   payoutCoins            PayoutCoin[]
+  refundRequests         CoinRefundRequest[]
 
   @@index([bootpay_transaction_id], map: "idx_topup_bootpay_transaction")
   @@map("coin_topups")
+}
+
+model CoinRefundRequest {
+  id                  String              @id @default(cuid())
+  topup_id            String
+  user_idx            Int?
+  status              RefundRequestStatus @default(PENDING)
+  remaining_coins     Int
+  expected_amount     Int
+  user_reason         String?
+  reject_reason       String?
+  processed_admin_idx Int?
+  requested_at        DateTime            @default(dbgenerated("timezone('Asia/Seoul'::text, now())"))
+  processed_at        DateTime?
+  topup               CoinTopup           @relation(fields: [topup_id], references: [id])
+  user                User?               @relation(fields: [user_idx], references: [idx])
+
+  @@index([status, requested_at], map: "idx_refund_request_status")
+  @@index([topup_id], map: "idx_refund_request_topup")
+  @@map("coin_refund_requests")
 }
 
 model CoinBalance {
@@ -702,8 +724,16 @@ enum TopupStatus {
   PENDING
   COMPLETED
   FAILED
+  REFUND_REQUESTED
   REFUNDED
   FROZEN
+}
+
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
 }
 
 enum PayoutStatus {

@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
-import { PaymentTransactionStatus, TopupStatus } from '@prisma/client';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  PaymentTransactionStatus,
+  RefundRequestStatus,
+  TopupStatus,
+} from '@prisma/client';
 import { CoinTopupService } from './coin-topup.service';
 import { CoinTopupRepository } from './coin-topup.repository';
 import { ProductService } from '../product/product.service';
@@ -58,6 +62,12 @@ describe('CoinTopupService', () => {
             updateStatus: jest.fn(),
             markRefunded: jest.fn(),
             getAdminStats: jest.fn(),
+            lockTopupForRefund: jest.fn().mockResolvedValue(true),
+            createRefundRequest: jest.fn(),
+            findRefundRequestById: jest.fn(),
+            updateRefundRequest: jest.fn(),
+            findRefundRequestsByUser: jest.fn(),
+            findRefundRequestsForAdmin: jest.fn(),
           },
         },
         {
@@ -343,6 +353,280 @@ describe('CoinTopupService', () => {
       expect(bootpayService.cancelPayment).not.toHaveBeenCalled();
       expect(coinTopupRepository.markRefunded).not.toHaveBeenCalled();
       expect(coinBalanceService.refundCoins).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('환불 요청 승인 플로우 (사용자 청약철회)', () => {
+    // topped_up_at은 KST naive timestamp로 저장됨 — 현재 시각을 동일 표현으로 보정
+    const kstNow = () => new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const daysAgo = (days: number) =>
+      new Date(kstNow().getTime() - days * 24 * 60 * 60 * 1000);
+
+    const baseTopup = {
+      id: 'topup1',
+      user_idx: 1,
+      status: TopupStatus.COMPLETED,
+      base_coins: 1000,
+      bonus_coins: 100,
+      total_coins: 1100,
+      remaining_coins: 1100,
+      paid_amount: 11000,
+      coin_unit_price: 11000 / 1100,
+      topped_up_at: daysAgo(1),
+      transaction: { bootpay_receipt_id: 'receipt1' },
+    };
+
+    const basePendingRequest = {
+      id: 'req1',
+      topup_id: 'topup1',
+      user_idx: 1,
+      status: RefundRequestStatus.PENDING,
+      remaining_coins: 1100,
+      expected_amount: 11000,
+    };
+
+    describe('createRefundRequest (접수)', () => {
+      it('7일 이내 본인 충전 건은 잠금 후 승인 대기로 접수된다', async () => {
+        coinTopupRepository.findById.mockResolvedValue(baseTopup as any);
+        (
+          coinTopupRepository.createRefundRequest as jest.Mock
+        ).mockResolvedValue(basePendingRequest);
+
+        const result = await service.createRefundRequest(
+          'topup1',
+          1,
+          '단순 변심',
+        );
+
+        // 즉시 환불하지 않는다
+        expect(bootpayService.cancelPayment).not.toHaveBeenCalled();
+        expect(coinTopupRepository.markRefunded).not.toHaveBeenCalled();
+
+        expect(coinTopupRepository.lockTopupForRefund).toHaveBeenCalledWith(
+          'topup1',
+          mockTx,
+        );
+        expect(coinTopupRepository.createRefundRequest).toHaveBeenCalledWith(
+          {
+            topup_id: 'topup1',
+            user_idx: 1,
+            remaining_coins: 1100,
+            expected_amount: 11000,
+            user_reason: '단순 변심',
+          },
+          mockTx,
+        );
+        expect(result).toEqual(basePendingRequest);
+      });
+
+      it('이미 환불이 진행 중인 충전은 접수를 거부한다', async () => {
+        coinTopupRepository.findById.mockResolvedValue(baseTopup as any);
+        (coinTopupRepository.lockTopupForRefund as jest.Mock).mockResolvedValue(
+          false,
+        );
+
+        await expect(service.createRefundRequest('topup1', 1)).rejects.toThrow(
+          '이미 환불이 진행 중인 충전입니다.',
+        );
+        expect(coinTopupRepository.createRefundRequest).not.toHaveBeenCalled();
+      });
+
+      it('타인의 충전 건은 접수할 수 없다', async () => {
+        coinTopupRepository.findById.mockResolvedValue(baseTopup as any);
+
+        await expect(service.createRefundRequest('topup1', 2)).rejects.toThrow(
+          NotFoundException,
+        );
+        expect(coinTopupRepository.lockTopupForRefund).not.toHaveBeenCalled();
+      });
+
+      it('결제일로부터 7일이 지나면 접수를 거부한다', async () => {
+        coinTopupRepository.findById.mockResolvedValue({
+          ...baseTopup,
+          topped_up_at: daysAgo(8),
+        } as any);
+
+        await expect(service.createRefundRequest('topup1', 1)).rejects.toThrow(
+          '청약철회 기간(결제일로부터 7일)이 지났습니다. 고객센터로 문의해주세요.',
+        );
+        expect(coinTopupRepository.lockTopupForRefund).not.toHaveBeenCalled();
+      });
+
+      it('전량 사용된 충전 건은 접수를 거부한다', async () => {
+        coinTopupRepository.findById.mockResolvedValue({
+          ...baseTopup,
+          remaining_coins: 0,
+        } as any);
+
+        await expect(service.createRefundRequest('topup1', 1)).rejects.toThrow(
+          BadRequestException,
+        );
+        expect(coinTopupRepository.lockTopupForRefund).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('cancelRefundRequest (사용자 취소)', () => {
+      it('대기 중인 본인 요청은 취소하고 충전 건 잠금을 해제한다', async () => {
+        (
+          coinTopupRepository.findRefundRequestById as jest.Mock
+        ).mockResolvedValue(basePendingRequest);
+
+        const result = await service.cancelRefundRequest('req1', 1);
+
+        expect(coinTopupRepository.updateRefundRequest).toHaveBeenCalledWith(
+          'req1',
+          { status: RefundRequestStatus.CANCELED },
+          mockTx,
+        );
+        expect(coinTopupRepository.updateStatus).toHaveBeenCalledWith(
+          'topup1',
+          TopupStatus.COMPLETED,
+          mockTx,
+        );
+        expect(result.status).toBe(RefundRequestStatus.CANCELED);
+      });
+
+      it('타인의 요청은 취소할 수 없다', async () => {
+        (
+          coinTopupRepository.findRefundRequestById as jest.Mock
+        ).mockResolvedValue(basePendingRequest);
+
+        await expect(service.cancelRefundRequest('req1', 2)).rejects.toThrow(
+          NotFoundException,
+        );
+        expect(coinTopupRepository.updateRefundRequest).not.toHaveBeenCalled();
+      });
+
+      it('이미 처리된 요청은 취소할 수 없다', async () => {
+        (
+          coinTopupRepository.findRefundRequestById as jest.Mock
+        ).mockResolvedValue({
+          ...basePendingRequest,
+          status: RefundRequestStatus.APPROVED,
+        });
+
+        await expect(service.cancelRefundRequest('req1', 1)).rejects.toThrow(
+          '이미 처리된 환불 요청입니다.',
+        );
+        expect(coinTopupRepository.updateRefundRequest).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('approveRefundRequest (관리자 승인)', () => {
+      it('승인 시 PG 취소·환불 처리 후 요청을 APPROVED로 종결한다', async () => {
+        (
+          coinTopupRepository.findRefundRequestById as jest.Mock
+        ).mockResolvedValue(basePendingRequest);
+        coinTopupRepository.findById.mockResolvedValue({
+          ...baseTopup,
+          status: TopupStatus.REFUND_REQUESTED,
+        } as any);
+
+        const result = await service.approveRefundRequest('req1', 99);
+
+        expect(bootpayService.cancelPayment).toHaveBeenCalledWith(
+          'receipt1',
+          undefined,
+          'User',
+          '사용자 청약철회 승인 (요청 req1)',
+          'refund_topup1',
+        );
+        expect(coinTopupRepository.markRefunded).toHaveBeenCalledWith(
+          'topup1',
+          1100,
+          11000,
+          mockTx,
+        );
+        expect(coinBalanceService.refundCoins).toHaveBeenCalledWith(
+          1,
+          1100,
+          mockTx,
+        );
+        expect(coinTopupRepository.updateRefundRequest).toHaveBeenCalledWith(
+          'req1',
+          {
+            status: RefundRequestStatus.APPROVED,
+            processed_admin_idx: 99,
+          },
+          mockTx,
+        );
+        expect(auditLogService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            adminIdx: 99,
+            action: 'REFUND_REQUEST_APPROVE',
+            targetId: 'topup1',
+          }),
+          mockTx,
+        );
+        expect(result.status).toBe(TopupStatus.REFUNDED);
+        expect(result.request_id).toBe('req1');
+      });
+
+      it('잠금 상태(REFUND_REQUESTED)가 아닌 충전 건은 승인할 수 없다', async () => {
+        (
+          coinTopupRepository.findRefundRequestById as jest.Mock
+        ).mockResolvedValue(basePendingRequest);
+        coinTopupRepository.findById.mockResolvedValue(baseTopup as any); // COMPLETED
+
+        await expect(service.approveRefundRequest('req1', 99)).rejects.toThrow(
+          BadRequestException,
+        );
+        expect(bootpayService.cancelPayment).not.toHaveBeenCalled();
+      });
+
+      it('이미 처리된 요청은 승인할 수 없다', async () => {
+        (
+          coinTopupRepository.findRefundRequestById as jest.Mock
+        ).mockResolvedValue({
+          ...basePendingRequest,
+          status: RefundRequestStatus.REJECTED,
+        });
+
+        await expect(service.approveRefundRequest('req1', 99)).rejects.toThrow(
+          '이미 처리된 환불 요청입니다.',
+        );
+        expect(bootpayService.cancelPayment).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('rejectRefundRequest (관리자 거절)', () => {
+      it('거절 시 사유를 기록하고 충전 건 잠금을 해제한다', async () => {
+        (
+          coinTopupRepository.findRefundRequestById as jest.Mock
+        ).mockResolvedValue(basePendingRequest);
+
+        const result = await service.rejectRefundRequest(
+          'req1',
+          99,
+          '결제 도용 의심',
+        );
+
+        expect(coinTopupRepository.updateRefundRequest).toHaveBeenCalledWith(
+          'req1',
+          {
+            status: RefundRequestStatus.REJECTED,
+            processed_admin_idx: 99,
+            reject_reason: '결제 도용 의심',
+          },
+          mockTx,
+        );
+        expect(coinTopupRepository.updateStatus).toHaveBeenCalledWith(
+          'topup1',
+          TopupStatus.COMPLETED,
+          mockTx,
+        );
+        expect(auditLogService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            adminIdx: 99,
+            action: 'REFUND_REQUEST_REJECT',
+            targetId: 'req1',
+            reason: '결제 도용 의심',
+          }),
+          mockTx,
+        );
+        expect(bootpayService.cancelPayment).not.toHaveBeenCalled();
+        expect(result.status).toBe(RefundRequestStatus.REJECTED);
+      });
     });
   });
 });
