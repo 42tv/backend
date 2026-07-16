@@ -58,6 +58,17 @@ export class AdminLiveService {
   }
 
   /**
+   * 대시보드용 라이브 집계 — 비공개 포함 방송 수와 전체 시청자 합산
+   */
+  async getLiveSummary() {
+    const lives = await this.getAdminLiveList();
+    return {
+      count: lives.length,
+      totalViewers: lives.reduce((sum, live) => sum + live.viewerCount, 0),
+    };
+  }
+
+  /**
    * 방송 강제 종료 — NCP 채널 정지로 실제 ingest 를 끊고 정리 플로우를 트리거.
    * NCP 채널 정지(BLOCK) → 시청자 키 정리 → Stream 삭제 → 전 서버에 종료 이벤트 전파
    * 1회성 종료(제재 아님): 세션 절단 후 수초 뒤 채널을 자동 재활성화해

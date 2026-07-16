@@ -65,7 +65,7 @@ export class NcpStreamEventService {
     if (dto.event === 'PUBLISH_START') {
       await this.streamStart(ncp, dto);
     } else if (dto.event === 'PUBLISH_END') {
-      await this.streamStop(ncp);
+      // await this.streamStop(ncp);
     }
   }
 

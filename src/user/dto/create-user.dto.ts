@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, Length, Matches } from 'class-validator';
+import {
+  Equals,
+  IsBoolean,
+  IsNotEmpty,
+  IsString,
+  Length,
+  Matches,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
@@ -37,4 +44,31 @@ export class CreateUserDto {
     description: '닉네임',
   })
   nickname: string;
+
+  @IsBoolean()
+  @Equals(true, { message: '이용약관에 동의해야 가입할 수 있습니다.' })
+  @ApiProperty({
+    example: true,
+    description: '이용약관 동의 (필수)',
+  })
+  termsAgreed: boolean;
+
+  @IsBoolean()
+  @Equals(true, {
+    message: '개인정보 수집·이용에 동의해야 가입할 수 있습니다.',
+  })
+  @ApiProperty({
+    example: true,
+    description: '개인정보 수집·이용 동의 (필수)',
+  })
+  privacyAgreed: boolean;
+
+  // 개인정보보호법 §22의2 — 만 14세 미만은 법정대리인 동의 없이 가입 불가
+  @IsBoolean()
+  @Equals(true, { message: '만 14세 이상만 가입할 수 있습니다.' })
+  @ApiProperty({
+    example: true,
+    description: '만 14세 이상 확인 (필수)',
+  })
+  isOver14: boolean;
 }

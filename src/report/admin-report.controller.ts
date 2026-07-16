@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -79,5 +80,14 @@ export class AdminReportController {
       dto,
     );
     return ResponseWrapper.success(resolved, '신고를 처리했습니다.');
+  }
+
+  @Delete(':id')
+  async deleteReport(
+    @Req() req,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SuccessResponseDto<any>> {
+    const deleted = await this.reportService.deleteReport(id, req.user.idx);
+    return ResponseWrapper.success(deleted, '신고를 삭제했습니다.');
   }
 }

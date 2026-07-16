@@ -15,6 +15,7 @@ import { RealtimeRedisModule } from 'src/redis/redis.module';
 import { CoinBalanceModule } from 'src/coin-balance/coin-balance.module';
 import { NcpLiveStationModule } from 'src/ncp-live-station/ncp-live-station.module';
 import { AdminAuditLogModule } from 'src/admin-audit-log/admin-audit-log.module';
+import { NotificationModule } from 'src/notification/notification.module';
 import { AdminUserController } from './admin-user.controller';
 import { AdminUserService } from './admin-user.service';
 import { AdminUserRepository } from './admin-user.repository';
@@ -33,6 +34,7 @@ import { AdminUserRepository } from './admin-user.repository';
     NcpLiveStationModule,
     forwardRef(() => RealtimeRedisModule),
     AdminAuditLogModule,
+    NotificationModule,
   ],
   controllers: [UserController, AdminUserController],
   providers: [

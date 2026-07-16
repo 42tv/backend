@@ -31,11 +31,14 @@ describe('UserService', () => {
       id: 'validID',
       password: 'StrongP@ss1',
       nickname: 'nickname123',
+      termsAgreed: true,
+      privacyAgreed: true,
+      isOver14: true,
     });
     try {
       await prisma.$transaction(async (tx) => {
-        await service.createUser(dto, tx);
-        await service.createUser(dto, tx);
+        await service.createUser(dto, undefined, tx);
+        await service.createUser(dto, undefined, tx);
       });
     } catch (e) {
       expect(e).toBeInstanceOf(BadRequestException);
@@ -47,10 +50,13 @@ describe('UserService', () => {
       id: 'validID',
       password: 'StrongP@ss1',
       nickname: 'nickname123',
+      termsAgreed: true,
+      privacyAgreed: true,
+      isOver14: true,
     });
     try {
       await prisma.$transaction(async (tx) => {
-        const user = await service.createUser(dto, tx);
+        const user = await service.createUser(dto, undefined, tx);
         const channel = await tx.channel.findUnique({
           where: { user_idx: user.idx },
         });

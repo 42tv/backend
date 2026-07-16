@@ -7,8 +7,9 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProductModule } from '../product/product.module';
 import { PaymentModule } from '../payment/payment.module';
 import { CoinBalanceModule } from '../coin-balance/coin-balance.module';
-import { CoinUsageModule } from '../coin-usage/coin-usage.module';
 import { PayoutCoinModule } from '../payout-coin/payout-coin.module';
+import { BootpayModule } from '../bootpay/bootpay.module';
+import { AdminAuditLogModule } from '../admin-audit-log/admin-audit-log.module';
 
 @Module({
   imports: [
@@ -16,8 +17,9 @@ import { PayoutCoinModule } from '../payout-coin/payout-coin.module';
     ProductModule,
     forwardRef(() => PaymentModule),
     CoinBalanceModule,
-    forwardRef(() => CoinUsageModule),
     forwardRef(() => PayoutCoinModule),
+    BootpayModule,
+    AdminAuditLogModule,
   ],
   controllers: [CoinTopupController, AdminCoinTopupController],
   providers: [CoinTopupRepository, CoinTopupService],

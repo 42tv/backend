@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Ip,
   Param,
   Patch,
   Post,
@@ -18,6 +19,10 @@ import {
 import { Response } from 'express';
 import { UserService } from './user.service';
 import { AccountDeletionService } from './account-deletion.service';
+import {
+  NotificationService,
+  NotificationSummary,
+} from 'src/notification/notification.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import {
@@ -67,7 +72,20 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly accountDeletionService: AccountDeletionService,
+    private readonly notificationService: NotificationService,
   ) {}
+
+  /**
+   * 내 알림 요약 (뱃지 표시용, 미읽음 쪽지·문의 답변 COUNT)
+   */
+  @Get('me/notification')
+  @UseGuards(MemberGuard)
+  async getNotificationSummary(
+    @Req() req,
+  ): Promise<SuccessResponseDto<NotificationSummary>> {
+    const summary = await this.notificationService.getSummary(req.user.idx);
+    return ResponseWrapper.success(summary, '알림 요약을 조회했습니다.');
+  }
 
   /**
    * 회원 탈퇴 (개인정보보호법 §36 삭제권)
@@ -214,7 +232,10 @@ export class UserController {
     type: CustomInternalServerErrorResponse,
   })
   @ApiBody({ description: 'Body 데이터', type: CreateUserDto, required: true })
-  async createUser(@Body() createUserDto: CreateUserDto): Promise<
+  async createUser(
+    @Body() createUserDto: CreateUserDto,
+    @Ip() ip: string,
+  ): Promise<
     SuccessResponseDto<{
       user: {
         idx: number;
@@ -225,7 +246,7 @@ export class UserController {
       };
     }>
   > {
-    const newUser = await this.userService.createUser(createUserDto);
+    const newUser = await this.userService.createUser(createUserDto, ip);
     return ResponseWrapper.success(
       {
         user: {
